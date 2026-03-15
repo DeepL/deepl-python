@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 from .conftest import (
+    _make_translator,
     example_text,
     needs_mock_server,
     needs_mock_proxy_server,
@@ -165,13 +166,15 @@ def test_user_agent_opt_out(mock_send):
 @patch("requests.adapters.HTTPAdapter.send")
 def test_custom_user_agent(mock_send):
     mock_send.return_value = _build_test_response()
-    old_user_agent = deepl.http_client.user_agent
-    deepl.http_client.user_agent = "my custom user agent"
-    translator = deepl.Translator(os.environ["DEEPL_AUTH_KEY"])
-    translator.translate_text(example_text["EN"], target_lang="DA")
-    ua_header = mock_send.call_args[0][0].headers["User-agent"]
-    assert ua_header == "my custom user agent"
-    deepl.http_client.user_agent = old_user_agent
+    with pytest.warns(DeprecationWarning, match="user_agent"):
+        deepl.http_client.user_agent = "my custom user agent"
+    try:
+        translator = deepl.Translator(os.environ["DEEPL_AUTH_KEY"])
+        translator.translate_text(example_text["EN"], target_lang="DA")
+        ua_header = mock_send.call_args[0][0].headers["User-agent"]
+        assert ua_header == "my custom user agent"
+    finally:
+        deepl.http_client.user_agent = None
 
 
 @patch("requests.adapters.HTTPAdapter.send")
@@ -206,15 +209,56 @@ def test_user_agent_opt_out_with_app_info(mock_send):
 @patch("requests.adapters.HTTPAdapter.send")
 def test_custom_user_agent_with_app_info(mock_send):
     mock_send.return_value = _build_test_response()
-    old_user_agent = deepl.http_client.user_agent
-    deepl.http_client.user_agent = "my custom user agent"
-    translator = deepl.Translator(os.environ["DEEPL_AUTH_KEY"]).set_app_info(
-        "sample_python_plugin", "1.0.2"
+    with pytest.warns(DeprecationWarning, match="user_agent"):
+        deepl.http_client.user_agent = "my custom user agent"
+    try:
+        translator = deepl.Translator(
+            os.environ["DEEPL_AUTH_KEY"]
+        ).set_app_info("sample_python_plugin", "1.0.2")
+        translator.translate_text(example_text["EN"], target_lang="DA")
+        ua_header = mock_send.call_args[0][0].headers["User-agent"]
+        assert ua_header == "my custom user agent sample_python_plugin/1.0.2"
+    finally:
+        deepl.http_client.user_agent = None
+
+
+@patch("requests.adapters.HTTPAdapter.send")
+def test_set_user_agent(mock_send):
+    mock_send.return_value = _build_test_response()
+    translator = deepl.Translator(os.environ["DEEPL_AUTH_KEY"]).set_user_agent(
+        "my-proxy/1.0"
     )
     translator.translate_text(example_text["EN"], target_lang="DA")
     ua_header = mock_send.call_args[0][0].headers["User-agent"]
-    assert ua_header == "my custom user agent sample_python_plugin/1.0.2"
-    deepl.http_client.user_agent = old_user_agent
+    assert ua_header == "my-proxy/1.0"
+
+
+@patch("requests.adapters.HTTPAdapter.send")
+def test_set_user_agent_with_app_info(mock_send):
+    mock_send.return_value = _build_test_response()
+    translator = (
+        deepl.Translator(os.environ["DEEPL_AUTH_KEY"])
+        .set_user_agent("my-proxy/1.0")
+        .set_app_info("plugin", "1.2")
+    )
+    translator.translate_text(example_text["EN"], target_lang="DA")
+    ua_header = mock_send.call_args[0][0].headers["User-agent"]
+    assert ua_header == "my-proxy/1.0 plugin/1.2"
+
+
+def test_http_client_user_agent_deprecated():
+    with pytest.warns(DeprecationWarning, match="user_agent"):
+        deepl.http_client.user_agent = "something"
+    deepl.http_client.user_agent = None  # restore without warning
+
+
+@patch("requests.adapters.HTTPAdapter.send")
+def test_user_agent_contains_http_library_info(mock_send):
+    mock_send.return_value = _build_test_response()
+    translator = deepl.Translator(os.environ["DEEPL_AUTH_KEY"])
+    translator.translate_text(example_text["EN"], target_lang="DA")
+    ua_header = mock_send.call_args[0][0].headers["User-agent"]
+    assert "requests/" in ua_header
 
 
 @patch("requests.adapters.HTTPAdapter.send")
@@ -246,24 +290,29 @@ def test_proxy_usage(
 
 
 @needs_mock_server
-def test_usage_no_response(translator, server, monkeypatch):
+def test_usage_no_response(server):
     server.no_response(2)
 
-    # Lower the retry count and timeout for this test, and restore after test
-    monkeypatch.setattr(deepl.http_client, "max_network_retries", 0)
-    monkeypatch.setattr(deepl.http_client, "min_connection_timeout", 1.0)
-
+    translator = _make_translator(
+        server,
+        retry_config=deepl.RetryConfig(
+            max_retries=0, min_connection_timeout=1.0
+        ),
+    )
     with pytest.raises(deepl.exceptions.ConnectionException):
         translator.get_usage()
 
 
 @needs_mock_server
-def test_translate_too_many_requests(translator, server, monkeypatch):
+def test_translate_too_many_requests(server):
     server.respond_with_429(2)
-    # Lower the retry count and timeout for this test, and restore after test
-    monkeypatch.setattr(deepl.http_client, "max_network_retries", 1)
-    monkeypatch.setattr(deepl.http_client, "min_connection_timeout", 1.0)
 
+    translator = _make_translator(
+        server,
+        retry_config=deepl.RetryConfig(
+            max_retries=1, min_connection_timeout=1.0
+        ),
+    )
     with pytest.raises(deepl.exceptions.TooManyRequestsException):
         translator.translate_text(example_text["EN"], target_lang="DE")
 
@@ -358,6 +407,7 @@ def _build_test_response():
         "Connection": "keep-alive",
         "Access-Control-Allow-Origin": "*",
     }
+    response.content = response.text.encode("utf-8")
     response.encoding = "utf-8"
     response.history = None
     response.raw = None

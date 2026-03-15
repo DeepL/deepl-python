@@ -834,9 +834,9 @@ deepl_client = deepl.DeepLClient(...).set_app_info("sample_python_plugin", "1.0.
 ```
 
 This information is passed along when the library makes calls to the DeepL API.
-Both name and version are required. Please note that setting the `User-Agent` header
-via `deepl.http_client.user_agent` will override this setting, if you need to use this,
-please manually identify your Application in the `User-Agent` header.
+Both name and version are required. Please note that calling `set_user_agent()`
+will override this setting, if you need to use this, please manually identify
+your Application in the custom user agent string.
 
 ### Exceptions
 
@@ -901,20 +901,27 @@ option, see the [documentation for requests][requests-verify-ssl-docs].
 #### Configure automatic retries
 
 This SDK will automatically retry failed HTTP requests (if the failures could
-be transient, e.g. a HTTP 429 status code). This behaviour can be configured
-in `http_client.py`, for example by default the number of retries is 5. This
-can be changed to 3 as follows:
+be transient, e.g. a HTTP 429 status code). The recommended way to configure
+this behaviour is via `RetryConfig`:
 
 ```python
 import deepl
 
-deepl.http_client.max_network_retries = 3
-c = deepl.DeepLClient(...)
-c.translate_text(...)
+retry_config = deepl.RetryConfig(max_retries=3, min_connection_timeout=5.0)
+deepl_client = deepl.DeepLClient(..., retry_config=retry_config)
+deepl_client.translate_text(...)
 ```
 
-You can configure the timeout `min_connection_timeout` the same way, as well
-as set a custom `user_agent`, see the next section.
+`RetryConfig` accepts the following parameters:
+- `max_retries` (default: `5`): maximum number of retry attempts.
+- `min_connection_timeout` (default: `10.0`): connection timeout in seconds.
+
+> **Deprecated:** The `deepl.http_client.max_network_retries` and
+> `deepl.http_client.min_connection_timeout` module-level variables are
+> deprecated and will be removed in a future version. When set, they are
+> read once at `DeepLClient` construction time and override the corresponding
+> `RetryConfig` fields. **They have no effect if set after the client is
+> constructed.**
 
 #### Anonymous platform information
 
@@ -924,12 +931,18 @@ By default, we send some basic information about the platform the client library
 deepl_client = deepl.DeepLClient(..., send_platform_info=False)
 ```
 
-You can also customize the `user_agent` by setting its value explicitly before constructing your `deepl.DeepLClient` object.
+You can also replace the entire `User-Agent` header with a custom string using
+`set_user_agent()`:
 
 ```python
-deepl.http_client.user_agent = 'my custom user agent'
-deepl_client = deepl.DeepLClient(os.environ["DEEPL_AUTH_KEY"])
+deepl_client = deepl.DeepLClient(os.environ["DEEPL_AUTH_KEY"]).set_user_agent(
+    "my custom user agent"
+)
 ```
+
+> **Deprecated:** Setting `deepl.http_client.user_agent` before constructing
+> the client is deprecated and will be removed in a future version. Use
+> `set_user_agent()` instead.
 
 ## Command Line Interface
 

@@ -3,7 +3,12 @@
 # license that can be found in the LICENSE file.
 import re
 
-from .conftest import example_text, needs_mock_server, needs_real_server
+from .conftest import (
+    _make_translator,
+    example_text,
+    needs_mock_server,
+    needs_real_server,
+)
 import deepl
 import io
 import pathlib
@@ -35,17 +40,17 @@ def test_translate_document_from_filepath(
 
 @needs_mock_server
 def test_translate_document_with_retry(
-    translator,
     server,
     example_document_path,
     example_document_translation,
     output_document_path,
-    monkeypatch,
 ):
     server.no_response(1)
-    # Lower the timeout for this test, and restore after test
-    monkeypatch.setattr(deepl.http_client, "min_connection_timeout", 1.0)
 
+    translator = _make_translator(
+        server,
+        retry_config=deepl.RetryConfig(min_connection_timeout=1.0),
+    )
     translator.translate_document_from_filepath(
         example_document_path,
         output_path=output_document_path,

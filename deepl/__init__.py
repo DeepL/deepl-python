@@ -6,7 +6,10 @@ from .version import VERSION as __version__  # noqa
 
 __author__ = "DeepL SE <python-api@deepl.com>"
 
-from .deepl_client import DeepLClient
+from .deepl_client import DeepLClient  # noqa
+from .requests_client import RequestsClient  # noqa
+from .retry_config import RetryConfig  # noqa
+from ._http_types import SslConfig  # noqa
 
 from .exceptions import (  # noqa
     AuthorizationException,
@@ -45,11 +48,15 @@ __all__ = [
     "__version__",
     "__author__",
     "DeepLClient",
+    "RequestsClient",
+    "RetryConfig",
+    "SslConfig",
     "DocumentHandle",
     "DocumentStatus",
     "Formality",
     "GlossaryInfo",
     "Language",
+    "ModelType",
     "SplitSentences",
     "TextResult",
     "Translator",

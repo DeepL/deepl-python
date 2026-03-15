@@ -135,13 +135,16 @@ def server(config):
     return Server()
 
 
-def _make_translator(server, auth_key=None, proxy=None):
+def _make_translator(server, auth_key=None, proxy=None, retry_config=None):
     """Returns a deepl.Translator for the specified server test fixture.
     The server auth_key is used unless specifically overridden."""
     if auth_key is None:
         auth_key = server.auth_key
+    kwargs = {}
+    if retry_config is not None:
+        kwargs["retry_config"] = retry_config
     translator = deepl.Translator(
-        auth_key, server_url=server.server_url, proxy=proxy
+        auth_key, server_url=server.server_url, proxy=proxy, **kwargs
     )
 
     # If the server test fixture has custom headers defined, update the
@@ -230,6 +233,15 @@ def cleanup_matching_glossaries(deepl_client):
                     pass
 
     return do_cleanup
+
+
+@pytest.fixture
+def mock_http_client():
+    """Returns a fresh MockHttpClient for unit tests that don't hit the
+    network."""
+    from .mock_http_client import MockHttpClient
+
+    return MockHttpClient()
 
 
 class ManagedGlossary:

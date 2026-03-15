@@ -2,23 +2,15 @@
 # Use of this source code is governed by an MIT
 # license that can be found in the LICENSE file.
 
-from deepl.api_data import (
-    CustomInstruction,
-    MultilingualGlossaryDictionaryEntries,
-    MultilingualGlossaryDictionaryEntriesResponse,
-    MultilingualGlossaryDictionaryInfo,
-    MultilingualGlossaryInfo,
-    Language,
-    WriteResult,
-    StyleRuleInfo,
-    TranslationMemoryInfo,
-)
-from deepl.translator import Translator
-from deepl import util
-import urllib.parse
+import json as json_module
+import os
+import pathlib
+import time
+import warnings
 from typing import (
     Any,
     BinaryIO,
+    Callable,
     Dict,
     Iterable,
     List,
@@ -27,8 +19,126 @@ from typing import (
     Union,
 )
 
+from .api_data import (
+    CustomInstruction,
+    DocumentHandle,
+    DocumentStatus,
+    Formality,
+    GlossaryInfo,
+    GlossaryLanguagePair,
+    Language,
+    ModelType,
+    MultilingualGlossaryDictionaryEntries,
+    MultilingualGlossaryDictionaryEntriesResponse,
+    MultilingualGlossaryDictionaryInfo,
+    MultilingualGlossaryInfo,
+    SplitSentences,
+    StyleRuleInfo,
+    TextResult,
+    TranslationMemoryInfo,
+    Usage,
+    WriteResult,
+)
+from ._backoff_timer import BackoffTimer
+from ._client_base import _ClientBase
+from ._http_types import (
+    HttpRequest,
+    HttpResponse,
+    SslConfig,
+    StreamingHttpResponse,
+)
+from ._methods import (
+    _build_create_glossary_request,
+    _build_create_multilingual_glossary_request,
+    _build_delete_glossary_request,
+    _build_delete_multilingual_glossary_dict_request,
+    _build_delete_multilingual_glossary_request,
+    _build_document_download_request,
+    _build_document_status_request,
+    _build_document_upload_request,
+    _build_get_glossary_entries_request,
+    _build_get_glossary_languages_request,
+    _build_get_glossary_request,
+    _build_get_multilingual_glossary_entries_request,
+    _build_get_multilingual_glossary_request,
+    _build_get_source_languages_request,
+    _build_create_style_rule_custom_instruction_request,
+    _build_create_style_rule_request,
+    _build_delete_style_rule_custom_instruction_request,
+    _build_delete_style_rule_request,
+    _build_get_style_rule_custom_instruction_request,
+    _build_get_style_rule_request,
+    _build_get_style_rules_request,
+    _build_get_target_languages_request,
+    _build_update_style_rule_configured_rules_request,
+    _build_update_style_rule_custom_instruction_request,
+    _build_update_style_rule_name_request,
+    _build_get_usage_request,
+    _build_list_glossaries_request,
+    _build_list_multilingual_glossaries_request,
+    _build_list_translation_memories_request,
+    _build_rephrase_text_request,
+    _build_replace_multilingual_glossary_dict_request,
+    _build_translate_text_request,
+    _build_update_multilingual_glossary_dict_request,
+    _build_update_multilingual_glossary_name_request,
+    _parse_create_glossary_response,
+    _parse_document_status_response,
+    _parse_document_upload_response,
+    _parse_get_glossary_entries_response,
+    _parse_get_glossary_languages_response,
+    _parse_get_glossary_response,
+    _parse_get_source_languages_response,
+    _parse_custom_instruction_response,
+    _parse_get_style_rules_response,
+    _parse_get_target_languages_response,
+    _parse_style_rule_response,
+    _parse_get_usage_response,
+    _parse_list_glossaries_response,
+    _parse_list_multilingual_glossaries_response,
+    _parse_multilingual_glossary_dict_response,
+    _parse_multilingual_glossary_entries_response,
+    _parse_multilingual_glossary_response,
+    _parse_list_translation_memories_response,
+    _parse_rephrase_text_response,
+    _parse_translate_text_response,
+)
+from .exceptions import (
+    ConnectionException,
+    DeepLException,
+    DocumentTranslationException,
+)
+from .ihttp_client import HttpClientProtocol
+from .requests_client import RequestsClient
+from .retry_config import RetryConfig
+from . import util
 
-class DeepLClient(Translator):
+_DEFAULT_RETRY_CONFIG = RetryConfig()
+
+
+class DeepLClient(_ClientBase):
+    """Client for the DeepL API.
+
+    :param auth_key: Authentication key as found in your DeepL API account.
+    :param server_url: (Optional) Base URL of DeepL API, can be overridden
+        for testing purposes.
+    :param proxy: (Optional) Proxy URL string or dict with ``"http"``/
+        ``"https"`` keys. Forwarded to the default :class:`RequestsClient`.
+        Raises :exc:`ValueError` if ``http_client`` is also supplied.
+    :param send_platform_info: (Optional) If True (default), include OS and
+        Python version in User-Agent header.
+    :param verify_ssl: (Optional) SSL certificate verification. Forwarded to
+        the default :class:`RequestsClient`. Raises :exc:`ValueError` if
+        ``http_client`` is also supplied. See :data:`SslConfig`.
+    :param http_client: (Optional) Custom HTTP client implementing
+        :class:`~deepl.HttpClientProtocol`. When supplied, ``proxy`` and
+        ``verify_ssl`` must not be set.
+    :param retry_config: (Optional) Backoff/retry settings. Applies regardless
+        of which ``http_client`` is used.
+    :param skip_language_check: Deprecated, no-op. Will be removed in a
+        future version.
+    """
+
     def __init__(
         self,
         auth_key: str,
@@ -36,125 +146,725 @@ class DeepLClient(Translator):
         server_url: Optional[str] = None,
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
-        verify_ssl: Union[bool, str, None] = None,
+        verify_ssl: SslConfig = None,
+        http_client: Optional[HttpClientProtocol] = None,
+        retry_config: RetryConfig = _DEFAULT_RETRY_CONFIG,
         skip_language_check: bool = False,
-    ):
-        super().__init__(
-            auth_key,
-            server_url=server_url,
-            proxy=proxy,
-            send_platform_info=send_platform_info,
-            verify_ssl=verify_ssl,
-            skip_language_check=skip_language_check,
+        _sleep_fn: Optional[Callable[[float], None]] = None,
+    ) -> None:
+        super().__init__(auth_key, server_url, send_platform_info)
+
+        from . import http_client as _hc
+
+        if _hc.max_network_retries is not None or (
+            _hc.min_connection_timeout is not None
+        ):
+            retry_config = RetryConfig(
+                max_retries=(
+                    _hc.max_network_retries
+                    if _hc.max_network_retries is not None
+                    else retry_config.max_retries
+                ),
+                min_connection_timeout=(
+                    _hc.min_connection_timeout
+                    if _hc.min_connection_timeout is not None
+                    else retry_config.min_connection_timeout
+                ),
+                backoff_initial=retry_config.backoff_initial,
+                backoff_max=retry_config.backoff_max,
+                backoff_multiplier=retry_config.backoff_multiplier,
+                backoff_jitter=retry_config.backoff_jitter,
+            )
+
+        if http_client is not None and (
+            proxy is not None or verify_ssl is not None
+        ):
+            raise ValueError(
+                "proxy and verify_ssl must not be set when "
+                "http_client is supplied; configure the "
+                "http_client directly instead."
+            )
+
+        if skip_language_check:
+            warnings.warn(
+                "skip_language_check is deprecated and has no effect.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        if http_client is None:
+            http_client = RequestsClient(
+                proxy=proxy,
+                verify_ssl=verify_ssl,
+            )
+
+        self._http_client: HttpClientProtocol = http_client  # type: ignore[assignment]
+        self._http_library_info = self._http_client.http_library_info
+        if _hc.user_agent is not None:
+            self.set_user_agent(_hc.user_agent)
+        self._retry_config = retry_config
+        self._sleep_fn: Callable[[float], None] = (
+            _sleep_fn if _sleep_fn is not None else time.sleep
+        )
+        self.headers: Dict[str, str] = {}
+
+    # ------------------------------------------------------------------
+    # Context manager / lifecycle
+    # ------------------------------------------------------------------
+
+    def close(self) -> None:
+        """Close the underlying HTTP client and release resources."""
+        if hasattr(self, "_http_client"):
+            self._http_client.close()
+
+    def __enter__(self) -> "DeepLClient":
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        self.close()
+
+    def __del__(self) -> None:
+        self.close()
+
+    # ------------------------------------------------------------------
+    # Internal: retry loop
+    # ------------------------------------------------------------------
+
+    def _send_with_backoff(self, request: HttpRequest) -> HttpResponse:
+        """Send a request with exponential-backoff retry.
+
+        Adds auth headers, then retries on ConnectionException (with
+        should_retry=True), 429, and 5xx up to retry_config.max_retries times.
+        """
+        max_retries = self._retry_config.max_retries
+        min_timeout = self._retry_config.min_connection_timeout
+
+        auth_headers = self._make_auth_headers()
+        merged_headers = {**auth_headers, **self.headers, **request.headers}
+        base_request = HttpRequest(
+            method=request.method,
+            url=request.url,
+            headers=merged_headers,
+            body=request.body,
+            multipart=request.multipart,
         )
 
-    def rephrase_text(
+        util.log_info(
+            "Request to DeepL API",
+            method=base_request.method,
+            url=base_request.url,
+        )
+        if base_request.body:
+            try:
+                body_json = json_module.loads(base_request.body)
+            except Exception:
+                body_json = base_request.body.decode("utf-8", errors="replace")
+            util.log_debug("Request details", data={}, json=body_json)
+        elif base_request.multipart:
+            util.log_debug(
+                "Request details",
+                data=base_request.multipart.fields,
+                json=None,
+            )
+        else:
+            util.log_debug("Request details", data={}, json=None)
+
+        timer = BackoffTimer(self._retry_config)
+        while True:
+            request = HttpRequest(
+                method=base_request.method,
+                url=base_request.url,
+                headers=base_request.headers,
+                body=base_request.body,
+                multipart=base_request.multipart,
+                timeout=timer.get_timeout(min_timeout),
+            )
+            response: Optional[HttpResponse] = None
+            exception: Optional[ConnectionException] = None
+            try:
+                response = self._http_client.send(request)
+            except ConnectionException as e:
+                exception = e
+
+            if exception is not None:
+                if (
+                    exception.should_retry
+                    and timer.get_num_retries() < max_retries
+                ):
+                    util.log_info(
+                        f"Encountered a retryable-exception: {exception}"
+                    )
+                    util.log_info(
+                        f"Starting retry {timer.get_num_retries() + 1} after "
+                        f"{timer.get_time_until_deadline():.2f}s"
+                    )
+                    self._sleep_fn(timer.get_time_until_deadline())
+                    timer.advance()
+                    continue
+                raise exception
+
+            assert response is not None
+            util.log_info(
+                "DeepL API response",
+                url=request.url,
+                status_code=response.status_code,
+            )
+            status = response.status_code
+            # Retry on 429 and any 5xx uniformly. The retry decision is made
+            # here before _raise_for_status, so it is independent of the
+            # should_retry flag on the eventual exception. All 5xx responses
+            # are considered transient at this layer.
+            if (
+                status == 429 or status >= 500
+            ) and timer.get_num_retries() < max_retries:
+                util.log_info(
+                    f"Starting retry {timer.get_num_retries() + 1} for "
+                    f"HTTP {status} after "
+                    f"{timer.get_time_until_deadline():.2f}s"
+                )
+                self._sleep_fn(timer.get_time_until_deadline())
+                timer.advance()
+                continue
+
+            return response
+
+    def _send_streaming_with_backoff(
+        self, request: HttpRequest
+    ) -> StreamingHttpResponse:
+        """Like _send_with_backoff but for streaming (document download)."""
+        max_retries = self._retry_config.max_retries
+        min_timeout = self._retry_config.min_connection_timeout
+
+        auth_headers = self._make_auth_headers()
+        merged_headers = {**auth_headers, **self.headers, **request.headers}
+        base_request = HttpRequest(
+            method=request.method,
+            url=request.url,
+            headers=merged_headers,
+            body=request.body,
+            multipart=request.multipart,
+        )
+
+        util.log_info(
+            "Request to DeepL API",
+            method=base_request.method,
+            url=base_request.url,
+        )
+
+        timer = BackoffTimer(self._retry_config)
+        while True:
+            request = HttpRequest(
+                method=base_request.method,
+                url=base_request.url,
+                headers=base_request.headers,
+                body=base_request.body,
+                multipart=base_request.multipart,
+                timeout=timer.get_timeout(min_timeout),
+            )
+            exception: Optional[ConnectionException] = None
+            try:
+                streaming = self._http_client.send_streaming(request)
+            except ConnectionException as e:
+                exception = e
+                streaming = None  # type: ignore[assignment]
+
+            if exception is not None:
+                if (
+                    exception.should_retry
+                    and timer.get_num_retries() < max_retries
+                ):
+                    util.log_info(
+                        f"Encountered a retryable-exception: {exception}"
+                    )
+                    util.log_info(
+                        f"Starting retry {timer.get_num_retries() + 1} after "
+                        f"{timer.get_time_until_deadline():.2f}s"
+                    )
+                    self._sleep_fn(timer.get_time_until_deadline())
+                    timer.advance()
+                    continue
+                raise exception
+
+            assert streaming is not None
+            util.log_info(
+                "DeepL API response",
+                url=request.url,
+                status_code=streaming.status_code,
+            )
+            status = streaming.status_code
+            if (
+                status == 429 or status >= 500
+            ) and timer.get_num_retries() < max_retries:
+                util.log_info(
+                    f"Starting retry {timer.get_num_retries() + 1} for "
+                    f"HTTP {status} after "
+                    f"{timer.get_time_until_deadline():.2f}s"
+                )
+                # Consume and discard the error body before retrying.
+                for _ in streaming.iter_content(65536):
+                    pass
+                self._sleep_fn(timer.get_time_until_deadline())
+                timer.advance()
+                continue
+
+            return streaming
+
+    # ------------------------------------------------------------------
+    # Public API: text translation
+    # ------------------------------------------------------------------
+
+    def translate_text(
         self,
         text: Union[str, Iterable[str]],
         *,
-        target_lang: Union[None, str, Language] = None,
-        style: Optional[str] = None,
-        tone: Optional[str] = None,
-    ) -> Union[WriteResult, List[WriteResult]]:
-        """Improve the text(s) and optionally convert them to the variant of
-        the `target_lang` (requires source lang to match target_lang, excluding
-        variants).
+        source_lang: Union[str, Language, None] = None,
+        target_lang: Union[str, Language],
+        context: Optional[str] = None,
+        split_sentences: Union[str, SplitSentences, None] = None,
+        preserve_formatting: Optional[bool] = None,
+        formality: Union[str, Formality, None] = None,
+        glossary: Union[
+            str, GlossaryInfo, MultilingualGlossaryInfo, None
+        ] = None,
+        tag_handling: Optional[str] = None,
+        tag_handling_version: Optional[str] = None,
+        outline_detection: Optional[bool] = None,
+        non_splitting_tags: Union[str, List[str], None] = None,
+        splitting_tags: Union[str, List[str], None] = None,
+        ignore_tags: Union[str, List[str], None] = None,
+        model_type: Union[str, ModelType, None] = None,
+        style_rule: Union[str, StyleRuleInfo, None] = None,
+        translation_memory: Union[str, TranslationMemoryInfo, None] = None,
+        translation_memory_threshold: Optional[int] = None,
+        custom_instructions: Optional[List[str]] = None,
+        extra_body_parameters: Optional[dict] = None,
+    ) -> Union[TextResult, List[TextResult]]:
+        """Translate text(s) into the target language.
 
-        :param text: Text to improve.
-        :type text: UTF-8 :class:`str`; string sequence (list, tuple, iterator,
-            generator)
-        :param target_lang: language code the final text should be in, for
-            example "DE", "EN-US", "FR".
-        :param style: Writing style to be used for the improvement. Either
-            style OR tone can be used.
-        :param tone: Tone to be used for the improvement. Either style OR tone
-            can be used.
-        :return: List of WriteResult objects containing results, unless input
-            text was one string, then a single WriteResult object is returned.
+        :param text: Text to translate.
+        :type text: UTF-8 :class:`str`; string sequence (list, tuple,
+            iterator, generator)
+        :param source_lang: (Optional) Language code of input text, for
+            example "DE", "EN", "FR". If omitted, DeepL will auto-detect.
+        :param target_lang: Language code to translate into, e.g. "DE",
+            "EN-US", "FR".
+        :param context: (Optional) Additional context text (not translated).
+        :param split_sentences: (Optional) Controls sentence splitting.
+        :param preserve_formatting: (Optional) Preserve formatting.
+        :param formality: (Optional) Desired formality level.
+        :param glossary: (Optional) Glossary or glossary ID.
+        :param tag_handling: (Optional) "xml" or "html".
+        :param tag_handling_version: (Optional) "v1" or "v2".
+        :param outline_detection: (Optional) Set False to disable auto
+            tag detection.
+        :param non_splitting_tags: (Optional) XML tags that should not
+            split a sentence.
+        :param splitting_tags: (Optional) XML tags that should split a
+            sentence.
+        :param ignore_tags: (Optional) XML tags whose content should not
+            be translated.
+        :param model_type: (Optional) Translation model quality level.
+        :param style_rule: (Optional) Style rule or style rule ID.
+        :param translation_memory: (Optional) Translation memory or ID.
+        :param translation_memory_threshold: (Optional) Minimum match
+            percentage for fuzzy matches (0-100).
+        :param custom_instructions: (Optional) List of custom instructions.
+        :param extra_body_parameters: (Optional) Additional JSON body fields.
+        :return: List of TextResult objects, or a single TextResult if input
+            was a single string.
         """
+        request, multi_input = _build_translate_text_request(
+            self._server_url,
+            text,
+            target_lang=target_lang,
+            source_lang=source_lang,
+            context=context,
+            split_sentences=split_sentences,
+            preserve_formatting=preserve_formatting,
+            formality=formality,
+            glossary=glossary,
+            tag_handling=tag_handling,
+            tag_handling_version=tag_handling_version,
+            outline_detection=outline_detection,
+            non_splitting_tags=non_splitting_tags,
+            splitting_tags=splitting_tags,
+            ignore_tags=ignore_tags,
+            model_type=model_type,
+            style_rule=style_rule,
+            translation_memory=translation_memory,
+            translation_memory_threshold=translation_memory_threshold,
+            custom_instructions=custom_instructions,
+            extra_body_parameters=extra_body_parameters,
+        )
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_translate_text_response(response, multi_input)
 
-        if isinstance(text, str):
-            if len(text) == 0:
-                raise ValueError("text must not be empty")
-            text = [text]
-            multi_input = False
-        elif hasattr(text, "__iter__"):
-            multi_input = True
-            text = list(text)
-        else:
-            raise TypeError(
-                "text parameter must be a string or an iterable of strings"
+    def translate_text_with_glossary(
+        self,
+        text: Union[str, Iterable[str]],
+        glossary: GlossaryInfo,
+        target_lang: Union[str, Language, None] = None,
+        **kwargs: Any,
+    ) -> Union[TextResult, List[TextResult]]:
+        """Translate text using given glossary.
+
+        Source and target languages are assumed to match the glossary.
+        Note: if glossary target language is EN, translates into EN-GB.
+        Specify target_lang="EN-US" to translate into American English.
+
+        :param text: Text to translate.
+        :param glossary: GlossaryInfo to use.
+        :param target_lang: Override target language of glossary.
+        """
+        if not isinstance(glossary, GlossaryInfo):
+            raise ValueError(
+                "This function expects the glossary parameter to be an "
+                "instance of GlossaryInfo. Use get_glossary() to obtain a "
+                "GlossaryInfo using the glossary ID of an existing "
+                "glossary. Alternatively, use translate_text() and "
+                "specify the glossary ID using the glossary parameter. "
             )
 
-        request_data: dict = {"text": text}
-        if target_lang:
-            request_data["target_lang"] = target_lang
-        if style:
-            request_data["writing_style"] = style
-        if tone:
-            request_data["tone"] = tone
+        if target_lang is None:
+            target_lang = glossary.target_lang
+            if target_lang == "EN":
+                target_lang = "EN-GB"
 
-        status, content, json = self._api_call(
-            "v2/write/rephrase", json=request_data
+        return self.translate_text(
+            text,
+            source_lang=glossary.source_lang,
+            target_lang=target_lang,
+            glossary=glossary,
+            **kwargs,
         )
 
-        self._raise_for_status(status, content, json)
+    # ------------------------------------------------------------------
+    # Public API: document translation
+    # ------------------------------------------------------------------
 
-        improvements = (
-            json.get("improvements", [])
-            if (json and isinstance(json, dict))
-            else []
+    def translate_document_from_filepath(
+        self,
+        input_path: Union[str, pathlib.PurePath],
+        output_path: Union[str, pathlib.PurePath],
+        *,
+        source_lang: Optional[str] = None,
+        target_lang: str,
+        formality: Union[str, Formality] = Formality.DEFAULT,
+        glossary: Union[
+            str, GlossaryInfo, MultilingualGlossaryInfo, None
+        ] = None,
+        timeout_s: Optional[int] = None,
+        extra_body_parameters: Optional[dict] = None,
+    ) -> DocumentStatus:
+        """Upload document at given input path, translate, and download."""
+        in_ext = pathlib.PurePath(input_path).suffix.lower()
+        out_ext = pathlib.PurePath(output_path).suffix.lower()
+        output_format = None if in_ext == out_ext else out_ext[1:]
+
+        with open(input_path, "rb") as in_file:
+            with open(output_path, "wb") as out_file:
+                try:
+                    return self.translate_document(
+                        in_file,
+                        out_file,
+                        target_lang=target_lang,
+                        source_lang=source_lang,
+                        formality=formality,
+                        glossary=glossary,
+                        output_format=output_format,
+                        timeout_s=timeout_s,
+                        extra_body_parameters=extra_body_parameters,
+                    )
+                except Exception as e:
+                    out_file.close()
+                    os.unlink(output_path)
+                    raise e
+
+    def translate_document(
+        self,
+        input_document: Union[TextIO, BinaryIO, Any],
+        output_document: Union[TextIO, BinaryIO, Any],
+        *,
+        source_lang: Optional[str] = None,
+        target_lang: str,
+        formality: Union[str, Formality] = Formality.DEFAULT,
+        glossary: Union[
+            str, GlossaryInfo, MultilingualGlossaryInfo, None
+        ] = None,
+        filename: Optional[str] = None,
+        output_format: Optional[str] = None,
+        timeout_s: Optional[int] = None,
+        extra_body_parameters: Optional[dict] = None,
+    ) -> DocumentStatus:
+        """Upload document, translate, and download result."""
+        handle = self.translate_document_upload(
+            input_document,
+            target_lang=target_lang,
+            source_lang=source_lang,
+            formality=formality,
+            glossary=glossary,
+            filename=filename,
+            output_format=output_format,
+            extra_body_parameters=extra_body_parameters,
         )
-        output = []
-        for improvement in improvements:
-            text = improvement.get("text", "") if improvement else ""
-            detected_source_language = (
-                improvement.get("detected_source_language", "")
-                if improvement
-                else ""
-            )
-            target_language = (
-                improvement.get("target_language", "") if improvement else ""
-            )
-            output.append(
-                WriteResult(text, detected_source_language, target_language)
-            )
 
-        return output if multi_input else output[0]
+        try:
+            status = self.translate_document_wait_until_done(handle, timeout_s)
+            if status.ok:
+                self.translate_document_download(handle, output_document)
+        except Exception as e:
+            raise DocumentTranslationException(str(e), handle) from e
+
+        if not status.ok:
+            error_message = status.error_message or "unknown error"
+            raise DocumentTranslationException(
+                f"Error occurred while translating document: {error_message}",
+                handle,
+            )
+        return status
+
+    def translate_document_upload(
+        self,
+        input_document: Union[TextIO, BinaryIO, str, bytes, Any],
+        *,
+        source_lang: Optional[str] = None,
+        target_lang: str,
+        formality: Union[str, Formality, None] = None,
+        glossary: Union[
+            str, GlossaryInfo, MultilingualGlossaryInfo, None
+        ] = None,
+        filename: Optional[str] = None,
+        output_format: Optional[str] = None,
+        extra_body_parameters: Optional[dict] = None,
+    ) -> DocumentHandle:
+        """Upload a document for translation; return the document handle."""
+        request = _build_document_upload_request(
+            self._server_url,
+            input_document,
+            target_lang=target_lang,
+            source_lang=source_lang,
+            formality=formality,
+            glossary=glossary,
+            filename=filename,
+            output_format=output_format,
+            extra_body_parameters=extra_body_parameters,
+        )
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_document_upload_response(response)
+
+    def translate_document_get_status(
+        self, handle: DocumentHandle
+    ) -> DocumentStatus:
+        """Get the translation status for the given document handle."""
+        request = _build_document_status_request(self._server_url, handle)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_document_status_response(response, handle)
+
+    def translate_document_wait_until_done(
+        self,
+        handle: DocumentHandle,
+        timeout_s: Optional[int] = None,
+    ) -> DocumentStatus:
+        """Poll document status until translation completes or fails."""
+        status = self.translate_document_get_status(handle)
+        start_time_s = time.time()
+        while status.ok and not status.done:
+            if (
+                timeout_s is not None
+                and time.time() - start_time_s > timeout_s
+            ):
+                raise DeepLException(
+                    f"Manual timeout of {timeout_s}s exceeded for"
+                    " document translation",
+                    should_retry=False,
+                )
+            secs = (
+                min(status.seconds_remaining, 5.0)
+                if status.seconds_remaining is not None
+                else 5.0
+            )
+            util.log_info(
+                f"Rechecking document translation status "
+                f"after sleeping for {secs:.3f} seconds."
+            )
+            self._sleep_fn(secs)
+            status = self.translate_document_get_status(handle)
+        return status
+
+    def translate_document_download(
+        self,
+        handle: DocumentHandle,
+        output_file: Union[TextIO, BinaryIO, Any, None] = None,
+        chunk_size: int = 1,
+    ) -> Optional[Any]:
+        """Download translated document.
+
+        :param handle: DocumentHandle from translate_document_upload.
+        :param output_file: (Optional) File-like object to write content to.
+            If None, returns a streaming response; call iter_content() on it.
+        :param chunk_size: Chunk size in bytes when writing to output_file.
+        :return: None if output_file provided, otherwise streaming response.
+        """
+        request = _build_document_download_request(self._server_url, handle)
+        streaming = self._send_streaming_with_backoff(request)
+
+        if not (200 <= streaming.status_code < 400):
+            # Consume body to get error details.
+            content = b"".join(streaming.iter_content(65536))
+            error_response = HttpResponse(
+                status_code=streaming.status_code,
+                headers=dict(streaming.headers),
+                content=content,
+            )
+            self._raise_for_status(error_response, downloading_document=True)
+
+        if output_file is not None:
+            for chunk in streaming.iter_content(chunk_size=chunk_size):
+                output_file.write(chunk)  # type: ignore[arg-type]
+            return None
+        return streaming
+
+    # ------------------------------------------------------------------
+    # Public API: usage and languages
+    # ------------------------------------------------------------------
+
+    def get_usage(self) -> Usage:
+        """Request the current API usage."""
+        request = _build_get_usage_request(self._server_url)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_get_usage_response(response)
+
+    def get_source_languages(self, skip_cache: bool = False) -> List[Language]:
+        """Request the list of available source languages.
+
+        :param skip_cache: Deprecated, no-op.
+        """
+        request = _build_get_source_languages_request(self._server_url)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_get_source_languages_response(response)
+
+    def get_target_languages(self, skip_cache: bool = False) -> List[Language]:
+        """Request the list of available target languages.
+
+        :param skip_cache: Deprecated, no-op.
+        """
+        request = _build_get_target_languages_request(self._server_url)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_get_target_languages_response(response)
+
+    def get_glossary_languages(self) -> List[GlossaryLanguagePair]:
+        """Request the list of language pairs supported for glossaries."""
+        request = _build_get_glossary_languages_request(self._server_url)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_get_glossary_languages_response(response)
+
+    # ------------------------------------------------------------------
+    # Public API: classic (v2) glossaries
+    # ------------------------------------------------------------------
+
+    def create_glossary(
+        self,
+        name: str,
+        source_lang: Union[str, Language],
+        target_lang: Union[str, Language],
+        entries: Dict[str, str],
+    ) -> GlossaryInfo:
+        """Create a v2 glossary with given name and entries."""
+        if not entries:
+            raise ValueError("glossary entries must not be empty")
+        return self._create_glossary(
+            name,
+            source_lang,
+            target_lang,
+            "tsv",
+            util.convert_dict_to_tsv(entries),
+        )
+
+    def create_glossary_from_csv(
+        self,
+        name: str,
+        source_lang: Union[str, Language],
+        target_lang: Union[str, Language],
+        csv_data: Union[TextIO, BinaryIO, str, bytes, Any],
+    ) -> GlossaryInfo:
+        """Create a v2 glossary from CSV data."""
+        entries = (
+            csv_data if isinstance(csv_data, (str, bytes)) else csv_data.read()
+        )
+        if not isinstance(entries, (bytes, str)):
+            raise ValueError("Entries of the glossary are invalid")
+        return self._create_glossary(
+            name, source_lang, target_lang, "csv", entries
+        )
+
+    def _create_glossary(
+        self,
+        name: str,
+        source_lang: Union[str, Language],
+        target_lang: Union[str, Language],
+        entries_format: str,
+        entries: Union[str, bytes],
+    ) -> GlossaryInfo:
+        request = _build_create_glossary_request(
+            self._server_url,
+            name,
+            source_lang,
+            target_lang,
+            entries_format,
+            entries,
+        )
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_create_glossary_response(response)
+
+    def get_glossary(self, glossary_id: str) -> GlossaryInfo:
+        """Retrieve GlossaryInfo for the given glossary ID."""
+        request = _build_get_glossary_request(self._server_url, glossary_id)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_get_glossary_response(response)
+
+    def list_glossaries(self) -> List[GlossaryInfo]:
+        """Retrieve GlossaryInfo for all available glossaries."""
+        request = _build_list_glossaries_request(self._server_url)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_list_glossaries_response(response)
+
+    def get_glossary_entries(self, glossary: Union[str, GlossaryInfo]) -> dict:
+        """Retrieve the entries of the specified glossary as a dict."""
+        request = _build_get_glossary_entries_request(
+            self._server_url, glossary
+        )
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_get_glossary_entries_response(response)
+
+    def delete_glossary(self, glossary: Union[str, GlossaryInfo]) -> None:
+        """Delete the specified glossary."""
+        request = _build_delete_glossary_request(self._server_url, glossary)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+
+    # ------------------------------------------------------------------
+    # Public API: multilingual (v3) glossaries
+    # ------------------------------------------------------------------
 
     def create_multilingual_glossary(
         self,
         name: str,
         glossary_dicts: List[MultilingualGlossaryDictionaryEntries],
     ) -> MultilingualGlossaryInfo:
-        """Creates a glossary with given name with all of the specified
-        dictionaries, each with their own language pair and entries. The
-        glossary may be used in the translate_text functions.
-
-        The available glossary language pairs can be queried using
-        get_glossary_languages(). Glossaries apply to languages, not specific
-        language variants. A glossary for a language applies to any variant
-        of that language: a glossary with target language EN may be used to
-        translate texts into both EN-US and EN-GB.
-
-        This function requires the glossary entries for each dictionary to be
-        provided as a dictionary of source-target terms. To create a glossary
-        from a CSV file downloaded from the DeepL website, see
-        create_glossary_from_csv().
-
-        :param name: user-defined name to attach to glossary.
-        :param dictionaries: a list of MultilingualGlossaryDictionaryEntries
-            which each contains entries for a particular language pair
-        :return: GlossaryInfo containing information about created glossary.
-
-        :raises ValueError: If the glossary name is empty, or entries are
-            empty or invalid.
-        :raises DeepLException: If source and target language pair are not
-            supported for glossaries.
-        """
-        if any(map(lambda d: not d.entries, glossary_dicts)):
+        """Create a multilingual glossary."""
+        if any(not d.entries for d in glossary_dicts):
             raise ValueError("glossary entries must not be empty")
-
         return self._create_multilingual_glossary(name, glossary_dicts)
 
     def create_multilingual_glossary_from_csv(
@@ -164,36 +874,8 @@ class DeepLClient(Translator):
         target_lang: str,
         csv_data: Union[TextIO, BinaryIO, str, bytes, Any],
     ) -> MultilingualGlossaryInfo:
-        """Creates a glossary with given name for the source and target
-        languages, containing the entries in the given CSV data.
-        The glossary may be used in the translate_text functions.
-
-        The available glossary language pairs can be queried using
-        get_glossary_languages(). Glossaries apply to languages, not specific
-        language variants. A glossary for a language applies to any variant
-        of that language: a glossary with target language EN may be used to
-        translate texts into both EN-US and EN-GB.
-
-        This function allows you to upload a glossary CSV file that you have
-        downloaded from the DeepL website.
-
-        Information about the expected CSV format can be found in the API
-        documentation: https://developers.deepl.com/docs/api-reference/glossaries#csv-comma-separated-values  # noqa
-
-        :param name: user-defined name to attach to glossary.
-        :param source_lang: Language of source entries.
-        :param target_lang: Language of target entries.
-        :param csv_data: CSV data containing glossary entries, either as a
-            file-like object or string or bytes containing file content.
-        :return: GlossaryInfo containing information about created glossary.
-
-        :raises ValueError: If the glossary name is empty, or entries are
-            empty or invalid.
-        :raises DeepLException: If source and target language pair are not
-            supported for glossaries.
-        """
+        """Create a multilingual glossary from CSV data."""
         entries = util.convert_csv_to_dict(csv_data)
-
         dictionaries = [
             MultilingualGlossaryDictionaryEntries(
                 source_lang, target_lang, entries
@@ -206,99 +888,40 @@ class DeepLClient(Translator):
         name: str,
         glossary_dicts: List[MultilingualGlossaryDictionaryEntries],
     ) -> MultilingualGlossaryInfo:
-        if not name:
-            raise ValueError("glossary name must not be empty")
-
-        req_glossary_dicts = []
-        # glossaries are only supported for base language types
-        for glossary_dict in glossary_dicts:
-            req_glossary_dict = {
-                "source_lang": Language.remove_regional_variant(
-                    glossary_dict.source_lang
-                ),
-                "target_lang": Language.remove_regional_variant(
-                    glossary_dict.target_lang
-                ),
-                "entries": util.convert_dict_to_tsv(glossary_dict.entries),
-                "entries_format": "tsv",
-            }
-            req_glossary_dicts.append(req_glossary_dict)
-
-        request_data = {
-            "name": name,
-            "dictionaries": req_glossary_dicts,
-        }
-
-        status, content, json = self._api_call(
-            "v3/glossaries", json=request_data
+        request = _build_create_multilingual_glossary_request(
+            self._server_url, name, glossary_dicts
         )
-        self._raise_for_status(status, content, json, glossary=True)
-        return MultilingualGlossaryInfo.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_multilingual_glossary_response(response)
 
     def update_multilingual_glossary_name(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
         name: str,
     ) -> MultilingualGlossaryInfo:
-        """Updates the name of a glossary with the provided name.
-
-        :param glossary: GlossaryInfo or ID of glossary to update.
-        :param name: The new name of the glossary
-        :return: MultilingualGlossaryInfo containing information about updated
-            glossary.
-
-        :raises ValueError: If the name is empty or invalid.
-        :raises DeepLException: If the glossary cannot be found.
-        """
-        if not name:
-            raise ValueError("glossary name must not be empty")
-
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-        request_data = {"name": name}
-
-        status, content, json = self._api_call(
-            f"v3/glossaries/{glossary}", method="PATCH", json=request_data
+        """Update the name of a multilingual glossary."""
+        request = _build_update_multilingual_glossary_name_request(
+            self._server_url, glossary, name
         )
-        self._raise_for_status(status, content, json, glossary=True)
-        return MultilingualGlossaryInfo.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_multilingual_glossary_response(response)
 
     def update_multilingual_glossary_dictionary(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
         glossary_dict: MultilingualGlossaryDictionaryEntries,
     ) -> MultilingualGlossaryInfo:
-        """Updates or creates a glossary dictionary with given glossary
-        dictionary with its entries for the source and target languages.
-        Either updates the glossary's entries if they exist for the
-        given language pair, or adds any new ones to the dictionary if not.
-
-        The available glossary language pairs can be queried using
-        get_glossary_languages(). Glossaries apply to languages, not specific
-        language variants. A glossary for a language applies to any variant
-        of that language: a glossary with target language EN may be used to
-        translate texts into both EN-US and EN-GB.
-
-        This function requires the glossary entries to be provided as a
-        dictionary of source-target terms. To create a glossary from a CSV file
-        downloaded from the DeepL website, see create_glossary_from_csv().
-
-        :param glossary: GlossaryInfo or ID of glossary to update.
-        :param glossary_dict: The new or updated glossary dictionary
-        :return: MultilingualGlossaryInfo containing information about updated
-            glossary.
-
-        :raises ValueError: If the glossary entries are empty or invalid.
-        :raises DeepLException: If source and target language pair are not
-            supported for glossaries.
-        """
+        """Update or create a dictionary in a multilingual glossary."""
         if not glossary_dict or not glossary_dict.entries:
             raise ValueError("glossary entries must not be empty")
-
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-
-        return self._update_multilingual_glossary(glossary, [glossary_dict])
+        request = _build_update_multilingual_glossary_dict_request(
+            self._server_url, glossary, [glossary_dict]
+        )
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_multilingual_glossary_response(response)
 
     def update_multilingual_glossary_dictionary_from_csv(
         self,
@@ -307,121 +930,38 @@ class DeepLClient(Translator):
         target_lang: str,
         csv_data: Union[TextIO, BinaryIO, str, bytes, Any],
     ) -> MultilingualGlossaryInfo:
-        """Updates or creates a glossary dictionary with given entries in
-        CSV formatting for the source and target languages. Either updates
-        entries if they exist for the given language pair, or adds new ones
-        to the dictionary if not.
-
-        The available glossary language pairs can be queried using
-        get_glossary_languages(). Glossaries apply to languages, not specific
-        language variants. A glossary for a language applies to any variant
-        of that language: a glossary with target language EN may be used to
-        translate texts into both EN-US and EN-GB.
-
-        This function allows you to upload a glossary CSV file that you have
-        downloaded from the DeepL website.
-
-        Information about the expected CSV format can be found in the API
-        documentation: https://www.deepl.com/docs-api/managing-glossaries/supported-glossary-formats/  # noqa
-
-        :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
-        :param source_lang: Language of source entries.
-        :param target_lang: Language of target entries.
-        :param csv_data: CSV data containing glossary entries, either as a
-            file-like object or string or bytes containing file content.
-        :return: MultilingualGlossaryInfo containing information about updated
-            glossary.
-
-        :raises ValueError: If the glossary entries are empty or invalid.
-        :raises DeepLException: If source and target language pair are not
-            supported for glossaries.
-        """
+        """Update or create a dictionary from CSV data."""
         entries = util.convert_csv_to_dict(csv_data)
-
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-
         dictionaries = [
             MultilingualGlossaryDictionaryEntries(
                 source_lang, target_lang, entries
             )
         ]
-        return self._update_multilingual_glossary(glossary, dictionaries)
-
-    def _update_multilingual_glossary(
-        self,
-        glossary_id: str,
-        dictionaries: List[MultilingualGlossaryDictionaryEntries],
-    ) -> MultilingualGlossaryInfo:
-        if not glossary_id:
-            raise ValueError("glossary id must not be empty")
-
-        req_glossary_dicts = []
-        # glossaries are only supported for base language types
-        for glossary_dict in dictionaries:
-            req_glossary_dict = {
-                "source_lang": Language.remove_regional_variant(
-                    glossary_dict.source_lang
-                ),
-                "target_lang": Language.remove_regional_variant(
-                    glossary_dict.target_lang
-                ),
-                "entries": util.convert_dict_to_tsv(glossary_dict.entries),
-                "entries_format": "tsv",
-            }
-            req_glossary_dicts.append(req_glossary_dict)
-
-        request_data = {}
-
-        if dictionaries:
-            request_data["dictionaries"] = req_glossary_dicts
-
-        status, content, json = self._api_call(
-            f"v3/glossaries/{glossary_id}", method="PATCH", json=request_data
+        request = _build_update_multilingual_glossary_dict_request(
+            self._server_url, glossary, dictionaries
         )
-        self._raise_for_status(status, content, json, glossary=True)
-
-        return MultilingualGlossaryInfo.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_multilingual_glossary_response(response)
 
     def replace_multilingual_glossary_dictionary(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
         glossary_dict: MultilingualGlossaryDictionaryEntries,
     ) -> MultilingualGlossaryDictionaryInfo:
-        """Replaces a glossary dictionary with given entries for the
-        source and target languages.
-
-        The available glossary language pairs can be queried using
-        get_glossary_languages(). Glossaries apply to languages, not specific
-        language variants. A glossary for a language applies to any variant
-        of that language: a glossary with target language EN may be used to
-        translate texts into both EN-US and EN-GB.
-
-        This function requires the glossary entries to be provided as a
-        dictionary of source-target terms. To create a glossary from a CSV file
-        downloaded from the DeepL website, see create_glossary_from_csv().
-
-        :param glossary: GlossaryInfo or ID of glossary to update.
-        :param glossary_dict: The new glossary dictionary
-        :return: MultilingualGlossaryDictionaryInfo containing information
-            about the updated dictionary.
-
-        :raises ValueError: If the glossary entries are empty or invalid.
-        :raises DeepLException: If source and target language pair are not
-            supported for glossaries.
-        """
+        """Replace a dictionary in a multilingual glossary."""
         if not glossary_dict or not glossary_dict.entries:
             raise ValueError("glossary entries must not be empty")
-
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-
-        return self._replace_multilingual_glossary_dictionary(
+        request = _build_replace_multilingual_glossary_dict_request(
+            self._server_url,
             glossary,
             glossary_dict.source_lang,
             glossary_dict.target_lang,
             glossary_dict.entries,
         )
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_multilingual_glossary_dict_response(response)
 
     def replace_multilingual_glossary_dictionary_from_csv(
         self,
@@ -430,107 +970,32 @@ class DeepLClient(Translator):
         target_lang: str,
         csv_data: Union[TextIO, BinaryIO, str, bytes, Any],
     ) -> MultilingualGlossaryDictionaryInfo:
-        """Replaces a glossary dictionary with given CSV formatted entries
-        for the source and target languages.
-
-        The available glossary language pairs can be queried using
-        get_glossary_languages(). Glossaries apply to languages, not specific
-        language variants. A glossary for a language applies to any variant
-        of that language: a glossary with target language EN may be used to
-        translate texts into both EN-US and EN-GB.
-
-        This function allows you to upload a glossary CSV file that you have
-        downloaded from the DeepL website.
-
-        Information about the expected CSV format can be found in the API
-        documentation: https://www.deepl.com/docs-api/managing-glossaries/supported-glossary-formats/  # noqa
-
-        :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
-        :param source_lang: Language of source entries.
-        :param target_lang: Language of target entries.
-        :param csv_data: CSV data containing glossary entries, either as a
-            file-like object or string or bytes containing file content.
-        :return: MultilingualGlossaryDictionaryInfo containing information
-            about updated dictionary.
-
-        :raises ValueError: If the glossary entries are empty or invalid.
-        :raises DeepLException: If source and target language pair are not
-            supported for glossaries.
-        """
+        """Replace a glossary dictionary from CSV data."""
         entries = util.convert_csv_to_dict(csv_data)
-
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-
-        return self._replace_multilingual_glossary_dictionary(
-            glossary, source_lang, target_lang, entries
+        request = _build_replace_multilingual_glossary_dict_request(
+            self._server_url, glossary, source_lang, target_lang, entries
         )
-
-    def _replace_multilingual_glossary_dictionary(
-        self,
-        glossary_id: str,
-        source_lang: str,
-        target_lang: str,
-        entries: Dict[str, str],
-    ) -> MultilingualGlossaryDictionaryInfo:
-        if not glossary_id:
-            raise ValueError("glossary id must not be empty")
-
-        # glossaries are only supported for base language types
-        source_lang = Language.remove_regional_variant(source_lang)
-        target_lang = Language.remove_regional_variant(target_lang)
-
-        request_data = {
-            "source_lang": source_lang,
-            "target_lang": target_lang,
-            "entries": util.convert_dict_to_tsv(entries),
-            "entries_format": "tsv",
-        }
-
-        status, content, json = self._api_call(
-            f"v3/glossaries/{glossary_id}/dictionaries",
-            method="PUT",
-            json=request_data,
-        )
-        self._raise_for_status(status, content, json, glossary=True)
-        return MultilingualGlossaryDictionaryInfo.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_multilingual_glossary_dict_response(response)
 
     def get_multilingual_glossary(
         self, glossary_id: str
     ) -> MultilingualGlossaryInfo:
-        """Retrieves MultilingualGlossaryInfo for the glossary with specified
-        ID.
-
-        :param glossary_id: ID of glossary to retrieve.
-        :return: MultilingualGlossaryInfo with information about specified
-            glossary.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
-            found.
-        """
-        status, content, json = self._api_call(
-            f"v3/glossaries/{glossary_id}", method="GET"
+        """Retrieve a multilingual glossary by ID."""
+        request = _build_get_multilingual_glossary_request(
+            self._server_url, glossary_id
         )
-        self._raise_for_status(status, content, json, glossary=True)
-        return MultilingualGlossaryInfo.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_multilingual_glossary_response(response)
 
     def list_multilingual_glossaries(self) -> List[MultilingualGlossaryInfo]:
-        """Retrieves a list of MultilingualGlossaryInfo for all available
-        glossaries.
-
-        :return: list of MultilingualGlossaryInfos for all available
-            glossaries.
-        """
-        status, content, json = self._api_call("v3/glossaries", method="GET")
-        self._raise_for_status(status, content, json, glossary=True)
-        glossaries = (
-            json.get("glossaries", [])
-            if (json and isinstance(json, dict))
-            else []
-        )
-        return [
-            MultilingualGlossaryInfo.from_json(glossary)
-            for glossary in glossaries
-        ]
+        """List all available multilingual glossaries."""
+        request = _build_list_multilingual_glossaries_request(self._server_url)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_list_multilingual_glossaries_response(response)
 
     def get_multilingual_glossary_entries(
         self,
@@ -538,49 +1003,23 @@ class DeepLClient(Translator):
         source_lang: str,
         target_lang: str,
     ) -> MultilingualGlossaryDictionaryEntriesResponse:
-        """Retrieves the entries for a given source and target language in the
-        specified glossary.
-
-        :param glossary: MultilingualGlossaryInfo or ID of glossary to
-            retrieve.
-        :param source_lang: Language of source terms.
-        :param target_lang: Language of target terms.
-        :return: MultilingualGlossaryDictionaryEntriesResponse object
-            containing the entries.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
-            found.
-        :raises DeepLException: If the glossary could not be retrieved
-            in the right format.
-        """
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-        source_lang = Language.remove_regional_variant(source_lang)
-        target_lang = Language.remove_regional_variant(target_lang)
-
-        status, content, json = self._api_call(
-            f"v3/glossaries/{glossary}/entries?source_lang={source_lang}&target_lang={target_lang}",  # noqa: E501
-            method="GET",
+        """Retrieve entries for a language pair in a multilingual glossary."""
+        request = _build_get_multilingual_glossary_entries_request(
+            self._server_url, glossary, source_lang, target_lang
         )
-        self._raise_for_status(status, content, json, glossary=True)
-        return MultilingualGlossaryDictionaryEntriesResponse.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+        return _parse_multilingual_glossary_entries_response(response)
 
     def delete_multilingual_glossary(
         self, glossary: Union[str, MultilingualGlossaryInfo]
     ) -> None:
-        """Deletes specified glossary.
-
-        :param glossary: MultilingualGlossaryInfo or ID of glossary to delete.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
-            found.
-        """
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-
-        status, content, json = self._api_call(
-            f"v3/glossaries/{glossary}",
-            method="DELETE",
+        """Delete a multilingual glossary."""
+        request = _build_delete_multilingual_glossary_request(
+            self._server_url, glossary
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
 
     def delete_multilingual_glossary_dictionary(
         self,
@@ -589,42 +1028,47 @@ class DeepLClient(Translator):
         source_lang: Optional[str] = None,
         target_lang: Optional[str] = None,
     ) -> None:
-        """Deletes specified glossary dictionary.
-
-        :param glossary: GlossaryInfo or ID of glossary containing the
-            dictionary to delete
-        :param dictionary: The dictionary to delete. Either the
-            MultilingualGlossaryDictionaryInfo or both the source_lang and
-            target_lang can be provided to identify the dictionary. However,
-            if both are provided, the dictionary takes precendence over
-            source_lang and target_lang.
-        :param source_lang: Optional parameter representing the source language
-            of the dictionary
-        :param target_lang: Optional parameter representing the target language
-            of the dictionary
-        :raises GlossaryNotFoundException: If no glossary with given ID is
-            found.
-        :raises ValueError: If the dictionary or both the source_lang and
-            target_lang were not provided
-        """
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-
-        if not dictionary and not (source_lang and target_lang):
-            raise ValueError(
-                "must provide dictionary or both source_lang and target_lang"
-            )
-
-        if dictionary:
-            source_lang = dictionary.source_lang
-            target_lang = dictionary.target_lang
-
-        req_url = f"v3/glossaries/{glossary}/dictionaries?source_lang={source_lang}&target_lang={target_lang}"  # noqa: E501
-        status, content, json = self._api_call(
-            req_url,
-            method="DELETE",
+        """Delete a specific dictionary from a multilingual glossary."""
+        request = _build_delete_multilingual_glossary_dict_request(
+            self._server_url, glossary, source_lang, target_lang, dictionary
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response, glossary=True)
+
+    # ------------------------------------------------------------------
+    # Public API: Write (rephrase)
+    # ------------------------------------------------------------------
+
+    def rephrase_text(
+        self,
+        text: Union[str, Iterable[str]],
+        *,
+        target_lang: Union[None, str, Language] = None,
+        style: Optional[str] = None,
+        tone: Optional[str] = None,
+    ) -> Union[WriteResult, List[WriteResult]]:
+        """Improve the text(s) using the Write API.
+
+        :param text: Text to improve.
+        :param target_lang: (Optional) Target language code.
+        :param style: (Optional) Writing style. Mutually exclusive with tone.
+        :param tone: (Optional) Tone. Mutually exclusive with style.
+        :return: Single WriteResult or list of WriteResult objects.
+        """
+        request, multi_input = _build_rephrase_text_request(
+            self._server_url,
+            text,
+            target_lang=target_lang,
+            style=style,
+            tone=tone,
+        )
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_rephrase_text_response(response, multi_input)
+
+    # ------------------------------------------------------------------
+    # Public API: style rules
+    # ------------------------------------------------------------------
 
     def get_all_style_rules(
         self,
@@ -632,38 +1076,13 @@ class DeepLClient(Translator):
         page_size: Optional[int] = None,
         detailed: Optional[bool] = None,
     ) -> List[StyleRuleInfo]:
-        """Retrieves a list of StyleRuleInfo for all available style rules.
-
-        :param page: Page number for pagination, 0-indexed (optional).
-        :param page_size: Number of items per page (optional).
-        :param detailed: Whether to include detailed configuration rules
-            (optional).
-        :return: List of StyleRuleInfo objects for all available style rules.
-        """
-        params = {}
-        if page is not None:
-            params["page"] = str(page)
-        if page_size is not None:
-            params["page_size"] = str(page_size)
-        if detailed is not None:
-            params["detailed"] = str(detailed).lower()
-
-        endpoint = "v3/style_rules"
-        if params:
-            query_string = urllib.parse.urlencode(params)
-            endpoint += f"?{query_string}"
-
-        status, content, json = self._api_call(endpoint, method="GET")
-        self._raise_for_status(status, content, json)
-
-        style_rules = (
-            json.get("style_rules", [])
-            if (json and isinstance(json, dict))
-            else []
+        """Retrieve all available style rules."""
+        request = _build_get_style_rules_request(
+            self._server_url, page, page_size, detailed
         )
-        return [
-            StyleRuleInfo.from_json(style_rule) for style_rule in style_rules
-        ]
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_get_style_rules_response(response)
 
     def create_style_rule(
         self,
@@ -672,113 +1091,83 @@ class DeepLClient(Translator):
         configured_rules: Optional[dict] = None,
         custom_instructions: Optional[List[dict]] = None,
     ) -> StyleRuleInfo:
-        """Creates a new style rule.
-
-        :param name: Name for the style rule.
-        :param language: Language code for the style rule.
-        :param configured_rules: Optional dict of configured rules.
-        :param custom_instructions: Optional list of custom instruction dicts.
-        :return: StyleRuleInfo for the created style rule.
-        """
+        """Create a new style rule."""
         if not name:
             raise ValueError("name must not be empty")
         if not language:
             raise ValueError("language must not be empty")
-
-        request_data: Dict[str, Any] = {"name": name, "language": language}
-        if configured_rules is not None:
-            request_data["configured_rules"] = configured_rules
-        if custom_instructions is not None:
-            request_data["custom_instructions"] = custom_instructions
-
-        status, content, json = self._api_call(
-            "v3/style_rules", json=request_data
+        request = _build_create_style_rule_request(
+            self._server_url, name, language, configured_rules,
+            custom_instructions,
         )
-        self._raise_for_status(status, content, json)
-        return StyleRuleInfo.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_style_rule_response(response)
 
     def get_style_rule(
         self,
         style_rule: Union[str, StyleRuleInfo],
     ) -> StyleRuleInfo:
-        """Retrieves a single style rule by ID.
-
-        :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :return: StyleRuleInfo for the requested style rule.
-        """
+        """Retrieve a single style rule by ID."""
         if isinstance(style_rule, StyleRuleInfo):
             style_rule = style_rule.style_id
         if not style_rule:
             raise ValueError("style_rule must not be empty")
-        status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}", method="GET"
-        )
-        self._raise_for_status(status, content, json)
-        return StyleRuleInfo.from_json(json)
+        request = _build_get_style_rule_request(self._server_url, style_rule)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_style_rule_response(response)
 
     def update_style_rule_name(
         self,
         style_rule: Union[str, StyleRuleInfo],
         name: str,
     ) -> StyleRuleInfo:
-        """Updates the name of a style rule.
-
-        :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :param name: New name for the style rule.
-        :return: Updated StyleRuleInfo.
-        """
+        """Update the name of a style rule."""
         if isinstance(style_rule, StyleRuleInfo):
             style_rule = style_rule.style_id
         if not style_rule:
             raise ValueError("style_rule must not be empty")
         if not name:
             raise ValueError("name must not be empty")
-        request_data = {"name": name}
-        status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}", method="PATCH", json=request_data
+        request = _build_update_style_rule_name_request(
+            self._server_url, style_rule, name
         )
-        self._raise_for_status(status, content, json)
-        return StyleRuleInfo.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_style_rule_response(response)
 
     def delete_style_rule(
         self,
         style_rule: Union[str, StyleRuleInfo],
     ) -> None:
-        """Deletes a style rule.
-
-        :param style_rule: Style rule ID string or StyleRuleInfo object.
-        """
+        """Delete a style rule."""
         if isinstance(style_rule, StyleRuleInfo):
             style_rule = style_rule.style_id
         if not style_rule:
             raise ValueError("style_rule must not be empty")
-        status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}", method="DELETE"
+        request = _build_delete_style_rule_request(
+            self._server_url, style_rule
         )
-        self._raise_for_status(status, content, json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
 
     def update_style_rule_configured_rules(
         self,
         style_rule: Union[str, StyleRuleInfo],
         configured_rules: dict,
     ) -> StyleRuleInfo:
-        """Updates the configured rules of a style rule.
-
-        :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :param configured_rules: Dict of configured rules to set.
-        :return: Updated StyleRuleInfo.
-        """
+        """Replace the configured rules of a style rule."""
         if isinstance(style_rule, StyleRuleInfo):
             style_rule = style_rule.style_id
         if not style_rule:
             raise ValueError("style_rule must not be empty")
-        status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}/configured_rules",
-            method="PUT",
-            json=configured_rules,
+        request = _build_update_style_rule_configured_rules_request(
+            self._server_url, style_rule, configured_rules
         )
-        self._raise_for_status(status, content, json)
-        return StyleRuleInfo.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_style_rule_response(response)
 
     def create_style_rule_custom_instruction(
         self,
@@ -787,14 +1176,7 @@ class DeepLClient(Translator):
         prompt: str,
         source_language: Optional[str] = None,
     ) -> CustomInstruction:
-        """Creates a custom instruction for a style rule.
-
-        :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :param label: Label for the custom instruction.
-        :param prompt: Prompt text for the custom instruction.
-        :param source_language: Optional source language code.
-        :return: Created CustomInstruction.
-        """
+        """Create a custom instruction for a style rule."""
         if isinstance(style_rule, StyleRuleInfo):
             style_rule = style_rule.style_id
         if not style_rule:
@@ -803,43 +1185,31 @@ class DeepLClient(Translator):
             raise ValueError("label must not be empty")
         if not prompt:
             raise ValueError("prompt must not be empty")
-        request_data = {"label": label, "prompt": prompt}
-        if source_language is not None:
-            request_data["source_language"] = source_language
-        status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}/custom_instructions",
-            json=request_data,
+        request = _build_create_style_rule_custom_instruction_request(
+            self._server_url, style_rule, label, prompt, source_language
         )
-        self._raise_for_status(status, content, json)
-        return CustomInstruction.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_custom_instruction_response(response)
 
     def get_style_rule_custom_instruction(
         self,
         style_rule: Union[str, StyleRuleInfo],
         instruction_id: str,
     ) -> CustomInstruction:
-        """Retrieves a custom instruction by ID.
-
-        :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :param instruction_id: ID of the custom instruction.
-        :return: CustomInstruction.
-        """
+        """Retrieve a custom instruction by ID."""
         if isinstance(style_rule, StyleRuleInfo):
             style_rule = style_rule.style_id
         if not style_rule:
             raise ValueError("style_rule must not be empty")
         if not instruction_id:
             raise ValueError("instruction_id must not be empty")
-        url = (
-            f"v3/style_rules/{style_rule}"
-            f"/custom_instructions/{instruction_id}"
+        request = _build_get_style_rule_custom_instruction_request(
+            self._server_url, style_rule, instruction_id
         )
-        status, content, json = self._api_call(
-            url,
-            method="GET",
-        )
-        self._raise_for_status(status, content, json)
-        return CustomInstruction.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_custom_instruction_response(response)
 
     def update_style_rule_custom_instruction(
         self,
@@ -849,15 +1219,7 @@ class DeepLClient(Translator):
         prompt: str,
         source_language: Optional[str] = None,
     ) -> CustomInstruction:
-        """Updates a custom instruction.
-
-        :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :param instruction_id: ID of the custom instruction.
-        :param label: New label for the custom instruction.
-        :param prompt: New prompt text for the custom instruction.
-        :param source_language: Optional source language code.
-        :return: Updated CustomInstruction.
-        """
+        """Update a custom instruction."""
         if isinstance(style_rule, StyleRuleInfo):
             style_rule = style_rule.style_id
         if not style_rule:
@@ -868,46 +1230,31 @@ class DeepLClient(Translator):
             raise ValueError("label must not be empty")
         if not prompt:
             raise ValueError("prompt must not be empty")
-        request_data = {"label": label, "prompt": prompt}
-        if source_language is not None:
-            request_data["source_language"] = source_language
-        url = (
-            f"v3/style_rules/{style_rule}"
-            f"/custom_instructions/{instruction_id}"
+        request = _build_update_style_rule_custom_instruction_request(
+            self._server_url, style_rule, instruction_id, label, prompt,
+            source_language,
         )
-        status, content, json = self._api_call(
-            url,
-            method="PUT",
-            json=request_data,
-        )
-        self._raise_for_status(status, content, json)
-        return CustomInstruction.from_json(json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_custom_instruction_response(response)
 
     def delete_style_rule_custom_instruction(
         self,
         style_rule: Union[str, StyleRuleInfo],
         instruction_id: str,
     ) -> None:
-        """Deletes a custom instruction from a style rule.
-
-        :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :param instruction_id: ID of the custom instruction to delete.
-        """
+        """Delete a custom instruction from a style rule."""
         if isinstance(style_rule, StyleRuleInfo):
             style_rule = style_rule.style_id
         if not style_rule:
             raise ValueError("style_rule must not be empty")
         if not instruction_id:
             raise ValueError("instruction_id must not be empty")
-        url = (
-            f"v3/style_rules/{style_rule}"
-            f"/custom_instructions/{instruction_id}"
+        request = _build_delete_style_rule_custom_instruction_request(
+            self._server_url, style_rule, instruction_id
         )
-        status, content, json = self._api_call(
-            url,
-            method="DELETE",
-        )
-        self._raise_for_status(status, content, json)
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
 
     def list_translation_memories(
         self,
@@ -922,25 +1269,9 @@ class DeepLClient(Translator):
         :param page_size: Number of items per page (optional).
         :return: List of TranslationMemoryInfo objects.
         """
-        params = {}
-        if page is not None:
-            params["page"] = str(page)
-        if page_size is not None:
-            params["page_size"] = str(page_size)
-
-        endpoint = "v3/translation_memories"
-        if params:
-            query_string = urllib.parse.urlencode(params)
-            endpoint += f"?{query_string}"
-
-        status, content, json = self._api_call(endpoint, method="GET")
-        self._raise_for_status(status, content, json)
-
-        translation_memories = (
-            json.get("translation_memories", [])
-            if (json and isinstance(json, dict))
-            else []
+        request = _build_list_translation_memories_request(
+            self._server_url, page=page, page_size=page_size
         )
-        return [
-            TranslationMemoryInfo.from_json(tm) for tm in translation_memories
-        ]
+        response = self._send_with_backoff(request)
+        self._raise_for_status(response)
+        return _parse_list_translation_memories_response(response)

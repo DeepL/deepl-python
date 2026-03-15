@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `DeepLClient.set_user_agent(string)`: new fluent method to override the `User-Agent`
+  header for a specific client instance, replacing the deprecated
+  `deepl.http_client.user_agent` global.
 
 ## [1.30.0] - 2026-04-09
 ### Added
@@ -35,6 +39,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated formality tests to accept either formal or informal output when using default formality,
   since the default formality is automatic.
+- `deepl.http_client.max_network_retries` and `deepl.http_client.min_connection_timeout`
+  are now read once when `DeepLClient` is constructed and baked into its `RetryConfig`.
+  Previously they were consulted on every request; now they must be set **before**
+  creating the client — values set afterwards are silently ignored.
+- `deepl.http_client.user_agent` is now read once at `DeepLClient` construction time.
+  Previously it was read on every request; now it must be set **before** creating the
+  client — values set afterwards are silently ignored.
+- Each HTTP client now contributes its library version string to the `User-Agent` header
+  (e.g. `requests/2.32.5`). Custom HTTP client implementations should add an
+  `http_library_info: str` attribute to conform to the updated `HttpClientProtocol`.
+
+### Deprecated
+- Deprecated `deepl.http_client` global variables:
+  - `deepl.http_client.max_network_retries`: use `RetryConfig` instead.
+  - `deepl.http_client.min_connection_timeout`: use `RetryConfig` instead.
+  - `deepl.http_client.user_agent`: use `DeepLClient.set_user_agent()` instead.
 
 ## [1.28.0] - 2026-02-05
 ### Changed
