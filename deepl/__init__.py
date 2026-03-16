@@ -11,6 +11,14 @@ from .requests_client import RequestsClient  # noqa
 from .retry_config import RetryConfig  # noqa
 from ._http_types import SslConfig  # noqa
 
+try:
+    from .aiohttp_client import AioHttpClient  # noqa
+    from .deepl_client_async import DeepLClientAsync  # noqa
+
+    _have_async = True
+except ImportError:
+    _have_async = False
+
 from .exceptions import (  # noqa
     AuthorizationException,
     ConnectionException,
@@ -48,6 +56,8 @@ __all__ = [
     "__version__",
     "__author__",
     "DeepLClient",
+    "DeepLClientAsync",
+    "AioHttpClient",
     "RequestsClient",
     "RetryConfig",
     "SslConfig",

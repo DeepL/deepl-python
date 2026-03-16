@@ -11,6 +11,7 @@ from deepl.api_data import (
 )
 from pydantic import BaseSettings
 import pytest
+import pytest_asyncio
 from typing import Callable, List, Optional
 from typing_extensions import Protocol
 import uuid
@@ -157,6 +158,22 @@ def _make_translator(server, auth_key=None, proxy=None, retry_config=None):
     return translator
 
 
+def _make_async_client(server, auth_key=None, proxy=None, retry_config=None):
+    """Returns a deepl.DeepLClientAsync for the specified server."""
+    if auth_key is None:
+        auth_key = server.auth_key
+    kwargs = {}
+    if retry_config is not None:
+        kwargs["retry_config"] = retry_config
+    client = deepl.DeepLClientAsync(
+        auth_key, server_url=server.server_url, proxy=proxy, **kwargs
+    )
+    if server.headers:
+        server.headers.update(client.headers)
+        client.headers = server.headers
+    return client
+
+
 def _make_deepl_client(server, auth_key=None, proxy=None):
     """Returns a deepl.DeepLClient for the specified server test fixture.
     The server auth_key is used unless specifically overridden."""
@@ -190,6 +207,14 @@ def deepl_client(server):
     """Returns a deepl.DeepLClient to use in all tests taking a parameter
     'deepl_client'."""
     return _make_deepl_client(server)
+
+
+@pytest_asyncio.fixture
+async def async_translator(server):
+    """Returns a deepl.DeepLClientAsync for all async tests."""
+    client = _make_async_client(server)
+    yield client
+    await client.close()
 
 
 @pytest.fixture
