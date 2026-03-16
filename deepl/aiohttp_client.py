@@ -66,20 +66,40 @@ class AioHttpClient:
         self._verify_ssl = verify_ssl
         self._session: Optional["aiohttp.ClientSession"] = None
 
-    def _get_session(self) -> "aiohttp.ClientSession":
-        if self._session is None or self._session.closed:
-            connector_kwargs: Dict = {}
-            if self._verify_ssl is False:
-                connector_kwargs["ssl"] = False
-            elif isinstance(self._verify_ssl, str):
-                import ssl
+    def _build_connector_kwargs(self) -> Dict:
+        kwargs: Dict = {}
+        if self._verify_ssl is False:
+            kwargs["ssl"] = False
+        elif isinstance(self._verify_ssl, str):
+            import ssl
 
-                connector_kwargs["ssl"] = ssl.create_default_context(
-                    cafile=self._verify_ssl
-                )
+            kwargs["ssl"] = ssl.create_default_context(cafile=self._verify_ssl)
+        return kwargs
+
+    def _get_session(self) -> "aiohttp.ClientSession":
+        """Return or create the session, re-creating if the event loop changed.
+
+        aiohttp ≥3.9 binds a ClientSession to the loop that was running when
+        it was constructed. Re-using a session across asyncio.run() calls (e.g.
+        in test suites) raises RuntimeError. We detect this by comparing the
+        session's internal loop against the currently running loop and
+        transparently replace it.
+        """
+        loop = asyncio.get_running_loop()
+        stale = (
+            self._session is None
+            or self._session.closed
+            or self._session._loop is not loop  # type: ignore[union-attr]
+        )
+        if stale:
+            if self._session is not None and not self._session.closed:
+                loop.create_task(self._session.close())
             self._session = aiohttp.ClientSession(
-                connector=aiohttp.TCPConnector(**connector_kwargs)
+                connector=aiohttp.TCPConnector(
+                    **self._build_connector_kwargs()
+                )
             )
+        assert self._session is not None
         return self._session
 
     async def send(self, request: HttpRequest) -> HttpResponse:

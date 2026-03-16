@@ -493,7 +493,7 @@ class DeepLClientAsync(_ClientBase):
                     )
                 except Exception as e:
                     out_file.close()
-                    os.unlink(output_path)
+                    await asyncio.to_thread(os.unlink, output_path)
                     raise e
 
     async def translate_document(
@@ -638,7 +638,7 @@ class DeepLClientAsync(_ClientBase):
 
         if output_file is not None:
             async for chunk in streaming.aiter_content(chunk_size=chunk_size):
-                output_file.write(chunk)
+                await asyncio.to_thread(output_file.write, chunk)
             streaming.close()
             return None
         return streaming

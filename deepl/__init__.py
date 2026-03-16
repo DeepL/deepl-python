@@ -56,8 +56,6 @@ __all__ = [
     "__version__",
     "__author__",
     "DeepLClient",
-    "DeepLClientAsync",
-    "AioHttpClient",
     "RequestsClient",
     "RetryConfig",
     "SslConfig",
@@ -85,3 +83,6 @@ __all__ = [
     "convert_dict_to_tsv",
     "validate_glossary_term",
 ]
+
+if _have_async:
+    __all__ += ["DeepLClientAsync", "AioHttpClient"]

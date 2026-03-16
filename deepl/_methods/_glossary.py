@@ -307,10 +307,11 @@ def _build_get_multilingual_glossary_entries_request(
     )
     source_lang = Language.remove_regional_variant(source_lang)
     target_lang = Language.remove_regional_variant(target_lang)
+    qs = urllib.parse.urlencode(
+        {"source_lang": source_lang, "target_lang": target_lang}
+    )
     url = urllib.parse.urljoin(
-        server_url,
-        f"v3/glossaries/{glossary_id}/entries"
-        f"?source_lang={source_lang}&target_lang={target_lang}",
+        server_url, f"v3/glossaries/{glossary_id}/entries?{qs}"
     )
     return HttpRequest(method="GET", url=url)
 
