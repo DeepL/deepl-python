@@ -192,16 +192,17 @@ class DeepLClient(_ClientBase):
                 stacklevel=2,
             )
 
+        resolved_client: HttpClientProtocol
         if http_client is None:
-            http_client = RequestsClient(
+            resolved_client = RequestsClient(
                 proxy=proxy,
                 verify_ssl=verify_ssl,
             )
+        else:
+            resolved_client = http_client
 
-        self._http_client: HttpClientProtocol = (  # type: ignore[assignment]
-            http_client
-        )
-        self._http_library_info = self._http_client.http_library_info
+        self._http_client = resolved_client
+        self._http_library_info = resolved_client.http_library_info
         if _hc.user_agent is not None:
             self.set_user_agent(_hc.user_agent)
         self._retry_config = retry_config

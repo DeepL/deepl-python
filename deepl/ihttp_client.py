@@ -23,9 +23,11 @@ class HttpClientProtocol(Protocol):
     :meth:`send_streaming` is used for document download only.
     """
 
-    http_library_info: str
-    """Version string of the underlying HTTP library, e.g.
-    ``"requests/2.32.5"``. Included in the ``User-Agent`` header."""
+    @property
+    def http_library_info(self) -> str:
+        """Version string of the underlying HTTP library, e.g.
+        ``"requests/2.32.5"``. Included in the ``User-Agent`` header."""
+        ...
 
     def send(self, request: HttpRequest) -> HttpResponse: ...
 
