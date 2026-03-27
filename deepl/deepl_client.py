@@ -198,7 +198,9 @@ class DeepLClient(_ClientBase):
                 verify_ssl=verify_ssl,
             )
 
-        self._http_client: HttpClientProtocol = http_client  # type: ignore[assignment]
+        self._http_client: HttpClientProtocol = (  # type: ignore[assignment]
+            http_client
+        )
         self._http_library_info = self._http_client.http_library_info
         if _hc.user_agent is not None:
             self.set_user_agent(_hc.user_agent)
@@ -1097,7 +1099,10 @@ class DeepLClient(_ClientBase):
         if not language:
             raise ValueError("language must not be empty")
         request = _build_create_style_rule_request(
-            self._server_url, name, language, configured_rules,
+            self._server_url,
+            name,
+            language,
+            configured_rules,
             custom_instructions,
         )
         response = self._send_with_backoff(request)
@@ -1231,7 +1236,11 @@ class DeepLClient(_ClientBase):
         if not prompt:
             raise ValueError("prompt must not be empty")
         request = _build_update_style_rule_custom_instruction_request(
-            self._server_url, style_rule, instruction_id, label, prompt,
+            self._server_url,
+            style_rule,
+            instruction_id,
+            label,
+            prompt,
             source_language,
         )
         response = self._send_with_backoff(request)
