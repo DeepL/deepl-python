@@ -10,6 +10,11 @@ from ..api_data import CustomInstruction, StyleRuleInfo
 from .._http_types import HttpRequest, HttpResponse
 
 
+def _safe_id(style_rule_id: str) -> str:
+    """URL-encode a style rule or instruction ID for safe interpolation."""
+    return urllib.parse.quote(style_rule_id, safe="")
+
+
 def _build_get_style_rules_request(
     server_url: str,
     page: Optional[int] = None,
@@ -73,11 +78,10 @@ def _build_get_style_rule_request(
     server_url: str,
     style_rule_id: str,
 ) -> HttpRequest:
+    sid = _safe_id(style_rule_id)
     return HttpRequest(
         method="GET",
-        url=urllib.parse.urljoin(
-            server_url, f"v3/style_rules/{style_rule_id}"
-        ),
+        url=urllib.parse.urljoin(server_url, f"v3/style_rules/{sid}"),
     )
 
 
@@ -86,12 +90,11 @@ def _build_update_style_rule_name_request(
     style_rule_id: str,
     name: str,
 ) -> HttpRequest:
+    sid = _safe_id(style_rule_id)
     body = json_module.dumps({"name": name}).encode("utf-8")
     return HttpRequest(
         method="PATCH",
-        url=urllib.parse.urljoin(
-            server_url, f"v3/style_rules/{style_rule_id}"
-        ),
+        url=urllib.parse.urljoin(server_url, f"v3/style_rules/{sid}"),
         body=body,
         headers={"Content-Type": "application/json"},
     )
@@ -101,11 +104,10 @@ def _build_delete_style_rule_request(
     server_url: str,
     style_rule_id: str,
 ) -> HttpRequest:
+    sid = _safe_id(style_rule_id)
     return HttpRequest(
         method="DELETE",
-        url=urllib.parse.urljoin(
-            server_url, f"v3/style_rules/{style_rule_id}"
-        ),
+        url=urllib.parse.urljoin(server_url, f"v3/style_rules/{sid}"),
     )
 
 
@@ -114,12 +116,13 @@ def _build_update_style_rule_configured_rules_request(
     style_rule_id: str,
     configured_rules: dict,
 ) -> HttpRequest:
+    sid = _safe_id(style_rule_id)
     body = json_module.dumps(configured_rules).encode("utf-8")
     return HttpRequest(
         method="PUT",
         url=urllib.parse.urljoin(
             server_url,
-            f"v3/style_rules/{style_rule_id}/configured_rules",
+            f"v3/style_rules/{sid}/configured_rules",
         ),
         body=body,
         headers={"Content-Type": "application/json"},
@@ -133,6 +136,7 @@ def _build_create_style_rule_custom_instruction_request(
     prompt: str,
     source_language: Optional[str] = None,
 ) -> HttpRequest:
+    sid = _safe_id(style_rule_id)
     request_data: Dict = {"label": label, "prompt": prompt}
     if source_language is not None:
         request_data["source_language"] = source_language
@@ -141,7 +145,7 @@ def _build_create_style_rule_custom_instruction_request(
         method="POST",
         url=urllib.parse.urljoin(
             server_url,
-            f"v3/style_rules/{style_rule_id}/custom_instructions",
+            f"v3/style_rules/{sid}/custom_instructions",
         ),
         body=body,
         headers={"Content-Type": "application/json"},
@@ -160,10 +164,9 @@ def _build_get_style_rule_custom_instruction_request(
     style_rule_id: str,
     instruction_id: str,
 ) -> HttpRequest:
-    path = (
-        f"v3/style_rules/{style_rule_id}"
-        f"/custom_instructions/{instruction_id}"
-    )
+    sid = _safe_id(style_rule_id)
+    iid = _safe_id(instruction_id)
+    path = f"v3/style_rules/{sid}/custom_instructions/{iid}"
     return HttpRequest(
         method="GET",
         url=urllib.parse.urljoin(server_url, path),
@@ -178,14 +181,13 @@ def _build_update_style_rule_custom_instruction_request(
     prompt: str,
     source_language: Optional[str] = None,
 ) -> HttpRequest:
+    sid = _safe_id(style_rule_id)
+    iid = _safe_id(instruction_id)
     request_data: Dict = {"label": label, "prompt": prompt}
     if source_language is not None:
         request_data["source_language"] = source_language
     body = json_module.dumps(request_data).encode("utf-8")
-    path = (
-        f"v3/style_rules/{style_rule_id}"
-        f"/custom_instructions/{instruction_id}"
-    )
+    path = f"v3/style_rules/{sid}/custom_instructions/{iid}"
     return HttpRequest(
         method="PUT",
         url=urllib.parse.urljoin(server_url, path),
@@ -199,10 +201,9 @@ def _build_delete_style_rule_custom_instruction_request(
     style_rule_id: str,
     instruction_id: str,
 ) -> HttpRequest:
-    path = (
-        f"v3/style_rules/{style_rule_id}"
-        f"/custom_instructions/{instruction_id}"
-    )
+    sid = _safe_id(style_rule_id)
+    iid = _safe_id(instruction_id)
+    path = f"v3/style_rules/{sid}/custom_instructions/{iid}"
     return HttpRequest(
         method="DELETE",
         url=urllib.parse.urljoin(server_url, path),

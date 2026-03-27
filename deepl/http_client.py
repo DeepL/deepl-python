@@ -54,7 +54,7 @@ class _Module(types.ModuleType):
     """Module subclass that intercepts assignment to deprecated globals."""
 
     def __setattr__(self, name: str, value: object) -> None:
-        if name in _DEPRECATED_GLOBALS:
+        if name in _DEPRECATED_GLOBALS and value is not None:
             warnings.warn(
                 _DEPRECATION_MESSAGES[name],
                 DeprecationWarning,

@@ -355,9 +355,13 @@ def _build_delete_multilingual_glossary_dict_request(
         raise ValueError(
             "must provide dictionary or both source_lang and target_lang"
         )
+    source_lang = Language.remove_regional_variant(source_lang)
+    target_lang = Language.remove_regional_variant(target_lang)
+    qs = urllib.parse.urlencode(
+        {"source_lang": source_lang, "target_lang": target_lang}
+    )
     url = urllib.parse.urljoin(
         server_url,
-        f"v3/glossaries/{glossary_id}/dictionaries"
-        f"?source_lang={source_lang}&target_lang={target_lang}",
+        f"v3/glossaries/{glossary_id}/dictionaries?{qs}",
     )
     return HttpRequest(method="DELETE", url=url)
