@@ -65,6 +65,7 @@ class AioHttpClient:
         self._proxy: Optional[str] = proxy
         self._verify_ssl = verify_ssl
         self._session: Optional["aiohttp.ClientSession"] = None
+        self._session_loop: Optional[asyncio.AbstractEventLoop] = None
 
     def _build_connector_kwargs(self) -> Dict:
         kwargs: Dict = {}
@@ -89,7 +90,7 @@ class AioHttpClient:
         stale = (
             self._session is None
             or self._session.closed
-            or self._session._loop is not loop  # type: ignore[union-attr]
+            or self._session_loop is not loop
         )
         if stale:
             if self._session is not None and not self._session.closed:
@@ -99,6 +100,7 @@ class AioHttpClient:
                     **self._build_connector_kwargs()
                 )
             )
+            self._session_loop = loop
         assert self._session is not None
         return self._session
 

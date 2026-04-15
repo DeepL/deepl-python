@@ -67,6 +67,8 @@ def _build_translate_text_request(
     elif hasattr(text, "__iter__"):
         multi_input = True
         text_list = list(text)
+        if len(text_list) == 0:
+            raise ValueError("text must not be empty")
     else:
         raise TypeError(
             "text parameter must be a string or an iterable of strings"

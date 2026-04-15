@@ -181,6 +181,10 @@ class DeepLClientAsync(_ClientBase):
             )
 
         self._http_client = http_client
+        if hasattr(http_client, "http_library_info"):
+            self._http_library_info = http_client.http_library_info
+        if _hc.user_agent is not None:
+            self.set_user_agent(_hc.user_agent)
         self._retry_config = retry_config
         self._sleep_fn: Callable[[float], Awaitable[None]] = (
             _sleep_fn if _sleep_fn is not None else asyncio.sleep
