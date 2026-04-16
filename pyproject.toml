@@ -53,6 +53,10 @@ aiohttp = ">=3.9.0"
 async = ["aiohttp"]
 keyring = ["keyring"]
 
+[[tool.mypy.overrides]]
+module = ["aiohttp", "aiohttp.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 

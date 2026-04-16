@@ -11,7 +11,6 @@ from deepl.api_data import (
 )
 from pydantic import BaseSettings
 import pytest
-import pytest_asyncio
 from typing import Callable, List, Optional
 from typing_extensions import Protocol
 import uuid
@@ -209,7 +208,7 @@ def deepl_client(server):
     return _make_deepl_client(server)
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def async_translator(server):
     """Returns a deepl.DeepLClientAsync for all async tests."""
     client = _make_async_client(server)
