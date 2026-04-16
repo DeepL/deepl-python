@@ -43,9 +43,11 @@ pydantic = "^1.8.1"
 flake8 = "^7.3.0"
 mypy = "^1.17.1"
 pytest = "^8.4.2"
+coverage = "^7.10.6"
+
+[tool.poetry.group.async-dev.dependencies]
 pytest-asyncio = ">=0.23"
 aiohttp = ">=3.9.0"
-coverage = "^7.10.6"
 
 [tool.poetry.extras]
 async = ["aiohttp"]

@@ -50,7 +50,7 @@ before_script:
   - pip install --upgrade pip
   - pip install poetry==2.1.2
   - poetry --version
-  - poetry install -vv -E keyring
+  - poetry install -vv -E keyring --without async-dev
 
 # stage: check ----------------------
 
@@ -186,7 +186,7 @@ package:
     - >
       if [[ ! -z "${WITH_ASYNC}" ]]; then
         echo "Installing async extra"
-        poetry install -E async
+        poetry install --with async-dev -E async
       fi
     - >
       if [[ ! -z "${USE_MOCK_SERVER}" ]]; then
