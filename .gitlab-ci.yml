@@ -173,12 +173,20 @@ package:
         USE_MOCK_SERVER: "use mock server"
       - DOCKER_IMAGE: "python:3.13"
         USE_MOCK_SERVER: "use mock server"
+      - DOCKER_IMAGE: "python:3.13"
+        USE_MOCK_SERVER: "use mock server"
+        WITH_ASYNC: "true"
   image: ${DOCKER_IMAGE}
   script:
     - >
       if [[ ! -z "${EXTRA_POETRY_ADD_ARGUMENT}" ]]; then
         echo "Running poetry add ${EXTRA_POETRY_ADD_ARGUMENT}"
         poetry add ${EXTRA_POETRY_ADD_ARGUMENT}
+      fi
+    - >
+      if [[ ! -z "${WITH_ASYNC}" ]]; then
+        echo "Installing async extra"
+        poetry install -E async
       fi
     - >
       if [[ ! -z "${USE_MOCK_SERVER}" ]]; then

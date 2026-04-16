@@ -3,10 +3,13 @@
 # license that can be found in the LICENSE file.
 
 import pytest
-import deepl
-from deepl.retry_config import RetryConfig
 
-from .conftest import (
+pytest.importorskip("aiohttp")
+
+import deepl  # noqa: E402
+from deepl.retry_config import RetryConfig  # noqa: E402
+
+from .conftest import (  # noqa: E402
     _make_async_client,
     example_text,
     needs_mock_server,
