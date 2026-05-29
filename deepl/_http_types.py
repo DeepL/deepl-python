@@ -87,7 +87,10 @@ class AsyncStreamingHttpResponse(Protocol):
     """Protocol for async streaming HTTP responses.
 
     NOT @runtime_checkable — this is a return type, not user-supplied.
-    Defined here for completeness; will be used when async support is added.
+    Implementations should also be usable as async context managers
+    (``__aenter__`` / ``__aexit__``) so callers can release the
+    underlying connection deterministically without an explicit
+    ``await close()``.
     """
 
     status_code: int
@@ -96,6 +99,12 @@ class AsyncStreamingHttpResponse(Protocol):
     def aiter_content(
         self, chunk_size: int = 65536
     ) -> AsyncIterator[bytes]: ...
+
+    async def close(self) -> None: ...
+
+    async def __aenter__(self) -> "AsyncStreamingHttpResponse": ...
+
+    async def __aexit__(self, *args: object) -> None: ...
 
 
 def make_file_factory(

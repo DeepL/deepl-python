@@ -37,6 +37,34 @@ async def test_streaming_response_close_awaits_release():
     resp.close.assert_not_called()
 
 
+async def test_streaming_response_async_context_manager_releases():
+    resp = MagicMock()
+    resp.status = 200
+    resp.headers = {}
+    resp.release = AsyncMock()
+
+    streaming = _AioHttpStreamingResponse(resp)
+    async with streaming as entered:
+        assert entered is streaming
+        resp.release.assert_not_awaited()
+
+    resp.release.assert_awaited_once()
+
+
+async def test_streaming_response_async_context_manager_releases_on_error():
+    resp = MagicMock()
+    resp.status = 200
+    resp.headers = {}
+    resp.release = AsyncMock()
+
+    streaming = _AioHttpStreamingResponse(resp)
+    with pytest.raises(RuntimeError, match="boom"):
+        async with streaming:
+            raise RuntimeError("boom")
+
+    resp.release.assert_awaited_once()
+
+
 async def test_stale_session_queued_not_fire_and_forget(monkeypatch):
     import deepl.aiohttp_client as mod
 

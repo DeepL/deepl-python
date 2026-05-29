@@ -621,7 +621,15 @@ class DeepLClientAsync(_ClientBase):
 
         :param handle: DocumentHandle from translate_document_upload.
         :param output_file: (Optional) File-like object to write content to.
-            If None, returns the raw streaming response.
+            If None, returns the raw streaming response; the caller MUST
+            release it via ``await streaming.close()`` or, preferably,
+            ``async with`` — otherwise the underlying TCP connection is
+            held until garbage collection::
+
+                download = await client.translate_document_download(handle)
+                async with download as resp:
+                    async for chunk in resp.aiter_content():
+                        ...
         :param chunk_size: Chunk size in bytes when writing to output_file.
         :return: None if output_file provided, otherwise streaming response.
         """

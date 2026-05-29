@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import asyncio
-from typing import AsyncIterator, Dict, List, Optional, Union
+from typing import Any, AsyncIterator, Dict, List, Optional, Union
 
 from .exceptions import ConnectionException
 from ._http_types import HttpRequest, HttpResponse
@@ -19,7 +19,15 @@ else:
 
 
 class _AioHttpStreamingResponse:
-    """Wraps an aiohttp.ClientResponse as an AsyncStreamingHttpResponse."""
+    """Wraps an aiohttp.ClientResponse as an AsyncStreamingHttpResponse.
+
+    Usable as an async context manager so callers don't have to remember
+    ``await streaming.close()``:
+
+        async with await client.translate_document_download(handle) as resp:
+            async for chunk in resp.aiter_content():
+                ...
+    """
 
     def __init__(self, response: "aiohttp.ClientResponse") -> None:
         self._response = response
@@ -31,6 +39,12 @@ class _AioHttpStreamingResponse:
 
     async def close(self) -> None:
         await self._response.release()
+
+    async def __aenter__(self) -> "_AioHttpStreamingResponse":
+        return self
+
+    async def __aexit__(self, *args: Any) -> None:
+        await self.close()
 
 
 class AioHttpClient:
