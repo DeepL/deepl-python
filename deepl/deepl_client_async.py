@@ -631,10 +631,13 @@ class DeepLClientAsync(_ClientBase):
                     " document translation",
                     should_retry=False,
                 )
-            secs = (
-                min(status.seconds_remaining, 5.0)
-                if status.seconds_remaining is not None
-                else 5.0
+            secs = max(
+                (
+                    min(status.seconds_remaining, 5.0)
+                    if status.seconds_remaining is not None
+                    else 5.0
+                ),
+                1.0,
             )
             util.log_info(
                 f"Rechecking document translation status "
