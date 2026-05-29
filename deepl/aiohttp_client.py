@@ -128,7 +128,14 @@ class AioHttpClient:
         :raises ConnectionException: On any network error.
         """
         session = self._get_session()
-        timeout = aiohttp.ClientTimeout(total=request.timeout)
+        # Mirror the synchronous client's semantics: `requests` resets
+        # its timeout per socket operation, so a slow but steady transfer
+        # (e.g. large document download on a poor link) does not abort
+        # while bytes are still arriving. Bound connect and any gap
+        # between reads; leave overall wall clock unbounded.
+        timeout = aiohttp.ClientTimeout(
+            sock_connect=request.timeout, sock_read=request.timeout
+        )
         try:
             if request.multipart is not None:
                 mp = request.multipart
@@ -202,7 +209,14 @@ class AioHttpClient:
             headers are received.
         """
         session = self._get_session()
-        timeout = aiohttp.ClientTimeout(total=request.timeout)
+        # Mirror the synchronous client's semantics: `requests` resets
+        # its timeout per socket operation, so a slow but steady transfer
+        # (e.g. large document download on a poor link) does not abort
+        # while bytes are still arriving. Bound connect and any gap
+        # between reads; leave overall wall clock unbounded.
+        timeout = aiohttp.ClientTimeout(
+            sock_connect=request.timeout, sock_read=request.timeout
+        )
         try:
             if request.body is not None:
                 resp = await session.request(
