@@ -481,8 +481,13 @@ class DeepLClientAsync(_ClientBase):
         out_ext = pathlib.PurePath(output_path).suffix.lower()
         output_format = None if in_ext == out_ext else out_ext[1:]
 
-        with open(input_path, "rb") as in_file:
-            with open(output_path, "wb") as out_file:
+        # File I/O is blocking; run open()/close() in a worker thread so
+        # the event loop is never stalled (especially relevant on slow
+        # disks or network mounts).
+        in_file = await asyncio.to_thread(open, input_path, "rb")
+        try:
+            out_file = await asyncio.to_thread(open, output_path, "wb")
+            try:
                 try:
                     return await self.translate_document(
                         in_file,
@@ -496,9 +501,14 @@ class DeepLClientAsync(_ClientBase):
                         extra_body_parameters=extra_body_parameters,
                     )
                 except Exception as e:
-                    out_file.close()
+                    await asyncio.to_thread(out_file.close)
                     await asyncio.to_thread(os.unlink, output_path)
                     raise e
+            finally:
+                if not out_file.closed:
+                    await asyncio.to_thread(out_file.close)
+        finally:
+            await asyncio.to_thread(in_file.close)
 
     async def translate_document(
         self,
