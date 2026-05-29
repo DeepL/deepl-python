@@ -183,6 +183,7 @@ class DeepLClientAsync(_ClientBase):
             )
 
         self._http_client = http_client
+        self._closed = False
         if hasattr(http_client, "http_library_info"):
             self._http_library_info = http_client.http_library_info
         if _hc.user_agent is not None:
@@ -201,6 +202,26 @@ class DeepLClientAsync(_ClientBase):
         """Close the underlying HTTP client and release resources."""
         if hasattr(self, "_http_client"):
             await self._http_client.close()
+        self._closed = True
+
+    def __del__(self) -> None:
+        # Mirror httpx/aiohttp: warn (but don't try to clean up) if the
+        # client was garbage-collected without an explicit close. We can't
+        # `await` here, and scheduling close on a possibly-dead loop is
+        # the bug we just fixed in AioHttpClient. The underlying aiohttp
+        # session has its own destructor warning; this one names our class
+        # so users know where to call close().
+        if getattr(self, "_http_client", None) is not None and not getattr(
+            self, "_closed", True
+        ):
+            import warnings
+
+            warnings.warn(
+                f"{type(self).__name__} was not closed; use "
+                "`async with` or `await client.close()`",
+                ResourceWarning,
+                stacklevel=2,
+            )
 
     async def __aenter__(self) -> "DeepLClientAsync":
         return self

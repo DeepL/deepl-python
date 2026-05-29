@@ -2,6 +2,9 @@
 # Use of this source code is governed by an MIT
 # license that can be found in the LICENSE file.
 
+import gc
+import warnings
+
 import pytest
 
 pytest.importorskip("aiohttp")
@@ -144,6 +147,22 @@ async def test_source_and_target_languages(async_translator):
 async def test_glossary_languages(async_translator):
     pairs = await async_translator.get_glossary_languages()
     assert len(pairs) > 0
+
+
+async def test_del_warns_when_not_closed():
+    client = deepl.DeepLClientAsync("dummy-key")
+    with pytest.warns(ResourceWarning, match="not closed"):
+        del client
+        gc.collect()
+
+
+async def test_no_warning_after_explicit_close():
+    client = deepl.DeepLClientAsync("dummy-key")
+    await client.close()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ResourceWarning)
+        del client
+        gc.collect()
 
 
 async def test_create_and_delete_glossary(async_translator, glossary_name):
