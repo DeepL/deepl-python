@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import asyncio
-from typing import AsyncIterator, Dict, Optional, Union
+from typing import AsyncIterator, Dict, List, Optional, Union
 
 from .exceptions import ConnectionException
 from ._http_types import HttpRequest, HttpResponse
@@ -29,8 +29,8 @@ class _AioHttpStreamingResponse:
     def aiter_content(self, chunk_size: int = 65536) -> AsyncIterator[bytes]:
         return self._response.content.iter_chunked(chunk_size)
 
-    def close(self) -> None:
-        self._response.close()
+    async def close(self) -> None:
+        await self._response.release()
 
 
 class AioHttpClient:
@@ -66,6 +66,10 @@ class AioHttpClient:
         self._verify_ssl = verify_ssl
         self._session: Optional["aiohttp.ClientSession"] = None
         self._session_loop: Optional[asyncio.AbstractEventLoop] = None
+        # Stale sessions waiting to be closed. Populated when the event
+        # loop changes between calls (e.g. tests using asyncio.run); drained
+        # best-effort by close().
+        self._pending_close_sessions: List["aiohttp.ClientSession"] = []
 
     def _build_connector_kwargs(self) -> Dict:
         kwargs: Dict = {}
@@ -94,7 +98,7 @@ class AioHttpClient:
         )
         if stale:
             if self._session is not None and not self._session.closed:
-                loop.create_task(self._session.close())
+                self._pending_close_sessions.append(self._session)
             self._session = aiohttp.ClientSession(
                 connector=aiohttp.TCPConnector(
                     **self._build_connector_kwargs()
@@ -149,7 +153,7 @@ class AioHttpClient:
                     proxy=self._proxy,
                 )
             content = await resp.read()
-            resp.close()
+            await resp.release()
             return HttpResponse(
                 status_code=resp.status,
                 headers=dict(resp.headers),
@@ -222,7 +226,21 @@ class AioHttpClient:
             ) from e
 
     async def close(self) -> None:
-        """Close the aiohttp session."""
+        """Close the aiohttp session and any sessions abandoned on loop
+        changes.
+
+        Sessions are bound to the loop they were created on; closing one
+        from a different loop will fail. We swallow such errors so close()
+        is safe to call from any loop.
+        """
+        for old in self._pending_close_sessions:
+            if old.closed:
+                continue
+            try:
+                await old.close()
+            except Exception:
+                pass
+        self._pending_close_sessions.clear()
         if self._session is not None and not self._session.closed:
             await self._session.close()
             self._session = None

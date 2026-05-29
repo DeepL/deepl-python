@@ -375,7 +375,7 @@ class DeepLClientAsync(_ClientBase):
                 )
                 async for _ in streaming.aiter_content(65536):
                     pass
-                streaming.close()
+                await streaming.close()
                 await self._sleep_fn(timer.get_time_until_deadline())
                 timer.advance()
                 continue
@@ -632,7 +632,7 @@ class DeepLClientAsync(_ClientBase):
             content = b""
             async for chunk in streaming.aiter_content(65536):
                 content += chunk
-            streaming.close()
+            await streaming.close()
             error_response = HttpResponse(
                 status_code=streaming.status_code,
                 headers=dict(streaming.headers),
@@ -643,7 +643,7 @@ class DeepLClientAsync(_ClientBase):
         if output_file is not None:
             async for chunk in streaming.aiter_content(chunk_size=chunk_size):
                 await asyncio.to_thread(output_file.write, chunk)
-            streaming.close()
+            await streaming.close()
             return None
         return streaming
 
