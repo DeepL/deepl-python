@@ -523,10 +523,10 @@ class DeepLClientAsync(_ClientBase):
                         timeout_s=timeout_s,
                         extra_body_parameters=extra_body_parameters,
                     )
-                except Exception as e:
+                except Exception:
                     await asyncio.to_thread(out_file.close)
                     await asyncio.to_thread(os.unlink, output_path)
-                    raise e
+                    raise
             finally:
                 if not out_file.closed:
                     await asyncio.to_thread(out_file.close)

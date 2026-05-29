@@ -579,10 +579,10 @@ class DeepLClient(_ClientBase):
                         timeout_s=timeout_s,
                         extra_body_parameters=extra_body_parameters,
                     )
-                except Exception as e:
+                except Exception:
                     out_file.close()
                     os.unlink(output_path)
-                    raise e
+                    raise
 
     def translate_document(
         self,
