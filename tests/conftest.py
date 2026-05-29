@@ -212,8 +212,10 @@ def deepl_client(server):
 async def async_translator(server):
     """Returns a deepl.DeepLClientAsync for all async tests."""
     client = _make_async_client(server)
-    yield client
-    await client.close()
+    try:
+        yield client
+    finally:
+        await client.close()
 
 
 @pytest.fixture
