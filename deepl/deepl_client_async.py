@@ -94,6 +94,7 @@ from .exceptions import (
     DeepLException,
     DocumentTranslationException,
 )
+from .ihttp_client import AsyncHttpClientProtocol
 from .retry_config import RetryConfig
 from . import util
 
@@ -113,8 +114,9 @@ class DeepLClientAsync(_ClientBase):
     :param send_platform_info: (Optional) Include OS/Python info in
         User-Agent.
     :param verify_ssl: (Optional) SSL certificate verification config.
-    :param http_client: (Optional) Custom async HTTP client. When supplied,
-        ``proxy`` and ``verify_ssl`` must not be set.
+    :param http_client: (Optional) Custom async HTTP client conforming to
+        :class:`~deepl.AsyncHttpClientProtocol`. When supplied, ``proxy``
+        and ``verify_ssl`` must not be set.
     :param retry_config: (Optional) Backoff/retry settings.
     :param skip_language_check: Deprecated, no-op.
     """
@@ -127,7 +129,7 @@ class DeepLClientAsync(_ClientBase):
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: SslConfig = None,
-        http_client: Optional[Any] = None,
+        http_client: Optional[AsyncHttpClientProtocol] = None,
         retry_config: RetryConfig = _DEFAULT_RETRY_CONFIG,
         skip_language_check: bool = False,
         _sleep_fn: Optional[Callable[[float], Awaitable[None]]] = None,

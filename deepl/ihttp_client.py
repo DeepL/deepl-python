@@ -7,7 +7,12 @@ try:
 except ImportError:
     from typing_extensions import Protocol, runtime_checkable  # type: ignore
 
-from ._http_types import HttpRequest, HttpResponse, StreamingHttpResponse
+from ._http_types import (
+    AsyncStreamingHttpResponse,
+    HttpRequest,
+    HttpResponse,
+    StreamingHttpResponse,
+)
 
 
 @runtime_checkable
@@ -36,3 +41,28 @@ class HttpClientProtocol(Protocol):
     ) -> StreamingHttpResponse: ...
 
     def close(self) -> None: ...
+
+
+@runtime_checkable
+class AsyncHttpClientProtocol(Protocol):
+    """Protocol for asynchronous HTTP clients.
+
+    Async counterpart to :class:`HttpClientProtocol`. Custom
+    implementations must satisfy the same contract: one attempt per
+    call, library-specific errors translated to
+    :class:`~deepl.exceptions.ConnectionException` before raising.
+    """
+
+    @property
+    def http_library_info(self) -> str:
+        """Version string of the underlying HTTP library, e.g.
+        ``"aiohttp/3.9.5"``. Included in the ``User-Agent`` header."""
+        ...
+
+    async def send(self, request: HttpRequest) -> HttpResponse: ...
+
+    async def send_streaming(
+        self, request: HttpRequest
+    ) -> AsyncStreamingHttpResponse: ...
+
+    async def close(self) -> None: ...

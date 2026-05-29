@@ -253,6 +253,12 @@ class AioHttpClient:
                 f"Unexpected request failure: {e}", should_retry=False
             ) from e
 
+    @property
+    def http_library_info(self) -> str:
+        if aiohttp is None:
+            return "aiohttp/unknown"
+        return f"aiohttp/{aiohttp.__version__}"
+
     async def close(self) -> None:
         """Close the aiohttp session and any sessions abandoned on loop
         changes.
