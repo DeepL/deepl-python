@@ -3,7 +3,7 @@ include:
   - project: '${CI_PROJECT_NAMESPACE}/ci-libs-for-client-libraries'
     file:
       - '/${CI_PROJECT_NAME}/.gitlab-ci.yml'
-  - project: 'deepl/ops/ci-cd-infrastructure/gitlab-ci-lib'
+  - project: 'deepl-org/deepl/devex/gitlab-ci-lib'
     file:
       - '/templates/.buildkit.yml'
       - '/templates/.secret-detection.yml'
