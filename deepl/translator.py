@@ -267,6 +267,9 @@ class Translator:
         style_rule: Union[str, StyleRuleInfo, None] = None,
         translation_memory: Union[str, TranslationMemoryInfo, None] = None,
         translation_memory_threshold: Optional[int] = None,
+        glossary_ids: Optional[
+            List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
+        ] = None,
     ) -> dict:
         # target_lang and source_lang are case insensitive
         target_lang = str(target_lang).upper()
@@ -275,6 +278,21 @@ class Translator:
 
         if glossary is not None and source_lang is None:
             raise ValueError("source_lang is required if using a glossary")
+
+        if glossary_ids is not None:
+            if glossary is not None:
+                raise ValueError(
+                    "glossary_ids cannot be used together with the glossary "
+                    "parameter"
+                )
+            if source_lang is None:
+                raise ValueError(
+                    "source_lang is required if using glossary_ids"
+                )
+            if len(glossary_ids) > 5:
+                raise ValueError(
+                    "glossary_ids must not contain more than 5 glossary IDs"
+                )
 
         if isinstance(glossary, GlossaryInfo):
             if (
@@ -318,6 +336,22 @@ class Translator:
             request_data["glossary_id"] = glossary.glossary_id
         elif glossary is not None:
             request_data["glossary_id"] = glossary
+        if glossary_ids is not None:
+            resolved_ids = [
+                (
+                    entry.glossary_id
+                    if isinstance(
+                        entry, (GlossaryInfo, MultilingualGlossaryInfo)
+                    )
+                    else entry
+                )
+                for entry in glossary_ids
+            ]
+            # The API expects glossary_ids as an array. For text translation
+            # this is JSON-encoded as an array; for document translation
+            # (form/multipart) translate_document_upload joins it into a
+            # single comma-separated glossary_ids field.
+            request_data["glossary_ids"] = resolved_ids
         if isinstance(style_rule, StyleRuleInfo):
             request_data["style_id"] = style_rule.style_id
         elif style_rule is not None:
@@ -397,6 +431,9 @@ class Translator:
         glossary: Union[
             str, GlossaryInfo, MultilingualGlossaryInfo, None
         ] = None,
+        glossary_ids: Optional[
+            List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
+        ] = None,
         tag_handling: Optional[str] = None,
         tag_handling_version: Optional[str] = None,
         outline_detection: Optional[bool] = None,
@@ -435,6 +472,9 @@ class Translator:
             "default".
         :param glossary: (Optional) glossary or glossary ID to use for
             translation. Must match specified source_lang and target_lang.
+        :param glossary_ids: (Optional) list of up to 5 glossaries or glossary
+            IDs to use for translation, applied in order. Requires source_lang
+            to be set and cannot be combined with the glossary parameter.
         :param style_rule: (Optional) style rule or style rule ID to use for
             translation.
         :param translation_memory: (Optional) translation memory or translation
@@ -492,6 +532,7 @@ class Translator:
             style_rule,
             translation_memory,
             translation_memory_threshold,
+            glossary_ids,
         )
         request_data["text"] = text
 
@@ -627,6 +668,12 @@ class Translator:
         glossary: Union[
             str, GlossaryInfo, MultilingualGlossaryInfo, None
         ] = None,
+        glossary_ids: Optional[
+            List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
+        ] = None,
+        style_rule: Union[str, StyleRuleInfo, None] = None,
+        translation_memory: Union[str, TranslationMemoryInfo, None] = None,
+        translation_memory_threshold: Optional[int] = None,
         timeout_s: Optional[int] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> DocumentStatus:
@@ -644,6 +691,16 @@ class Translator:
             Formality enum, "less", "more", "prefer_less", or "prefer_more".
         :param glossary: (Optional) glossary or glossary ID to use for
             translation. Must match specified source_lang and target_lang.
+        :param glossary_ids: (Optional) list of up to 5 glossaries or glossary
+            IDs to use for translation, applied in order. Requires source_lang
+            to be set and cannot be combined with the glossary parameter.
+        :param style_rule: (Optional) style rule or style rule ID to use for
+            translation.
+        :param translation_memory: (Optional) translation memory or translation
+            memory ID to use for translation.
+        :param translation_memory_threshold: (Optional) minimum matching
+            percentage for fuzzy matches from the translation memory (0-100).
+            Recommended minimum is 75%.
         :param timeout_s: (beta) (Optional) Maximum time to wait before
             the call raises an error. Note that this is not accurate to the
             second, but only polls every 5 seconds.
@@ -674,6 +731,12 @@ class Translator:
                         source_lang=source_lang,
                         formality=formality,
                         glossary=glossary,
+                        glossary_ids=glossary_ids,
+                        style_rule=style_rule,
+                        translation_memory=translation_memory,
+                        translation_memory_threshold=(
+                            translation_memory_threshold
+                        ),
                         output_format=output_format,
                         timeout_s=timeout_s,
                         extra_body_parameters=extra_body_parameters,
@@ -694,6 +757,12 @@ class Translator:
         glossary: Union[
             str, GlossaryInfo, MultilingualGlossaryInfo, None
         ] = None,
+        glossary_ids: Optional[
+            List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
+        ] = None,
+        style_rule: Union[str, StyleRuleInfo, None] = None,
+        translation_memory: Union[str, TranslationMemoryInfo, None] = None,
+        translation_memory_threshold: Optional[int] = None,
         filename: Optional[str] = None,
         output_format: Optional[str] = None,
         timeout_s: Optional[int] = None,
@@ -715,6 +784,16 @@ class Translator:
             Formality enum, "less", "more", "prefer_less", or "prefer_more".
         :param glossary: (Optional) glossary or glossary ID to use for
             translation. Must match specified source_lang and target_lang.
+        :param glossary_ids: (Optional) list of up to 5 glossaries or glossary
+            IDs to use for translation, applied in order. Requires source_lang
+            to be set and cannot be combined with the glossary parameter.
+        :param style_rule: (Optional) style rule or style rule ID to use for
+            translation.
+        :param translation_memory: (Optional) translation memory or translation
+            memory ID to use for translation.
+        :param translation_memory_threshold: (Optional) minimum matching
+            percentage for fuzzy matches from the translation memory (0-100).
+            Recommended minimum is 75%.
         :param filename: (Optional) Filename including extension, only required
             if uploading string or bytes containing file content.
         :param output_format: (Optional) Desired output file extension, if
@@ -740,6 +819,10 @@ class Translator:
             source_lang=source_lang,
             formality=formality,
             glossary=glossary,
+            glossary_ids=glossary_ids,
+            style_rule=style_rule,
+            translation_memory=translation_memory,
+            translation_memory_threshold=translation_memory_threshold,
             filename=filename,
             output_format=output_format,
             extra_body_parameters=extra_body_parameters,
@@ -770,6 +853,12 @@ class Translator:
         glossary: Union[
             str, GlossaryInfo, MultilingualGlossaryInfo, None
         ] = None,
+        glossary_ids: Optional[
+            List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
+        ] = None,
+        style_rule: Union[str, StyleRuleInfo, None] = None,
+        translation_memory: Union[str, TranslationMemoryInfo, None] = None,
+        translation_memory_threshold: Optional[int] = None,
         filename: Optional[str] = None,
         output_format: Optional[str] = None,
         extra_body_parameters: Optional[dict] = None,
@@ -788,6 +877,16 @@ class Translator:
             Formality enum, "less", "more", "prefer_less", or "prefer_more".
         :param glossary: (Optional) glossary or glossary ID to use for
             translation. Must match specified source_lang and target_lang.
+        :param glossary_ids: (Optional) list of up to 5 glossaries or glossary
+            IDs to use for translation, applied in order. Requires source_lang
+            to be set and cannot be combined with the glossary parameter.
+        :param style_rule: (Optional) style rule or style rule ID to use for
+            translation.
+        :param translation_memory: (Optional) translation memory or translation
+            memory ID to use for translation.
+        :param translation_memory_threshold: (Optional) minimum matching
+            percentage for fuzzy matches from the translation memory (0-100).
+            Recommended minimum is 75%.
         :param filename: (Optional) Filename including extension, only required
             if uploading string or bytes containing file content.
         :param output_format: (Optional) Desired output file extension, if
@@ -801,10 +900,25 @@ class Translator:
         """
 
         request_data = self._check_language_and_formality(
-            source_lang, target_lang, formality, glossary
+            source_lang,
+            target_lang,
+            formality,
+            glossary,
+            style_rule,
+            translation_memory,
+            translation_memory_threshold,
+            glossary_ids=glossary_ids,
         )
         if output_format:
             request_data["output_format"] = output_format
+
+        # The document endpoint uses multipart/form-data. Send glossary_ids as
+        # a single comma-separated field (the form form of the array), matching
+        # the other SDKs, instead of repeated multipart fields.
+        if isinstance(request_data.get("glossary_ids"), list):
+            request_data["glossary_ids"] = ",".join(
+                request_data["glossary_ids"]
+            )
 
         files: Dict[str, Any] = {}
         if isinstance(input_document, (str, bytes)):

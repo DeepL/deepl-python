@@ -202,3 +202,21 @@ def test_translate_text_with_style_rule(deepl_client):
     _ = deepl_client.translate_text(
         example_text["DE"], target_lang="EN-US", style_rule=DEFAULT_STYLE_ID
     )
+
+
+@needs_mock_server
+def test_translate_document_with_style_rule(
+    deepl_client,
+    example_document_path,
+    output_document_path,
+):
+    # Note: this test may use the mock server that will not translate the text,
+    # therefore we do not check the translated result.
+    example_document_path.write_text(example_text["DE"])
+    deepl_client.translate_document_from_filepath(
+        example_document_path,
+        output_path=output_document_path,
+        source_lang="DE",
+        target_lang="EN-US",
+        style_rule=DEFAULT_STYLE_ID,
+    )

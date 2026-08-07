@@ -324,6 +324,16 @@ def get_parser(prog_name):
             help="ID of glossary to use for translation",
         )
         subparser.add_argument(
+            "--glossary-ids",
+            dest="glossary_ids",
+            action="append",
+            type=str,
+            metavar="id",
+            help="ID of a glossary to use for translation; may be repeated to "
+            "use up to 5 glossaries, applied in order. Requires --from and "
+            "cannot be combined with --glossary-id",
+        )
+        subparser.add_argument(
             "--extra-body-parameters",
             dest="extra_body_parameters",
             type=json.loads,
@@ -503,6 +513,25 @@ def get_parser(prog_name):
         description="translate document(s)",
     )
     add_common_arguments(parser_document)
+    parser_document.add_argument(
+        "--style-id",
+        dest="style_rule",
+        type=str,
+        help="ID of style rule to use for translation",
+    )
+    parser_document.add_argument(
+        "--translation-memory-id",
+        dest="translation_memory",
+        type=str,
+        help="ID of translation memory to use for translation",
+    )
+    parser_document.add_argument(
+        "--translation-memory-threshold",
+        dest="translation_memory_threshold",
+        type=int,
+        help="minimum matching percentage (0-100) for translation memory "
+        "fuzzy matches, recommended minimum is 75",
+    )
     parser_document.add_argument(
         "file", nargs="+", help="file(s) to be translated."
     )

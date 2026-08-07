@@ -160,6 +160,13 @@ arguments are:
 - `glossary`: specifies a glossary to use with translation, either as a string
   containing the glossary ID, or a `GlossaryInfo` as returned by
   `get_glossary()`.
+- `glossary_ids`: specifies a list of up to 5 glossaries to use with
+  translation, applied in order. Each entry may be a string containing the
+  glossary ID or a `GlossaryInfo` object. Requires `source_lang` to be set and
+  cannot be combined with the `glossary` parameter. On the command line, use the
+  repeatable `--glossary-ids` argument (available on both the `text` and
+  `document` commands), for example:
+  `--from=EN --to=DE --glossary-ids=ID1 --glossary-ids=ID2`.
 - `context`: specifies additional context to influence translations, that is not
   translated itself. Characters in the `context` parameter are not counted toward billing.
   See the [API documentation][api-docs-context-param] for more information and
@@ -333,6 +340,10 @@ arguments, the available `translate_document()` and
 
 - `formality`: same as in [Text translation options](#text-translation-options).
 - `glossary`: same as in [Text translation options](#text-translation-options).
+- `glossary_ids`: same as in [Text translation options](#text-translation-options).
+- `style_rule`: same as in [Text translation options](#text-translation-options).
+- `translation_memory`: same as in [Text translation options](#text-translation-options).
+- `translation_memory_threshold`: same as in [Text translation options](#text-translation-options).
 - `output_format`: (`translate_document()` only)
   file extension of desired format of translated file, for example: `'pdf'`. If
   unspecified, by default the translated file will be in the same format as the
@@ -756,10 +767,17 @@ deepl_client.delete_style_rule("YOUR_STYLE_ID")
 
 #### Using a style rule in translations
 
-Style rules can also be used with the command line interface for text translation:
+Style rules can also be used with the command line interface for text
+translation:
 
 ```bash
 python3 -m deepl --auth-key=YOUR_AUTH_KEY text --to=DE --style-id=YOUR_STYLE_ID "Text to translate"
+```
+
+The `document` command also accepts `--style-id` for document translation:
+
+```bash
+python3 -m deepl --auth-key=YOUR_AUTH_KEY document --to=DE --style-id=YOUR_STYLE_ID /path/to/document.docx /path/to/output_dir
 ``` 
 
 ### Translation Memories
@@ -822,6 +840,13 @@ Translation memories can also be used with the command line interface:
 
 ```bash
 python3 -m deepl --auth-key=YOUR_AUTH_KEY text --to=DE --translation-memory-id=YOUR_TM_ID --translation-memory-threshold=75 "Text to translate"
+```
+
+The `document` command also accepts `--translation-memory-id` and
+`--translation-memory-threshold` for document translation:
+
+```bash
+python3 -m deepl --auth-key=YOUR_AUTH_KEY document --to=DE --translation-memory-id=YOUR_TM_ID --translation-memory-threshold=75 /path/to/document.docx /path/to/output_dir
 ```
 
 ### Writing a Plugin

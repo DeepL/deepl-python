@@ -254,6 +254,114 @@ def test_glossary_translate_document(
         assert expected_output_text == output_document_path.read_text()
 
 
+def test_glossary_ids_translate_text_basic(translator, glossary_manager):
+    texts_en = ["Apple", "Banana"]
+    texts_de = ["Apfel", "Banane"]
+    entries_apple = {"Apple": "Apfel"}
+    entries_banana = {"Banana": "Banane"}
+    with glossary_manager(
+        source_lang="EN",
+        target_lang="DE",
+        entries=entries_apple,
+        glossary_name_suffix="_apple",
+    ) as glossary_apple, glossary_manager(
+        source_lang="EN",
+        target_lang="DE",
+        entries=entries_banana,
+        glossary_name_suffix="_banana",
+    ) as glossary_banana:
+        # glossary_ids accepts GlossaryInfo objects
+        result = translator.translate_text(
+            texts_en,
+            source_lang="EN",
+            target_lang="DE",
+            glossary_ids=[glossary_apple, glossary_banana],
+        )
+        assert [r.text for r in result] == texts_de
+
+        # glossary_ids accepts raw glossary ID strings
+        result = translator.translate_text(
+            texts_en,
+            source_lang="EN",
+            target_lang="DE",
+            glossary_ids=[
+                glossary_apple.glossary_id,
+                glossary_banana.glossary_id,
+            ],
+        )
+        assert [r.text for r in result] == texts_de
+
+
+def test_glossary_ids_translate_document(
+    translator,
+    glossary_manager,
+    example_document_path,
+    output_document_path,
+):
+    input_text = "artist\nprize"
+    expected_output_text = "Maler\nGewinn"
+    example_document_path.write_text(input_text)
+
+    with glossary_manager(
+        entries={"artist": "Maler"},
+        source_lang="EN",
+        target_lang="DE",
+        glossary_name_suffix="_artist",
+    ) as glossary_artist, glossary_manager(
+        entries={"prize": "Gewinn"},
+        source_lang="EN",
+        target_lang="DE",
+        glossary_name_suffix="_prize",
+    ) as glossary_prize:
+        translator.translate_document_from_filepath(
+            example_document_path,
+            output_path=output_document_path,
+            source_lang="EN",
+            target_lang="DE",
+            glossary_ids=[glossary_artist, glossary_prize],
+        )
+        assert expected_output_text == output_document_path.read_text()
+
+
+def test_glossary_ids_translate_text_invalid(translator, glossary_manager):
+    text = "Test"
+    with glossary_manager(
+        source_lang="EN", target_lang="DE", glossary_name_suffix="_ende"
+    ) as glossary_ende, glossary_manager(
+        source_lang="EN", target_lang="DE", glossary_name_suffix="_ende2"
+    ) as glossary_ende2:
+        # glossary_ids requires source_lang
+        with pytest.raises(ValueError, match="source_lang is required"):
+            translator.translate_text(
+                text,
+                target_lang="DE",
+                glossary_ids=[glossary_ende],
+            )
+
+        # glossary_ids cannot be combined with glossary
+        with pytest.raises(
+            ValueError, match="cannot be used together with the glossary"
+        ):
+            translator.translate_text(
+                text,
+                source_lang="EN",
+                target_lang="DE",
+                glossary=glossary_ende,
+                glossary_ids=[glossary_ende2],
+            )
+
+        # glossary_ids must not contain more than 5 IDs
+        with pytest.raises(
+            ValueError, match="not contain more than 5 glossary IDs"
+        ):
+            translator.translate_text(
+                text,
+                source_lang="EN",
+                target_lang="DE",
+                glossary_ids=[glossary_ende.glossary_id] * 6,
+            )
+
+
 def test_glossary_translate_text_invalid(translator, glossary_manager):
     text = "Test"
     with glossary_manager(

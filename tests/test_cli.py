@@ -240,6 +240,33 @@ def test_text_html_tag_handling(runner):
     assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
 
 
+def test_text_glossary_ids(runner):
+    # Fake glossary IDs are rejected by the server, but we only need to verify
+    # the CLI maps --glossary-ids to a glossary_ids array request field.
+    result = runner.invoke(
+        main_function,
+        "-vv text --to DE --from EN "
+        "--glossary-ids gid1 --glossary-ids gid2 "
+        '"proton beam"',
+    )
+    # Check glossary_ids parameter is sent in HTTP request as an array
+    regex = re.compile(r"Request details.*'glossary_ids': \['gid1', 'gid2'\]")
+    assert any(
+        regex.match(line) is not None for line in result.output.split("\n")
+    ), f"output:\n{result.output}"
+
+
+def test_text_glossary_ids_conflicts_with_glossary_id(runner):
+    result = runner.invoke(
+        main_function,
+        "text --to DE --from EN "
+        "--glossary-id gid1 --glossary-ids gid2 "
+        '"proton beam"',
+    )
+    assert result.exit_code == 1, f"exit: {result.exit_code}\n {result.output}"
+    assert "glossary_ids cannot be used together" in result.output
+
+
 def test_document(runner, tmpdir):
     tmpdir = pathlib.Path(tmpdir)
     output_dir = tmpdir / "output"
@@ -252,6 +279,54 @@ def test_document(runner, tmpdir):
     )
     assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
     assert example_text["DE"] == output_document.read_text()
+
+
+def test_document_glossary_ids(runner, tmpdir):
+    tmpdir = pathlib.Path(tmpdir)
+    output_dir = tmpdir / "output"
+    input_document = tmpdir / "document.txt"
+    input_document.write_text(example_text["EN"])
+
+    # Fake glossary IDs are rejected by the server, but we only need to verify
+    # the CLI maps --glossary-ids to the glossary_ids field. The document
+    # endpoint is multipart/form-data, so it is sent comma-separated.
+    result = runner.invoke(
+        main_function,
+        f"-vv document --to DE --from EN "
+        f"--glossary-ids gid1 --glossary-ids gid2 "
+        f"{input_document} {output_dir}",
+    )
+    # Check glossary_ids parameter is sent in the document upload request
+    regex = re.compile("Request details.*'glossary_ids': 'gid1,gid2'")
+    assert any(
+        regex.match(line) is not None for line in result.output.split("\n")
+    ), f"output:\n{result.output}"
+
+
+def test_document_style_and_translation_memory(runner, tmpdir):
+    tmpdir = pathlib.Path(tmpdir)
+    output_dir = tmpdir / "output"
+    input_document = tmpdir / "document.txt"
+    input_document.write_text(example_text["EN"])
+
+    # Fake IDs are rejected by the server, but we only need to verify the CLI
+    # maps the new document flags to the corresponding request fields.
+    result = runner.invoke(
+        main_function,
+        f"-vv document --to DE "
+        f"--style-id style1 "
+        f"--translation-memory-id tm1 "
+        f"--translation-memory-threshold 80 "
+        f"{input_document} {output_dir}",
+    )
+    request_details = next(
+        line
+        for line in result.output.splitlines()
+        if line.startswith("Request details data")
+    )
+    assert "'style_id': 'style1'" in request_details
+    assert "'translation_memory_id': 'tm1'" in request_details
+    assert "'translation_memory_threshold': 80" in request_details
 
 
 def test_document_occupied_output(runner, tmpdir):

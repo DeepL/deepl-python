@@ -37,3 +37,36 @@ def test_translate_text_with_translation_memory_and_threshold(deepl_client):
         translation_memory=DEFAULT_TM_ID,
         translation_memory_threshold=80,
     )
+
+
+@needs_mock_server
+def test_translate_document_with_translation_memory(
+    deepl_client,
+    example_document_path,
+    output_document_path,
+):
+    example_document_path.write_text(example_text["DE"])
+    deepl_client.translate_document_from_filepath(
+        example_document_path,
+        output_path=output_document_path,
+        source_lang="DE",
+        target_lang="EN-US",
+        translation_memory=DEFAULT_TM_ID,
+    )
+
+
+@needs_mock_server
+def test_translate_document_with_translation_memory_and_threshold(
+    deepl_client,
+    example_document_path,
+    output_document_path,
+):
+    example_document_path.write_text(example_text["DE"])
+    deepl_client.translate_document_from_filepath(
+        example_document_path,
+        output_path=output_document_path,
+        source_lang="DE",
+        target_lang="EN-US",
+        translation_memory=DEFAULT_TM_ID,
+        translation_memory_threshold=80,
+    )

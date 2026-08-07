@@ -5,6 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added support for using multiple glossaries via the `glossary_ids` parameter
+  (up to 5 glossaries) in `translate_text()`, `translate_document()`,
+  `translate_document_upload()`, and `translate_document_from_filepath()`.
+- Added support for style rules in document translation via the `style_rule`
+  parameter in `translate_document()`, `translate_document_upload()`, and
+  `translate_document_from_filepath()`.
+- Added support for translation memories in document translation via the
+  `translation_memory` and `translation_memory_threshold` parameters in
+  `translate_document()`, `translate_document_upload()`, and
+  `translate_document_from_filepath()`.
+- Added `--glossary-ids` CLI argument for the `text` and `document` commands,
+  allowing up to 5 glossaries to be used per translation.
+- Added `--style-id`, `--translation-memory-id`, and
+  `--translation-memory-threshold` CLI arguments to the `document` command.
 
 ## [1.30.0] - 2026-04-09
 ### Added
