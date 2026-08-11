@@ -3,7 +3,7 @@ line-length = 79
 
 [tool.poetry]
 name = "deepl"
-version = "1.30.0"
+version = "1.31.0"
 description = "Python library for the DeepL API."
 authors = ["DeepL SE <python-api@deepl.com>"]
 license = "MIT"

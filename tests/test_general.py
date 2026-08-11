@@ -17,7 +17,7 @@ import os
 
 
 def test_version():
-    assert "1.30.0" == deepl.__version__
+    assert "1.31.0" == deepl.__version__
 
 
 def test_remove_regional_variant():
