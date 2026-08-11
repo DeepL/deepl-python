@@ -787,12 +787,6 @@ They can be used in text translation requests to improve consistency by matching
 against stored segments. Multiple translation memories can be stored with your
 account, each with a source language and one or more target languages.
 
-#### Uploading and managing translation memories
-
-Currently translation memories must be uploaded and managed in the DeepL UI via
-https://www.deepl.com/translation-memory. Full CRUD functionality via the APIs will
-come shortly.
-
 #### Listing translation memories
 
 `list_translation_memories()` returns a list of `TranslationMemoryInfo` objects
@@ -808,6 +802,128 @@ for tm in translation_memories:
     print(f"{tm.name} ({tm.translation_memory_id})")
     print(f"  Source: {tm.source_language}, Targets: {tm.target_languages}")
     print(f"  Segments: {tm.segment_count}")
+```
+
+#### Retrieving a translation memory
+
+Use `get_translation_memory()` to retrieve a single translation memory by ID.
+It accepts either a translation memory ID string or a `TranslationMemoryInfo`
+object.
+
+```python
+tm = deepl_client.get_translation_memory("YOUR_TM_ID")
+print(f"{tm.name}: {tm.segment_count} segments, updated {tm.updated_time}")
+```
+
+#### Listing the segments of a translation memory
+
+`list_translation_memory_segments()` returns one page of segments as a
+`TranslationMemorySegments` object. Pagination is cursor-based: omit
+`page_cursor` on the first call, then pass the previous response's
+`next_page_cursor` until it is `None`. Optionally filter with `filter_text`
+(at least 2 characters, matched against both source and target text) and
+`filter_case_sensitive`. Note that `segment_count` is the translation-memory
+total and is not reduced by the filter.
+
+```python
+page_cursor = None
+while True:
+    page = deepl_client.list_translation_memory_segments(
+        "YOUR_TM_ID", page_size=50, page_cursor=page_cursor
+    )
+    for segment in page.segments:
+        print(segment.source_text)
+        for target in segment.targets:
+            print(f"  {target.target_language}: {target.target_text}")
+    page_cursor = page.next_page_cursor
+    if not page_cursor:
+        break
+```
+
+#### Importing a translation memory
+
+`import_translation_memory_from_filepath()` imports a TMX file as a new
+translation memory: it creates the import job, uploads the file, and waits for
+processing to finish. The returned `TranslationMemoryJob` carries the ID of the
+new translation memory.
+
+```python
+job = deepl_client.import_translation_memory_from_filepath(
+    "/path/to/legal.tmx", display_name="Legal TM", timeout_s=300
+)
+print(f"Created translation memory {job.result.translation_memory_id}")
+print(f"Skipped segments: {job.result.skipped_segment_count}")
+```
+
+Importing takes a while: the API detects the uploaded file asynchronously, so
+the job keeps reporting `awaiting_input` for roughly half a minute after the
+upload before completing. Pass `timeout_s` to bound how long to wait.
+
+The three steps are also available separately, for example to upload the file
+yourself or to poll for progress. `create_translation_memory_import()` returns
+an upload URL that the file must be uploaded to before processing starts, then
+`get_translation_memory_job()` reports the status.
+
+```python
+created = deepl_client.create_translation_memory_import(
+    file_name="legal.tmx",
+    content_length=os.path.getsize("/path/to/legal.tmx"),
+    display_name="Legal TM",
+)
+with open("/path/to/legal.tmx", "rb") as input_file:
+    deepl_client.upload_translation_memory_file(created, input_file)
+
+# The job reports "awaiting_input" both before the upload and for a while
+# afterwards, until the API detects it; this polls through that status.
+job = deepl_client.wait_until_translation_memory_job_done(
+    created.job_id, timeout_s=300
+)
+```
+
+#### Exporting a translation memory
+
+`export_translation_memory_to_filepath()` exports a translation memory to a TMX
+file: it creates the export job, waits for it to finish, and writes the result.
+
+```python
+job = deepl_client.export_translation_memory_to_filepath(
+    "YOUR_TM_ID", "/path/to/exported.tmx"
+)
+```
+
+As with import, the individual steps are available separately. Note that the
+API may reuse a previously completed export of an unchanged translation memory,
+indicated by `reused_existing`.
+
+```python
+created = deepl_client.create_translation_memory_export("YOUR_TM_ID")
+job = deepl_client.wait_until_translation_memory_job_done(created.job_id)
+with open("/path/to/exported.tmx", "wb") as output_file:
+    deepl_client.download_translation_memory_export(
+        job, output_file, chunk_size=8192
+    )
+```
+
+#### Deleting a translation memory
+
+Use `delete_translation_memory()` to delete a translation memory by ID.
+
+```python
+deepl_client.delete_translation_memory("YOUR_TM_ID")
+```
+
+#### Managing translation memories from the command line
+
+The `translation-memory` command exposes the same operations:
+
+```bash
+python3 -m deepl --auth-key=YOUR_AUTH_KEY translation-memory list
+python3 -m deepl --auth-key=YOUR_AUTH_KEY translation-memory get YOUR_TM_ID
+python3 -m deepl --auth-key=YOUR_AUTH_KEY translation-memory segments YOUR_TM_ID --all
+python3 -m deepl --auth-key=YOUR_AUTH_KEY translation-memory import /path/to/legal.tmx --name "Legal TM"
+python3 -m deepl --auth-key=YOUR_AUTH_KEY translation-memory export YOUR_TM_ID /path/to/exported.tmx
+python3 -m deepl --auth-key=YOUR_AUTH_KEY translation-memory job YOUR_JOB_ID
+python3 -m deepl --auth-key=YOUR_AUTH_KEY translation-memory delete YOUR_TM_ID
 ```
 
 #### Using a translation memory in translations

@@ -124,6 +124,15 @@ def server(config):
                     milliseconds
                 )
 
+        def set_tm_job_processing_polls(self, count):
+            """Instructs the mock server to report a non-terminal status for
+            translation memory jobs for the given number of polls before
+            completing them."""
+            if self.is_mock_server:
+                self.headers["mock-server-session-tm-job-processing-polls"] = (
+                    str(count)
+                )
+
         def expect_proxy(self, value: bool = True):
             """Instructs the mock server to only accept requests via the
             proxy."""

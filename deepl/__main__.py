@@ -173,30 +173,8 @@ def action_glossary_create(
     print_glossaries([glossary])
 
 
-def print_glossaries(glossaries):
-    headers = [
-        "Glossary ID",
-        "Name",
-        "Ready",
-        "Source",
-        "Target",
-        "Count",
-        "Created",
-    ]
-    data = [
-        [
-            glossary.glossary_id,
-            glossary.name,
-            str(glossary.ready),
-            glossary.source_lang,
-            glossary.target_lang,
-            str(glossary.entry_count),
-            str(glossary.creation_time),
-        ]
-        for glossary in glossaries
-    ]
-    data.insert(0, headers)
-
+def print_table(headers, data):
+    data = [headers] + data
     col_max_widths = [
         max(len(row[col_num]) for row in data)
         for col_num in range(len(headers))
@@ -207,6 +185,32 @@ def print_glossaries(glossaries):
                 [col.ljust(width) for col, width in zip(row, col_max_widths)]
             )
         )
+
+
+def print_glossaries(glossaries):
+    print_table(
+        [
+            "Glossary ID",
+            "Name",
+            "Ready",
+            "Source",
+            "Target",
+            "Count",
+            "Created",
+        ],
+        [
+            [
+                glossary.glossary_id,
+                glossary.name,
+                str(glossary.ready),
+                glossary.source_lang,
+                glossary.target_lang,
+                str(glossary.entry_count),
+                str(glossary.creation_time),
+            ]
+            for glossary in glossaries
+        ],
+    )
 
 
 def action_glossary_list(deepl_client: deepl.DeepLClient):
@@ -230,6 +234,158 @@ def action_glossary_delete(
     for glossary_id in glossary_id_list:
         deepl_client.delete_glossary(glossary_id)
         print(f"Glossary with ID {glossary_id} successfully deleted.")
+
+
+def action_translation_memory(
+    deepl_client: deepl.DeepLClient,
+    subcommand: str,
+    **kwargs,
+):
+    # Call action function corresponding to command with remaining args
+    globals()[f"action_translation_memory_{subcommand}"](
+        deepl_client, **kwargs
+    )
+
+
+def print_translation_memories(translation_memories):
+    print_table(
+        ["Translation Memory ID", "Name", "Source", "Targets", "Segments"],
+        [
+            [
+                tm.translation_memory_id,
+                tm.name,
+                tm.source_language,
+                ",".join(tm.target_languages),
+                str(tm.segment_count),
+            ]
+            for tm in translation_memories
+        ],
+    )
+
+
+def print_translation_memory_job(job):
+    result = job.result
+    print(f"Job {job.job_id} ({job.operation}): {job.status}")
+    if result is None:
+        return
+    if result.required_action:
+        print(f"Required action: {result.required_action}")
+    if result.translation_memory_id:
+        print(f"Translation memory ID: {result.translation_memory_id}")
+    if result.skipped_segment_count is not None:
+        print(f"Skipped segments: {result.skipped_segment_count}")
+    if result.download_url:
+        print(f"Download URL: {result.download_url}")
+    if result.error_message:
+        print(f"Error: {result.error_message}")
+
+
+def action_translation_memory_list(
+    deepl_client: deepl.DeepLClient, page, page_size
+):
+    translation_memories = deepl_client.list_translation_memories(
+        page=page, page_size=page_size
+    )
+    print_translation_memories(translation_memories)
+
+
+def action_translation_memory_get(
+    deepl_client: deepl.DeepLClient, translation_memory_id
+):
+    print_translation_memories(
+        [deepl_client.get_translation_memory(translation_memory_id)]
+    )
+
+
+def action_translation_memory_segments(
+    deepl_client: deepl.DeepLClient,
+    translation_memory_id,
+    page_size,
+    page_cursor,
+    filter_text,
+    filter_case_sensitive,
+    all_pages,
+):
+    rows = []
+    segment_count = 0
+    while True:
+        page = deepl_client.list_translation_memory_segments(
+            translation_memory_id,
+            page_size=page_size,
+            page_cursor=page_cursor,
+            filter_text=filter_text,
+            filter_case_sensitive=filter_case_sensitive or None,
+        )
+        segment_count = page.segment_count
+        for segment in page.segments:
+            for target in segment.targets:
+                rows.append(
+                    [
+                        segment.source_segment_id,
+                        segment.source_text,
+                        target.target_language,
+                        target.target_text,
+                    ]
+                )
+        page_cursor = page.next_page_cursor
+        if not all_pages or not page_cursor:
+            break
+
+    print_table(["Segment ID", "Source", "Target lang", "Target"], rows)
+    print(f"Total segments in translation memory: {segment_count}")
+    if page_cursor:
+        print(f"Next page cursor: {page_cursor}")
+
+
+def action_translation_memory_delete(
+    deepl_client: deepl.DeepLClient, translation_memory_id_list
+):
+    for translation_memory_id in translation_memory_id_list:
+        deepl_client.delete_translation_memory(translation_memory_id)
+        print(
+            f"Translation memory with ID {translation_memory_id} "
+            "successfully deleted."
+        )
+
+
+def action_translation_memory_import(
+    deepl_client: deepl.DeepLClient, file, name, no_wait, timeout
+):
+    file_path = pathlib.Path(file)
+    if no_wait:
+        created = deepl_client.create_translation_memory_import(
+            file_name=file_path.name,
+            content_length=file_path.stat().st_size,
+            display_name=name,
+        )
+        with open(file_path, "rb") as input_file:
+            deepl_client.upload_translation_memory_file(created, input_file)
+        print(f"Uploaded {file}, import job ID {created.job_id}")
+        return
+
+    job = deepl_client.import_translation_memory_from_filepath(
+        file_path, display_name=name, timeout_s=timeout
+    )
+    print_translation_memory_job(job)
+
+
+def action_translation_memory_export(
+    deepl_client: deepl.DeepLClient,
+    translation_memory_id,
+    output_file,
+    timeout,
+):
+    job = deepl_client.export_translation_memory_to_filepath(
+        translation_memory_id, output_file, timeout_s=timeout
+    )
+    print(f"Exported translation memory to {output_file}")
+    print_translation_memory_job(job)
+
+
+def action_translation_memory_job(deepl_client: deepl.DeepLClient, job_id):
+    print_translation_memory_job(
+        deepl_client.get_translation_memory_job(job_id)
+    )
 
 
 def get_parser(prog_name):
@@ -666,6 +822,172 @@ def get_parser(prog_name):
         help="ID of glossary to delete",
     )
 
+    # create the parser for the "translation-memory" command
+    parser_tm = subparsers.add_parser(
+        "translation-memory",
+        help="list, inspect, import, export, and remove translation memories",
+        description="manage translation memories using subcommands",
+    )
+
+    tm_subparsers = parser_tm.add_subparsers(
+        metavar="subcommand", dest="subcommand", required=True
+    )
+
+    parser_tm_list = tm_subparsers.add_parser(
+        "list",
+        help="list available translation memories",
+        description="list available translation memories",
+    )
+    parser_tm_list.add_argument(
+        "--page",
+        type=int,
+        default=None,
+        help="page number to retrieve, 0-indexed",
+    )
+    parser_tm_list.add_argument(
+        "--page-size",
+        type=int,
+        default=None,
+        help="number of translation memories per page",
+    )
+
+    parser_tm_get = tm_subparsers.add_parser(
+        "get",
+        help="print details about one translation memory",
+        description="print details about one translation memory",
+    )
+    parser_tm_get.add_argument(
+        "translation_memory_id",
+        metavar="id",
+        type=str,
+        help="ID of translation memory to retrieve",
+    )
+
+    parser_tm_segments = tm_subparsers.add_parser(
+        "segments",
+        help="list the segments of a translation memory",
+        description="list the segments of a translation memory, one row per "
+        "source segment and target language",
+    )
+    parser_tm_segments.add_argument(
+        "translation_memory_id",
+        metavar="id",
+        type=str,
+        help="ID of translation memory whose segments to list",
+    )
+    parser_tm_segments.add_argument(
+        "--page-size",
+        type=int,
+        default=None,
+        help="maximum segments per page (1-100, defaults to 50)",
+    )
+    parser_tm_segments.add_argument(
+        "--page-cursor",
+        type=str,
+        default=None,
+        help="cursor from a previous response, to fetch the next page",
+    )
+    parser_tm_segments.add_argument(
+        "--filter-text",
+        type=str,
+        default=None,
+        help="substring filter across source and target text, at least 2 "
+        "characters",
+    )
+    parser_tm_segments.add_argument(
+        "--filter-case-sensitive",
+        action="store_true",
+        help="make --filter-text case-sensitive",
+    )
+    parser_tm_segments.add_argument(
+        "--all",
+        dest="all_pages",
+        action="store_true",
+        help="page through all segments instead of returning a single page",
+    )
+
+    parser_tm_delete = tm_subparsers.add_parser(
+        "delete",
+        help="delete one or more translation memories",
+        description="delete one or more translation memories",
+    )
+    parser_tm_delete.add_argument(
+        "translation_memory_id_list",
+        metavar="id",
+        nargs="+",
+        type=str,
+        help="ID of translation memory to delete",
+    )
+
+    parser_tm_import = tm_subparsers.add_parser(
+        "import",
+        help="import a TMX file as a new translation memory",
+        description="import a TMX file as a new translation memory: creates "
+        "the import job, uploads the file, and waits for processing to finish",
+    )
+    parser_tm_import.add_argument(
+        "file",
+        type=str,
+        help="path of the TMX file to import",
+    )
+    parser_tm_import.add_argument(
+        "--name",
+        type=str,
+        default=None,
+        help="name for the resulting translation memory, defaults to the "
+        "file name",
+    )
+    parser_tm_import.add_argument(
+        "--no-wait",
+        action="store_true",
+        help="upload the file and print the job ID without waiting for "
+        "processing to finish",
+    )
+    parser_tm_import.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="maximum number of seconds to wait for the import to finish",
+    )
+
+    parser_tm_export = tm_subparsers.add_parser(
+        "export",
+        help="export a translation memory to a TMX file",
+        description="export a translation memory to a TMX file: creates the "
+        "export job, waits for it to finish, and writes the result",
+    )
+    parser_tm_export.add_argument(
+        "translation_memory_id",
+        metavar="id",
+        type=str,
+        help="ID of translation memory to export",
+    )
+    parser_tm_export.add_argument(
+        "output_file",
+        metavar="file",
+        type=str,
+        help="path to write the exported TMX file to",
+    )
+    parser_tm_export.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="maximum number of seconds to wait for the export to finish",
+    )
+
+    parser_tm_job = tm_subparsers.add_parser(
+        "job",
+        help="print the status of an import or export job",
+        description="print the status of a translation memory import or "
+        "export job",
+    )
+    parser_tm_job.add_argument(
+        "job_id",
+        metavar="id",
+        type=str,
+        help="ID of the job to query",
+    )
+
     return parser, parser_glossary
 
 
@@ -730,7 +1052,8 @@ def main(args=None, prog_name=None):
         )
         args = vars(args)
         # Call action function corresponding to command with remaining args
-        command = args.pop("command")
+        # ("translation-memory" maps to action_translation_memory).
+        command = args.pop("command").replace("-", "_")
         globals()[f"action_{command}"](deepl_client, **args)
 
     except Exception as exception:

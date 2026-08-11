@@ -1007,6 +1007,26 @@ class StyleRuleInfo:
         return self._custom_instructions or []
 
 
+def parse_optional_timestamp(
+    value: Optional[str],
+) -> Optional[datetime.datetime]:
+    """Parses an optional API timestamp, returning None if it is absent or in
+    an unrecognised format."""
+    if not value:
+        return None
+    try:
+        return parse_timestamp(value)
+    except ValueError:
+        # Fall back for timestamps without fractional seconds or without a
+        # timezone offset.
+        try:
+            return datetime.datetime.fromisoformat(
+                value.replace("Z", "+00:00")
+            )
+        except ValueError:
+            return None
+
+
 class TranslationMemoryInfo:
     """Information about a translation memory.
 
@@ -1015,6 +1035,9 @@ class TranslationMemoryInfo:
     :param source_language: Source language code for the translation memory.
     :param target_languages: List of target language codes available.
     :param segment_count: Number of segments stored in the translation memory.
+    :param creation_time: Timestamp when the translation memory was created.
+    :param updated_time: Timestamp when the translation memory was last
+        updated.
     """
 
     def __init__(
@@ -1024,12 +1047,16 @@ class TranslationMemoryInfo:
         source_language: str,
         target_languages: List[str],
         segment_count: int,
+        creation_time: Optional[datetime.datetime] = None,
+        updated_time: Optional[datetime.datetime] = None,
     ):
         self._translation_memory_id = translation_memory_id
         self._name = name
         self._source_language = source_language
         self._target_languages = target_languages
         self._segment_count = segment_count
+        self._creation_time = creation_time
+        self._updated_time = updated_time
 
     def __str__(self) -> str:
         return (
@@ -1046,6 +1073,8 @@ class TranslationMemoryInfo:
             source_language=json["source_language"],
             target_languages=json.get("target_languages", []),
             segment_count=json.get("segment_count", 0),
+            creation_time=parse_optional_timestamp(json.get("creation_time")),
+            updated_time=parse_optional_timestamp(json.get("updated_time")),
         )
 
     @property
@@ -1072,3 +1101,576 @@ class TranslationMemoryInfo:
     def segment_count(self) -> int:
         """Returns the number of segments stored."""
         return self._segment_count
+
+    @property
+    def creation_time(self) -> Optional[datetime.datetime]:
+        """Returns the creation timestamp, if provided by the API."""
+        return self._creation_time
+
+    @property
+    def updated_time(self) -> Optional[datetime.datetime]:
+        """Returns the last update timestamp, if provided by the API."""
+        return self._updated_time
+
+
+class TranslationMemoryTargetSegment:
+    """A target-language translation attached to a source segment.
+
+    :param target_segment_id: Unique ID assigned to the target segment.
+    :param target_language: Target language code of the translation.
+    :param target_text: The translated text.
+    :param creation_time: Timestamp when the target segment was created.
+    :param updated_time: Timestamp when the target segment was last updated.
+    :param last_used_time: Timestamp when the target segment was last used.
+    """
+
+    def __init__(
+        self,
+        target_segment_id: str,
+        target_language: str,
+        target_text: str,
+        creation_time: Optional[datetime.datetime] = None,
+        updated_time: Optional[datetime.datetime] = None,
+        last_used_time: Optional[datetime.datetime] = None,
+    ):
+        self._target_segment_id = target_segment_id
+        self._target_language = target_language
+        self._target_text = target_text
+        self._creation_time = creation_time
+        self._updated_time = updated_time
+        self._last_used_time = last_used_time
+
+    def __str__(self) -> str:
+        return f"{self.target_language}: {self.target_text}"
+
+    @staticmethod
+    def from_json(json) -> "TranslationMemoryTargetSegment":
+        """Create TranslationMemoryTargetSegment from the given API JSON
+        object."""
+        return TranslationMemoryTargetSegment(
+            target_segment_id=json["target_segment_id"],
+            target_language=json["target_language"],
+            target_text=json["target_text"],
+            creation_time=parse_optional_timestamp(json.get("creation_time")),
+            updated_time=parse_optional_timestamp(json.get("updated_time")),
+            last_used_time=parse_optional_timestamp(
+                json.get("last_used_time")
+            ),
+        )
+
+    @property
+    def target_segment_id(self) -> str:
+        """Returns the unique ID of the target segment."""
+        return self._target_segment_id
+
+    @property
+    def target_language(self) -> str:
+        """Returns the target language code."""
+        return self._target_language
+
+    @property
+    def target_text(self) -> str:
+        """Returns the translated text."""
+        return self._target_text
+
+    @property
+    def creation_time(self) -> Optional[datetime.datetime]:
+        """Returns the creation timestamp, if provided by the API."""
+        return self._creation_time
+
+    @property
+    def updated_time(self) -> Optional[datetime.datetime]:
+        """Returns the last update timestamp, if provided by the API."""
+        return self._updated_time
+
+    @property
+    def last_used_time(self) -> Optional[datetime.datetime]:
+        """Returns the last used timestamp, if provided by the API."""
+        return self._last_used_time
+
+
+class TranslationMemorySegment:
+    """A source segment of a translation memory and its translations.
+
+    :param source_segment_id: Unique ID assigned to the source segment.
+    :param source_text: The source text.
+    :param targets: Translations of the source text, one per target language.
+    :param creation_time: Timestamp when the source segment was created.
+    :param updated_time: Timestamp when the source segment was last updated.
+    :param last_used_time: Timestamp when the source segment was last used.
+    """
+
+    def __init__(
+        self,
+        source_segment_id: str,
+        source_text: str,
+        targets: List[TranslationMemoryTargetSegment],
+        creation_time: Optional[datetime.datetime] = None,
+        updated_time: Optional[datetime.datetime] = None,
+        last_used_time: Optional[datetime.datetime] = None,
+    ):
+        self._source_segment_id = source_segment_id
+        self._source_text = source_text
+        self._targets = targets
+        self._creation_time = creation_time
+        self._updated_time = updated_time
+        self._last_used_time = last_used_time
+
+    def __str__(self) -> str:
+        return f"TranslationMemorySegment ({self.source_segment_id})"
+
+    @staticmethod
+    def from_json(json) -> "TranslationMemorySegment":
+        """Create TranslationMemorySegment from the given API JSON object."""
+        return TranslationMemorySegment(
+            source_segment_id=json["source_segment_id"],
+            source_text=json["source_text"],
+            targets=[
+                TranslationMemoryTargetSegment.from_json(target)
+                for target in json.get("targets", [])
+            ],
+            creation_time=parse_optional_timestamp(json.get("creation_time")),
+            updated_time=parse_optional_timestamp(json.get("updated_time")),
+            last_used_time=parse_optional_timestamp(
+                json.get("last_used_time")
+            ),
+        )
+
+    @property
+    def source_segment_id(self) -> str:
+        """Returns the unique ID of the source segment."""
+        return self._source_segment_id
+
+    @property
+    def source_text(self) -> str:
+        """Returns the source text."""
+        return self._source_text
+
+    @property
+    def targets(self) -> List[TranslationMemoryTargetSegment]:
+        """Returns the translations of the source text."""
+        return self._targets
+
+    @property
+    def creation_time(self) -> Optional[datetime.datetime]:
+        """Returns the creation timestamp, if provided by the API."""
+        return self._creation_time
+
+    @property
+    def updated_time(self) -> Optional[datetime.datetime]:
+        """Returns the last update timestamp, if provided by the API."""
+        return self._updated_time
+
+    @property
+    def last_used_time(self) -> Optional[datetime.datetime]:
+        """Returns the last used timestamp, if provided by the API."""
+        return self._last_used_time
+
+
+class TranslationMemorySegments:
+    """One page of translation memory segments.
+
+    :param segments: The segments in this page.
+    :param segment_count: Total number of segments stored in the translation
+        memory. This is translation-memory-level metadata and is not reduced
+        by a text filter.
+    :param next_page_cursor: Opaque cursor to pass as page_cursor to fetch the
+        next page, or None if this is the last page.
+    """
+
+    def __init__(
+        self,
+        segments: List[TranslationMemorySegment],
+        segment_count: int,
+        next_page_cursor: Optional[str] = None,
+    ):
+        self._segments = segments
+        self._segment_count = segment_count
+        self._next_page_cursor = next_page_cursor
+
+    def __iter__(self):
+        return iter(self._segments)
+
+    def __len__(self) -> int:
+        return len(self._segments)
+
+    @staticmethod
+    def from_json(json) -> "TranslationMemorySegments":
+        """Create TranslationMemorySegments from the given API JSON object."""
+        return TranslationMemorySegments(
+            segments=[
+                TranslationMemorySegment.from_json(segment)
+                for segment in json.get("segments", [])
+            ],
+            segment_count=json.get("segment_count", 0),
+            next_page_cursor=json.get("next_page_cursor"),
+        )
+
+    @property
+    def segments(self) -> List[TranslationMemorySegment]:
+        """Returns the segments in this page."""
+        return self._segments
+
+    @property
+    def segment_count(self) -> int:
+        """Returns the total number of segments in the translation memory."""
+        return self._segment_count
+
+    @property
+    def next_page_cursor(self) -> Optional[str]:
+        """Returns the cursor for the next page, or None on the last page."""
+        return self._next_page_cursor
+
+
+class TranslationMemoryImport:
+    """A newly created translation memory import job.
+
+    The TMX file must be uploaded to upload_url before expires_at; processing
+    starts automatically once the upload is detected.
+
+    :param job_id: Unique ID assigned to the import job.
+    :param upload_url: URL to upload the TMX file to.
+    :param expires_at: Timestamp after which the upload URL is no longer
+        valid.
+    """
+
+    def __init__(
+        self,
+        job_id: str,
+        upload_url: str,
+        expires_at: Optional[datetime.datetime] = None,
+    ):
+        self._job_id = job_id
+        self._upload_url = upload_url
+        self._expires_at = expires_at
+
+    def __str__(self) -> str:
+        return f"TranslationMemoryImport ({self.job_id})"
+
+    @staticmethod
+    def from_json(json) -> "TranslationMemoryImport":
+        """Create TranslationMemoryImport from the given API JSON object."""
+        return TranslationMemoryImport(
+            job_id=json["job_id"],
+            upload_url=json["upload_url"],
+            expires_at=parse_optional_timestamp(json.get("expires_at")),
+        )
+
+    @property
+    def job_id(self) -> str:
+        """Returns the unique ID of the import job."""
+        return self._job_id
+
+    @property
+    def upload_url(self) -> str:
+        """Returns the URL to upload the TMX file to."""
+        return self._upload_url
+
+    @property
+    def expires_at(self) -> Optional[datetime.datetime]:
+        """Returns the expiry timestamp of the upload URL."""
+        return self._expires_at
+
+
+class TranslationMemoryExport:
+    """A translation memory export job.
+
+    :param job_id: Unique ID assigned to the export job.
+    :param translation_memory_id: ID of the translation memory being exported.
+    :param reused_existing: True if the API reused a previously completed
+        export instead of starting a new one.
+    """
+
+    def __init__(
+        self,
+        job_id: str,
+        translation_memory_id: Optional[str] = None,
+        reused_existing: bool = False,
+    ):
+        self._job_id = job_id
+        self._translation_memory_id = translation_memory_id
+        self._reused_existing = reused_existing
+
+    def __str__(self) -> str:
+        return f"TranslationMemoryExport ({self.job_id})"
+
+    @staticmethod
+    def from_json(json, reused_existing: bool = False):
+        """Create TranslationMemoryExport from the given API JSON object."""
+        parameters = json.get("parameters") or {}
+        return TranslationMemoryExport(
+            job_id=json["job_id"],
+            translation_memory_id=parameters.get("translation_memory_id"),
+            reused_existing=reused_existing,
+        )
+
+    @property
+    def job_id(self) -> str:
+        """Returns the unique ID of the export job."""
+        return self._job_id
+
+    @property
+    def translation_memory_id(self) -> Optional[str]:
+        """Returns the ID of the translation memory being exported."""
+        return self._translation_memory_id
+
+    @property
+    def reused_existing(self) -> bool:
+        """Returns True if a previously completed export was reused."""
+        return self._reused_existing
+
+
+class TranslationMemoryJobResult:
+    """The outcome of a translation memory import or export job.
+
+    :param status: Job status, one of "awaiting_input", "processing",
+        "completed", "downloaded", "failed" or "expired".
+    :param required_action: Human-readable action the caller must take, set
+        while the job is waiting on the caller.
+    :param download_url: Download URL of the exported TMX file, set once an
+        export completes.
+    :param expires_at: Timestamp after which the download URL is no longer
+        valid.
+    :param error_message: Error description, set when the job failed.
+    :param translation_memory_id: ID of the translation memory created by a
+        completed import.
+    :param skipped_segment_count: Number of segments an import skipped.
+    """
+
+    STATUS_AWAITING_INPUT = "awaiting_input"
+    STATUS_PROCESSING = "processing"
+    STATUS_COMPLETED = "completed"
+    STATUS_DOWNLOADED = "downloaded"
+    STATUS_FAILED = "failed"
+    STATUS_EXPIRED = "expired"
+
+    def __init__(
+        self,
+        status: str,
+        required_action: Optional[str] = None,
+        download_url: Optional[str] = None,
+        expires_at: Optional[datetime.datetime] = None,
+        error_message: Optional[str] = None,
+        translation_memory_id: Optional[str] = None,
+        skipped_segment_count: Optional[int] = None,
+    ):
+        self._status = status
+        self._required_action = required_action
+        self._download_url = download_url
+        self._expires_at = expires_at
+        self._error_message = error_message
+        self._translation_memory_id = translation_memory_id
+        self._skipped_segment_count = skipped_segment_count
+
+    def __str__(self) -> str:
+        return f"TranslationMemoryJobResult ({self.status})"
+
+    @staticmethod
+    def from_json(json) -> "TranslationMemoryJobResult":
+        """Create TranslationMemoryJobResult from the given API JSON
+        object."""
+        status_metadata = json.get("status_metadata") or {}
+        error = json.get("error") or {}
+        return TranslationMemoryJobResult(
+            status=json.get("status", ""),
+            required_action=status_metadata.get("required_action"),
+            download_url=json.get("download_url"),
+            expires_at=parse_optional_timestamp(json.get("expires_at")),
+            error_message=error.get("message"),
+            translation_memory_id=json.get("translation_memory_id"),
+            skipped_segment_count=json.get("skipped_segment_count"),
+        )
+
+    @property
+    def status(self) -> str:
+        """Returns the job status."""
+        return self._status
+
+    @property
+    def done(self) -> bool:
+        """True if the job has finished, successfully or not."""
+        return self._status in (
+            self.STATUS_COMPLETED,
+            self.STATUS_DOWNLOADED,
+            self.STATUS_FAILED,
+            self.STATUS_EXPIRED,
+        )
+
+    @property
+    def ok(self) -> bool:
+        """False if the job failed or expired."""
+        return self._status not in (self.STATUS_FAILED, self.STATUS_EXPIRED)
+
+    @property
+    def required_action(self) -> Optional[str]:
+        """Returns the action the caller must take, if any."""
+        return self._required_action
+
+    @property
+    def download_url(self) -> Optional[str]:
+        """Returns the download URL of a completed export."""
+        return self._download_url
+
+    @property
+    def expires_at(self) -> Optional[datetime.datetime]:
+        """Returns the expiry timestamp of the download URL."""
+        return self._expires_at
+
+    @property
+    def error_message(self) -> Optional[str]:
+        """Returns the error description if the job failed."""
+        return self._error_message
+
+    @property
+    def translation_memory_id(self) -> Optional[str]:
+        """Returns the ID of the translation memory a completed import
+        created."""
+        return self._translation_memory_id
+
+    @property
+    def skipped_segment_count(self) -> Optional[int]:
+        """Returns the number of segments an import skipped."""
+        return self._skipped_segment_count
+
+
+class TranslationMemoryJob:
+    """Status of a translation memory import or export job.
+
+    :param job_id: Unique ID assigned to the job.
+    :param operation: Either "import" or "export".
+    :param results: Results of the job; the API returns exactly one.
+    :param product: Product the job belongs to, always "translation_memory".
+    :param creation_time: Timestamp when the job was created.
+    :param updated_time: Timestamp when the job was last updated.
+    :param translation_memory_id: ID of the translation memory an export job
+        reads from.
+    :param display_name: Display name an import job assigns to the new
+        translation memory.
+    :param source_content_type: MIME type declared for an import job's file.
+    :param source_content_length: Size in bytes declared for an import job's
+        file.
+    """
+
+    OPERATION_IMPORT = "import"
+    OPERATION_EXPORT = "export"
+
+    def __init__(
+        self,
+        job_id: str,
+        operation: str,
+        results: List[TranslationMemoryJobResult],
+        product: str = "translation_memory",
+        creation_time: Optional[datetime.datetime] = None,
+        updated_time: Optional[datetime.datetime] = None,
+        translation_memory_id: Optional[str] = None,
+        display_name: Optional[str] = None,
+        source_content_type: Optional[str] = None,
+        source_content_length: Optional[int] = None,
+    ):
+        self._job_id = job_id
+        self._operation = operation
+        self._results = results
+        self._product = product
+        self._creation_time = creation_time
+        self._updated_time = updated_time
+        self._translation_memory_id = translation_memory_id
+        self._display_name = display_name
+        self._source_content_type = source_content_type
+        self._source_content_length = source_content_length
+
+    def __str__(self) -> str:
+        return (
+            f"TranslationMemoryJob {self.operation} ({self.job_id}): "
+            f"{self.status}"
+        )
+
+    @staticmethod
+    def from_json(json) -> "TranslationMemoryJob":
+        """Create TranslationMemoryJob from the given API JSON object."""
+        parameters = json.get("parameters") or {}
+        source_file = json.get("source_file") or {}
+        return TranslationMemoryJob(
+            job_id=json["job_id"],
+            operation=json.get("operation", ""),
+            results=[
+                TranslationMemoryJobResult.from_json(result)
+                for result in json.get("results", [])
+            ],
+            product=json.get("product", "translation_memory"),
+            creation_time=parse_optional_timestamp(json.get("creation_time")),
+            updated_time=parse_optional_timestamp(json.get("updated_time")),
+            translation_memory_id=parameters.get("translation_memory_id"),
+            display_name=parameters.get("display_name"),
+            source_content_type=source_file.get("content_type"),
+            source_content_length=source_file.get("content_length"),
+        )
+
+    @property
+    def job_id(self) -> str:
+        """Returns the unique ID of the job."""
+        return self._job_id
+
+    @property
+    def operation(self) -> str:
+        """Returns the job operation, "import" or "export"."""
+        return self._operation
+
+    @property
+    def product(self) -> str:
+        """Returns the product the job belongs to."""
+        return self._product
+
+    @property
+    def results(self) -> List[TranslationMemoryJobResult]:
+        """Returns the results of the job."""
+        return self._results
+
+    @property
+    def result(self) -> Optional[TranslationMemoryJobResult]:
+        """Returns the single result of the job, or None if absent."""
+        return self._results[0] if self._results else None
+
+    @property
+    def status(self) -> Optional[str]:
+        """Returns the status of the job result."""
+        return self.result.status if self.result else None
+
+    @property
+    def done(self) -> bool:
+        """True if the job has finished, successfully or not."""
+        return self.result.done if self.result else False
+
+    @property
+    def ok(self) -> bool:
+        """False if the job failed or expired."""
+        return self.result.ok if self.result else True
+
+    @property
+    def creation_time(self) -> Optional[datetime.datetime]:
+        """Returns the creation timestamp."""
+        return self._creation_time
+
+    @property
+    def updated_time(self) -> Optional[datetime.datetime]:
+        """Returns the last update timestamp."""
+        return self._updated_time
+
+    @property
+    def translation_memory_id(self) -> Optional[str]:
+        """Returns the translation memory an export job reads from."""
+        return self._translation_memory_id
+
+    @property
+    def display_name(self) -> Optional[str]:
+        """Returns the display name an import job assigns."""
+        return self._display_name
+
+    @property
+    def source_content_type(self) -> Optional[str]:
+        """Returns the MIME type declared for an import job's file."""
+        return self._source_content_type
+
+    @property
+    def source_content_length(self) -> Optional[int]:
+        """Returns the size in bytes declared for an import job's file."""
+        return self._source_content_length

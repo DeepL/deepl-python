@@ -11,10 +11,19 @@ from deepl.api_data import (
     Language,
     WriteResult,
     StyleRuleInfo,
+    TranslationMemoryExport,
+    TranslationMemoryImport,
     TranslationMemoryInfo,
+    TranslationMemoryJob,
+    TranslationMemorySegments,
 )
+from deepl.exceptions import DeepLException
 from deepl.translator import Translator
 from deepl import util
+import os
+import pathlib
+import requests  # type: ignore
+import time
 import urllib.parse
 from typing import (
     Any,
@@ -944,3 +953,442 @@ class DeepLClient(Translator):
         return [
             TranslationMemoryInfo.from_json(tm) for tm in translation_memories
         ]
+
+    @staticmethod
+    def _translation_memory_id(
+        translation_memory: Union[str, TranslationMemoryInfo],
+    ) -> str:
+        if isinstance(translation_memory, TranslationMemoryInfo):
+            translation_memory = translation_memory.translation_memory_id
+        if not translation_memory:
+            raise ValueError("translation_memory must not be empty")
+        return translation_memory
+
+    @staticmethod
+    def _job_id(job: Union[str, TranslationMemoryJob]) -> str:
+        if isinstance(job, TranslationMemoryJob):
+            job = job.job_id
+        if not job:
+            raise ValueError("job must not be empty")
+        return job
+
+    def get_translation_memory(
+        self,
+        translation_memory: Union[str, TranslationMemoryInfo],
+    ) -> TranslationMemoryInfo:
+        """Retrieves a single translation memory by ID.
+
+        :param translation_memory: Translation memory ID string or
+            TranslationMemoryInfo object.
+        :return: TranslationMemoryInfo for the requested translation memory.
+        """
+        tm_id = self._translation_memory_id(translation_memory)
+        status, content, json = self._api_call(
+            f"v3/translation_memories/{tm_id}", method="GET"
+        )
+        self._raise_for_status(status, content, json)
+        return TranslationMemoryInfo.from_json(json)
+
+    def list_translation_memory_segments(
+        self,
+        translation_memory: Union[str, TranslationMemoryInfo],
+        *,
+        page_size: Optional[int] = None,
+        page_cursor: Optional[str] = None,
+        filter_text: Optional[str] = None,
+        filter_case_sensitive: Optional[bool] = None,
+    ) -> TranslationMemorySegments:
+        """Retrieves one page of the segments of a translation memory.
+
+        Pagination is cursor-based: omit page_cursor on the first call, then
+        pass the previous response's next_page_cursor to fetch the next page.
+        An absent next_page_cursor means the last page has been returned.
+
+        :param translation_memory: Translation memory ID string or
+            TranslationMemoryInfo object.
+        :param page_size: (Optional) Maximum segments per page (1-100,
+            defaults to 50).
+        :param page_cursor: (Optional) Cursor from a previous response; omit
+            on the first call.
+        :param filter_text: (Optional) Substring filter across source and
+            target text, at least 2 characters.
+        :param filter_case_sensitive: (Optional) Whether the filter is
+            case-sensitive, defaults to False.
+        :return: TranslationMemorySegments for the requested page.
+        """
+        tm_id = self._translation_memory_id(translation_memory)
+
+        params = {}
+        if page_size is not None:
+            params["page_size"] = str(page_size)
+        if page_cursor is not None:
+            params["page_cursor"] = page_cursor
+        if filter_text is not None:
+            params["filter_text"] = filter_text
+        if filter_case_sensitive is not None:
+            params["filter_case_sensitive"] = str(
+                filter_case_sensitive
+            ).lower()
+
+        endpoint = f"v3/translation_memories/{tm_id}/segments"
+        if params:
+            # quote_via=quote percent-encodes spaces in filter_text as %20.
+            # urlencode defaults to quote_plus, which encodes them as "+" —
+            # correct for a form body, but not for a URI query string.
+            query_string = urllib.parse.urlencode(
+                params, quote_via=urllib.parse.quote
+            )
+            endpoint += f"?{query_string}"
+
+        status, content, json = self._api_call(endpoint, method="GET")
+        self._raise_for_status(status, content, json)
+        return TranslationMemorySegments.from_json(json)
+
+    def delete_translation_memory(
+        self,
+        translation_memory: Union[str, TranslationMemoryInfo],
+    ) -> None:
+        """Deletes a translation memory.
+
+        :param translation_memory: Translation memory ID string or
+            TranslationMemoryInfo object.
+        """
+        tm_id = self._translation_memory_id(translation_memory)
+        status, content, json = self._api_call(
+            f"v3/translation_memories/{tm_id}", method="DELETE"
+        )
+        self._raise_for_status(status, content, json)
+
+    def create_translation_memory_import(
+        self,
+        file_name: str,
+        content_length: int,
+        *,
+        content_type: Optional[str] = None,
+        display_name: Optional[str] = None,
+    ) -> TranslationMemoryImport:
+        """Creates an import job for a new translation memory.
+
+        The job only declares the file; upload the TMX file itself to the
+        returned upload URL with upload_translation_memory_file(), then poll
+        get_translation_memory_job() for the outcome. Use
+        import_translation_memory_from_filepath() to do all three steps at
+        once.
+
+        :param file_name: Name of the TMX file to import, for example
+            "legal.tmx".
+        :param content_length: Size of the TMX file in bytes.
+        :param content_type: (Optional) MIME type of the file, defaults to
+            "application/xml".
+        :param display_name: (Optional) Name for the resulting translation
+            memory, defaults to the file name.
+        :return: TranslationMemoryImport with the job ID and upload URL.
+        """
+        if not file_name:
+            raise ValueError("file_name must not be empty")
+        if content_length <= 0:
+            raise ValueError("content_length must be greater than 0")
+
+        source_file: Dict[str, Any] = {
+            "file_name": file_name,
+            "content_length": content_length,
+        }
+        if content_type is not None:
+            source_file["content_type"] = content_type
+
+        request_data: Dict[str, Any] = {"source_file": source_file}
+        if display_name is not None:
+            request_data["parameters"] = {"display_name": display_name}
+
+        status, content, json = self._api_call(
+            "v3/translation_memories/import", json=request_data
+        )
+        self._raise_for_status(status, content, json)
+        return TranslationMemoryImport.from_json(json)
+
+    def upload_translation_memory_file(
+        self,
+        translation_memory_import: Union[str, TranslationMemoryImport],
+        input_file: Union[BinaryIO, bytes, Any],
+        content_type: str = "application/xml",
+    ) -> None:
+        """Uploads a TMX file to the upload URL of an import job, which starts
+        processing.
+
+        :param translation_memory_import: TranslationMemoryImport returned by
+            create_translation_memory_import(), or its upload URL.
+        :param input_file: TMX file content as bytes or a file-like object
+            opened in binary mode.
+        :param content_type: (Optional) MIME type of the file. Must match the
+            content_type declared when the import job was created.
+        """
+        if isinstance(translation_memory_import, TranslationMemoryImport):
+            upload_url = translation_memory_import.upload_url
+        else:
+            upload_url = translation_memory_import
+        if not upload_url:
+            raise ValueError("upload_url must not be empty")
+
+        # Read a file-like object into bytes up front. The request is prepared
+        # once and reused across retries, so a stream body would already be at
+        # EOF on the second attempt and upload nothing.
+        if hasattr(input_file, "read"):
+            input_file = input_file.read()
+
+        status_code, content = self._asset_call(
+            "PUT",
+            upload_url,
+            data=input_file,
+            headers={"Content-Type": content_type},
+        )
+        self._raise_for_asset_status(
+            status_code, content, "uploading translation memory file"
+        )
+
+    def create_translation_memory_export(
+        self,
+        translation_memory: Union[str, TranslationMemoryInfo],
+    ) -> TranslationMemoryExport:
+        """Creates an export job for a translation memory.
+
+        Poll get_translation_memory_job() for the download URL of the
+        exported TMX file. Use export_translation_memory_to_filepath() to do
+        both steps and write the file at once.
+
+        :param translation_memory: Translation memory ID string or
+            TranslationMemoryInfo object.
+        :return: TranslationMemoryExport with the job ID.
+        """
+        tm_id = self._translation_memory_id(translation_memory)
+        status, content, json = self._api_call(
+            f"v3/translation_memories/{tm_id}/export"
+        )
+        self._raise_for_status(status, content, json)
+        # 200 means the API reused a previously completed export, 202 that it
+        # started a new one.
+        return TranslationMemoryExport.from_json(
+            json, reused_existing=(status == 200)
+        )
+
+    def get_translation_memory_job(
+        self,
+        job: Union[str, TranslationMemoryJob],
+    ) -> TranslationMemoryJob:
+        """Retrieves the status of a translation memory import or export job.
+
+        :param job: Job ID string or TranslationMemoryJob object.
+        :return: TranslationMemoryJob with the current status.
+        """
+        job_id = self._job_id(job)
+        status, content, json = self._api_call(
+            f"v3/translation_memories/jobs/{job_id}", method="GET"
+        )
+        self._raise_for_status(status, content, json)
+        return TranslationMemoryJob.from_json(json)
+
+    def wait_until_translation_memory_job_done(
+        self,
+        job: Union[str, TranslationMemoryJob],
+        timeout_s: Optional[int] = None,
+    ) -> TranslationMemoryJob:
+        """Polls a translation memory job until it finishes, sleeping between
+        requests, and returns the final status.
+
+        Note that an import job keeps reporting "awaiting_input" for a while
+        after its file has been uploaded, because the API detects the upload
+        asynchronously. That status is therefore polled through like any other
+        non-terminal one. A job whose file is never uploaded does not finish on
+        its own, so pass timeout_s when that is a possibility.
+
+        :param job: Job ID string or TranslationMemoryJob object.
+        :param timeout_s: (Optional) Maximum time to wait before raising an
+            error. Note that this is not accurate to the second, but only
+            polls every 5 seconds.
+        :return: TranslationMemoryJob containing the status when finished.
+        """
+        job_id = self._job_id(job)
+        status = self.get_translation_memory_job(job_id)
+        start_time_s = time.time()
+        while not status.done:
+            if (
+                timeout_s is not None
+                and time.time() - start_time_s > timeout_s
+            ):
+                raise DeepLException(
+                    f"Manual timeout of {timeout_s}s exceeded for"
+                    + " translation memory job",
+                    should_retry=False,
+                )
+            secs = 5.0
+            util.log_info(
+                f"Rechecking translation memory job status after sleeping "
+                f"for {secs:.3f} seconds."
+            )
+            time.sleep(secs)
+            status = self.get_translation_memory_job(job_id)
+        return status
+
+    def download_translation_memory_export(
+        self,
+        job: TranslationMemoryJob,
+        output_file: Union[BinaryIO, Any, None] = None,
+        chunk_size: int = 1,
+    ) -> Optional[requests.Response]:
+        """Downloads the TMX file of a completed export job.
+
+        :param job: Completed export TranslationMemoryJob carrying the
+            download URL.
+        :param output_file: (Optional) File-like object to store the
+            downloaded TMX file. If not provided, use iter_content() on the
+            returned response object to read streamed file data.
+        :param chunk_size: (Optional) Size of chunk in bytes for streaming.
+            Only used if output_file is specified.
+        :return: None if output_file is specified, otherwise the
+            requests.Response.
+        """
+        download_url = job.result.download_url if job.result else None
+        if not download_url:
+            raise ValueError(
+                "translation memory export job has no download URL; it may "
+                "not have completed yet"
+            )
+
+        status_code, content = self._asset_call(
+            "GET", download_url, stream=True
+        )
+        self._raise_for_asset_status(
+            status_code, content, "downloading translation memory export"
+        )
+        assert isinstance(content, requests.Response)
+
+        if output_file:
+            for chunk in content.iter_content(chunk_size=chunk_size):
+                output_file.write(chunk)
+            return None
+        return content
+
+    def import_translation_memory_from_filepath(
+        self,
+        input_path: Union[os.PathLike, str],
+        *,
+        display_name: Optional[str] = None,
+        timeout_s: Optional[int] = None,
+    ) -> TranslationMemoryJob:
+        """Imports a TMX file as a new translation memory: creates the import
+        job, uploads the file, and waits for processing to finish.
+
+        :param input_path: Path to the TMX file to import.
+        :param display_name: (Optional) Name for the resulting translation
+            memory, defaults to the file name.
+        :param timeout_s: (Optional) Maximum time to wait for the import to
+            finish. Note that this is not accurate to the second, but only
+            polls every 5 seconds.
+        :return: TranslationMemoryJob for the completed import; its result
+            carries the new translation memory ID.
+
+        :raises DeepLException: If the import fails.
+        """
+        file_path = pathlib.Path(input_path)
+        if not file_path.exists():
+            raise ValueError(f"file does not exist: {input_path}")
+
+        created = self.create_translation_memory_import(
+            file_name=file_path.name,
+            content_length=file_path.stat().st_size,
+            display_name=display_name,
+        )
+        with open(file_path, "rb") as input_file:
+            self.upload_translation_memory_file(created, input_file)
+
+        job = self.wait_until_translation_memory_job_done(
+            created.job_id, timeout_s
+        )
+        if not job.ok:
+            error_message = (
+                job.result.error_message if job.result else None
+            ) or "unknown error"
+            raise DeepLException(
+                "Error occurred while importing translation memory: "
+                f"{error_message}"
+            )
+        return job
+
+    def export_translation_memory_to_filepath(
+        self,
+        translation_memory: Union[str, TranslationMemoryInfo],
+        output_path: Union[os.PathLike, str],
+        *,
+        timeout_s: Optional[int] = None,
+    ) -> TranslationMemoryJob:
+        """Exports a translation memory to a TMX file: creates the export job,
+        waits for it to finish, and writes the result to output_path.
+
+        :param translation_memory: Translation memory ID string or
+            TranslationMemoryInfo object.
+        :param output_path: Path to write the exported TMX file to.
+        :param timeout_s: (Optional) Maximum time to wait for the export to
+            finish. Note that this is not accurate to the second, but only
+            polls every 5 seconds.
+        :return: TranslationMemoryJob for the completed export.
+
+        :raises DeepLException: If the export fails.
+        """
+        created = self.create_translation_memory_export(translation_memory)
+        job = self.wait_until_translation_memory_job_done(
+            created.job_id, timeout_s
+        )
+        if not job.ok:
+            error_message = (
+                job.result.error_message if job.result else None
+            ) or "unknown error"
+            raise DeepLException(
+                "Error occurred while exporting translation memory: "
+                f"{error_message}"
+            )
+
+        with open(output_path, "wb") as output_file:
+            self.download_translation_memory_export(
+                job, output_file, chunk_size=8192
+            )
+        return job
+
+    def _asset_call(
+        self,
+        method: str,
+        url: str,
+        *,
+        data: Any = None,
+        headers: Optional[Dict[str, str]] = None,
+        stream: bool = False,
+    ):
+        """Makes a request to a storage URL handed out by the API, for example
+        a translation memory upload or download URL.
+
+        These URLs are pre-signed and point outside the DeepL API, so the
+        DeepL Authorization header is deliberately not sent.
+        """
+        util.log_info("Request to storage URL", method=method, url=url)
+        return self._client.request_with_backoff(
+            method,
+            url,
+            data=data,
+            json=None,
+            headers=dict(headers or {}),
+            stream=stream,
+        )
+
+    @staticmethod
+    def _raise_for_asset_status(
+        status_code: int,
+        content: Union[str, requests.Response],
+        action: str,
+    ) -> None:
+        if 200 <= status_code < 300:
+            return
+        detail = content if isinstance(content, str) else ""
+        message = f"Error {action}, HTTP status: {status_code}"
+        if detail:
+            message += f", detail: {detail}"
+        raise DeepLException(
+            message, should_retry=False, http_status_code=status_code
+        )

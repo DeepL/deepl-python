@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 from click.testing import CliRunner
-from .conftest import example_text, needs_real_server
+from .conftest import example_text, needs_mock_server, needs_real_server
 
 # flake8: noqa: F401
 from deepl import __main__
@@ -504,3 +504,114 @@ def test_glossary_delete(translator, runner, glossary_manager):
             result.exit_code == 0
         ), f"exit: {result.exit_code}\n {result.output}"
         assert created_id not in result.output
+
+
+TM_DEFAULT_ID = "a74d88fb-ed2a-4943-a664-a4512398b994"
+
+TM_EXAMPLE_TMX = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<tmx version="1.4"><body>'
+    '<tu><tuv xml:lang="de"><seg>Hallo</seg></tuv>'
+    '<tuv xml:lang="en"><seg>Hello</seg></tuv></tu>'
+    "</body></tmx>\n"
+)
+
+
+@pytest.fixture
+def cli_tmx_path(tmpdir):
+    path = pathlib.Path(tmpdir) / "example.tmx"
+    path.write_text(TM_EXAMPLE_TMX)
+    return path
+
+
+def test_translation_memory_no_subcommand(runner):
+    result = runner.invoke(main_function, "translation-memory")
+    assert result.exit_code == 2, f"exit: {result.exit_code}\n {result.output}"
+    assert "required: subcommand" in result.output
+
+
+@needs_mock_server
+def test_translation_memory_list_and_get(runner):
+    result = runner.invoke(main_function, "translation-memory list")
+    assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
+    assert TM_DEFAULT_ID in result.output
+
+    result = runner.invoke(
+        main_function, f"translation-memory get {TM_DEFAULT_ID}"
+    )
+    assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
+    assert TM_DEFAULT_ID in result.output
+
+
+@needs_mock_server
+def test_translation_memory_segments(runner):
+    result = runner.invoke(
+        main_function,
+        f"translation-memory segments {TM_DEFAULT_ID} --page-size 5",
+    )
+    assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
+    assert "Total segments in translation memory:" in result.output
+    assert "Next page cursor:" in result.output
+
+    result = runner.invoke(
+        main_function, f"translation-memory segments {TM_DEFAULT_ID} --all"
+    )
+    assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
+    assert "Next page cursor:" not in result.output
+
+
+@needs_mock_server
+def test_translation_memory_import_export_delete(runner, cli_tmx_path, tmpdir):
+    result = runner.invoke(
+        main_function,
+        f'translation-memory import "{cli_tmx_path}" --name "CLI TM"',
+    )
+    assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
+    assert "completed" in result.output
+
+    match = re.search(r"Translation memory ID: (\S+)", result.output)
+    assert match is not None, result.output
+    translation_memory_id = match.group(1)
+
+    output_path = pathlib.Path(tmpdir) / "exported.tmx"
+    result = runner.invoke(
+        main_function,
+        f'translation-memory export {translation_memory_id} "{output_path}"',
+    )
+    assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
+    assert output_path.exists()
+    assert "<tmx" in output_path.read_text()
+
+    result = runner.invoke(
+        main_function, f"translation-memory delete {translation_memory_id}"
+    )
+    assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
+
+    result = runner.invoke(main_function, "translation-memory list")
+    assert translation_memory_id not in result.output
+
+
+@needs_mock_server
+def test_translation_memory_import_no_wait_and_job(runner, cli_tmx_path):
+    result = runner.invoke(
+        main_function,
+        f'translation-memory import "{cli_tmx_path}" --no-wait',
+    )
+    assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
+
+    match = re.search(r"import job ID (\S+)", result.output)
+    assert match is not None, result.output
+
+    result = runner.invoke(
+        main_function, f"translation-memory job {match.group(1)}"
+    )
+    assert result.exit_code == 0, f"exit: {result.exit_code}\n {result.output}"
+    assert "(import)" in result.output
+
+    # Clean up the translation memory the upload created, so it does not leak
+    # into the listings other tests assert on.
+    created = re.search(r"Translation memory ID: (\S+)", result.output)
+    if created is not None:
+        runner.invoke(
+            main_function, f"translation-memory delete {created.group(1)}"
+        )

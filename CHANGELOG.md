@@ -20,6 +20,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   allowing up to 5 glossaries to be used per translation.
 - Added `--style-id`, `--translation-memory-id`, and
   `--translation-memory-threshold` CLI arguments to the `document` command.
+- Added support for the translation memory management APIs:
+  `get_translation_memory()`, `list_translation_memory_segments()`,
+  `delete_translation_memory()`, `create_translation_memory_import()`,
+  `upload_translation_memory_file()`, `create_translation_memory_export()`,
+  `get_translation_memory_job()`,
+  `wait_until_translation_memory_job_done()`, and
+  `download_translation_memory_export()`, along with the
+  `import_translation_memory_from_filepath()` and
+  `export_translation_memory_to_filepath()` convenience functions that create
+  the job, transfer the TMX file, and wait for the job to finish. Because the
+  API detects the file upload asynchronously, an import job keeps reporting
+  `awaiting_input` for a while after the upload; the wait loop polls through
+  that status, so pass `timeout_s` to bound the wait.
+- Added the `TranslationMemorySegments`, `TranslationMemorySegment`,
+  `TranslationMemoryTargetSegment`, `TranslationMemoryImport`,
+  `TranslationMemoryExport`, `TranslationMemoryJob`, and
+  `TranslationMemoryJobResult` types.
+- Added `creation_time` and `updated_time` properties to
+  `TranslationMemoryInfo`.
+- Added the `translation-memory` CLI command with the `list`, `get`,
+  `segments`, `import`, `export`, `job`, and `delete` subcommands.
 
 ## [1.30.0] - 2026-04-09
 ### Added
