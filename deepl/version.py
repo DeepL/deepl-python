@@ -2,4 +2,4 @@
 # Use of this source code is governed by an MIT
 # license that can be found in the LICENSE file.
 
-VERSION = "1.31.0"
+VERSION = "1.32.0"
