@@ -131,6 +131,70 @@ class DeepLClient(Translator):
 
         return output if multi_input else output[0]
 
+    def correct_text(
+        self,
+        text: Union[str, Iterable[str]],
+        *,
+        target_lang: Union[None, str, Language] = None,
+    ) -> Union[WriteResult, List[WriteResult]]:
+        """Fix spelling and grammar errors in the text(s). Unlike
+        `rephrase_text`, this applies a minimal-change correction pass and
+        does not rewrite the text for style or tone.
+
+        :param text: Text to correct.
+        :type text: UTF-8 :class:`str`; string sequence (list, tuple, iterator,
+            generator)
+        :param target_lang: language code the final text should be in, for
+            example "DE", "EN-US", "FR".
+        :return: List of WriteResult objects containing results, unless input
+            text was one string, then a single WriteResult object is returned.
+        """
+
+        if isinstance(text, str):
+            if len(text) == 0:
+                raise ValueError("text must not be empty")
+            text = [text]
+            multi_input = False
+        elif hasattr(text, "__iter__"):
+            multi_input = True
+            text = list(text)
+        else:
+            raise TypeError(
+                "text parameter must be a string or an iterable of strings"
+            )
+
+        request_data: dict = {"text": text}
+        if target_lang:
+            request_data["target_lang"] = target_lang
+
+        status, content, json = self._api_call(
+            "v2/write/correct", json=request_data
+        )
+
+        self._raise_for_status(status, content, json)
+
+        improvements = (
+            json.get("improvements", [])
+            if (json and isinstance(json, dict))
+            else []
+        )
+        output = []
+        for improvement in improvements:
+            text = improvement.get("text", "") if improvement else ""
+            detected_source_language = (
+                improvement.get("detected_source_language", "")
+                if improvement
+                else ""
+            )
+            target_language = (
+                improvement.get("target_language", "") if improvement else ""
+            )
+            output.append(
+                WriteResult(text, detected_source_language, target_language)
+            )
+
+        return output if multi_input else output[0]
+
     def create_multilingual_glossary(
         self,
         name: str,
