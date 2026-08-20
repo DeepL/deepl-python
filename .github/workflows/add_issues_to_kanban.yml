@@ -1,4 +1,4 @@
-name: Add bugs to bugs project
+name: Add issues to the user issues board
 
 on:
   issues:
@@ -9,8 +9,14 @@ jobs:
   add-to-project:
     name: Add issue to project
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
-      - uses: actions/add-to-project@v0.5.0
+      - uses: actions/create-github-app-token@v3.2.0
+        id: app-token
         with:
-          project-url: https://github.com/orgs/DeepLcom/projects/1
-          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          client-id: ${{ secrets.PROJECT_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.PROJECT_BOT_PRIVATE_KEY }}
+      - uses: actions/add-to-project@v2.0.0
+        with:
+          project-url: https://github.com/orgs/DeepL/projects/1
+          github-token: ${{ steps.app-token.outputs.token }}
