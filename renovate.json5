@@ -1,0 +1,9 @@
+// Renovate configuration for the GitLab repository where this library is
+// developed. Dependency updates do not run on the GitHub mirror, so users of
+// the library can ignore this file.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "local>deepl-org/deepl/backend/oss-client-libs/ci-libs-for-client-libraries:renovate-client-libraries.json5",
+  ],
+}

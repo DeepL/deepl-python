@@ -1,0 +1,9 @@
+paths:
+  - path: "*.md"
+    reason: "Documentation"
+  - path: "/catalog-info.yaml"
+    reason: "Backstage metadata"
+  - path: "**/.claude/**"
+    reason: "Claude Code configuration and skills, not library code"
+  - path: "/renovate.json5"
+    reason: "Renovate configuration"
