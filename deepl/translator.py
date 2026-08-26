@@ -1089,15 +1089,20 @@ class Translator:
             parameter will be removed in a future version.
         :return: List of supported source languages.
         """
-        status, content, json = self._api_call("v2/languages", method="GET")
+        status, content, json = self._api_call(
+            "v3/languages",
+            method="GET",
+            params={"resource": "translate_text"},
+        )
         self._raise_for_status(status, content, json)
         languages = json if (json and isinstance(json, list)) else []
         return [
             Language(
-                language["language"],
+                language["lang"].upper(),
                 language["name"],
             )
             for language in languages
+            if language.get("usable_as_source")
         ]
 
     def get_target_languages(self, skip_cache: bool = False) -> List[Language]:
@@ -1108,39 +1113,49 @@ class Translator:
             parameter will be removed in a future version.
         :return: List of supported target languages.
         """
-        data = {"type": "target"}
         status, content, json = self._api_call(
-            "v2/languages", method="GET", data=data
+            "v3/languages",
+            method="GET",
+            params={"resource": "translate_text"},
         )
         self._raise_for_status(status, content, json)
         languages = json if (json and isinstance(json, list)) else []
         return [
             Language(
-                language["language"],
+                language["lang"].upper(),
                 language["name"],
-                language.get("supports_formality", None),
+                "formality" in language.get("features", {}),
             )
             for language in languages
+            if language.get("usable_as_target")
         ]
 
     def get_glossary_languages(self) -> List[GlossaryLanguagePair]:
         """Request the list of language pairs supported for glossaries."""
         status, content, json = self._api_call(
-            "v2/glossary-language-pairs", method="GET"
+            "v3/languages",
+            method="GET",
+            params={"resource": "glossary"},
         )
 
         self._raise_for_status(status, content, json)
 
-        supported_languages = (
-            json.get("supported_languages", [])
-            if (json and isinstance(json, dict))
-            else []
-        )
+        languages = json if (json and isinstance(json, list)) else []
+        source_langs = [
+            language["lang"]
+            for language in languages
+            if language.get("usable_as_source")
+        ]
+        target_langs = [
+            language["lang"]
+            for language in languages
+            if language.get("usable_as_target")
+        ]
         return [
-            GlossaryLanguagePair(
-                language_pair["source_lang"], language_pair["target_lang"]
-            )
-            for language_pair in supported_languages
+            GlossaryLanguagePair(source_lang, target_lang)
+            for source_lang in source_langs
+            for target_lang in target_langs
+            if source_lang != target_lang
         ]
 
     def get_usage(self) -> Usage:
