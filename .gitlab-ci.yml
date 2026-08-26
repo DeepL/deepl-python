@@ -7,7 +7,6 @@ include:
     file:
       - '/templates/.buildkit.yml'
       - '/templates/.secret-detection.yml'
-      - '/templates/.gitlab-release.yml'
   - template: Security/SAST.gitlab-ci.yml
 
 # Global --------------------------
@@ -33,8 +32,13 @@ cache:
 
 workflow:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # The tag pipeline must run: that is where the registry publish job fires.
     - if: $CI_COMMIT_TAG
+    # The release commit carries only the version and the changelog, both
+    # derived from commits that were already checked on the way in.
+    - if: $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 stages:
@@ -274,12 +278,3 @@ pypi upload:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
   script:
     - poetry publish --verbose --no-interaction
-
-gitlab release:
-  stage: publish
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
-  extends: .create_gitlab_release
-  before_script:
-    - echo "overriding default before_script..."
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
