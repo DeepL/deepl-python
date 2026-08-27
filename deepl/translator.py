@@ -1131,7 +1131,15 @@ class Translator:
         ]
 
     def get_glossary_languages(self) -> List[GlossaryLanguagePair]:
-        """Request the list of language pairs supported for glossaries."""
+        """Request the list of language pairs supported for glossaries.
+
+        Note: the v3 API reports per-language usability rather than an
+        explicit pair list, so pairs here are the cross product of
+        usable_as_source x usable_as_target languages (excluding
+        self-pairs). This assumes glossary support is a full symmetric
+        cross product, which holds today (verified against production)
+        but is not guaranteed by the API contract.
+        """
         status, content, json = self._api_call(
             "v3/languages",
             method="GET",
