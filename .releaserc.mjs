@@ -36,6 +36,11 @@ export default {
       {
         preset: "conventionalcommits",
         releaseRules: [
+          // A custom rule set replaces the default rules completely, so
+          // breaking changes and reverts must be declared here. Without the
+          // first rule a "feat!:" commit would release a minor.
+          { breaking: true, release: "major" },
+          { revert: true, release: "patch" },
           { type: "build", release: false },
           { type: "chore", release: false },
           { type: "ci", release: false },
