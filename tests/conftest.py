@@ -9,7 +9,7 @@ from deepl.api_data import (
     MultilingualGlossaryDictionaryEntries,
     MultilingualGlossaryInfo,
 )
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import pytest
 from typing import Callable, List, Optional
 from typing_extensions import Protocol
@@ -37,8 +37,7 @@ class Config(BaseSettings):
     proxy_url: Optional[str] = None
     mock_proxy_server_port: Optional[int] = None
 
-    class Config:
-        env_prefix = "DEEPL_"
+    model_config = SettingsConfigDict(env_prefix="DEEPL_")
 
 
 @pytest.fixture
