@@ -8,12 +8,14 @@ from .conftest import (
     needs_mock_proxy_server,
     needs_real_server,
 )
+from deepl.api_data import LanguageInclude, LanguageResource
 from requests import Response  # type: ignore
 from unittest.mock import patch, Mock
 import deepl
 import pathlib
 import pytest
 import os
+import requests  # type: ignore
 
 
 def test_version():
@@ -129,6 +131,54 @@ def test_glossary_languages(translator):
     for language_pair in glossary_languages:
         assert len(language_pair.source_lang) > 0
         assert len(language_pair.target_lang) > 0
+
+
+@pytest.mark.parametrize("resource", list(LanguageResource))
+def test_languages_for_resource(deepl_client, resource):
+    languages = deepl_client.get_languages_for_resource(resource)
+    assert len(languages) > 0
+    for language in languages:
+        assert len(language.code) > 0
+        assert len(language.name) > 0
+        assert len(language.status) > 0
+        assert isinstance(language.usable_as_source, bool)
+        assert isinstance(language.usable_as_target, bool)
+        for feature_name, feature in language.features.items():
+            assert len(feature_name) > 0
+            assert len(feature.status) > 0
+            assert language.supports(feature_name)
+
+
+def test_languages_for_resource_translate_text(deepl_client):
+    languages = deepl_client.get_languages_for_resource("translate_text")
+    codes = [language.code for language in languages]
+    assert "de" in codes
+    assert "en-US" in codes
+    assert "pt-BR" in codes
+
+
+def test_languages_for_resource_invalid(deepl_client):
+    with pytest.raises(deepl.DeepLException, match="Bad request"):
+        deepl_client.get_languages_for_resource("not_a_resource")
+    with pytest.raises(ValueError, match="resource must not be empty"):
+        deepl_client.get_languages_for_resource("")
+
+
+@needs_mock_server
+def test_languages_for_resource_include(deepl_client, server):
+    deepl_client.get_languages_for_resource(
+        LanguageResource.WRITE,
+        include=[LanguageInclude.BETA, "external"],
+    )
+    last_request = requests.get(
+        f"{server.server_url}/__session__/last-request",
+        headers=server.headers,
+    ).json()
+    assert last_request["path"] == "/v3/languages"
+    assert last_request["query"] == {
+        "resource": "write",
+        "include": ["beta", "external"],
+    }
 
 
 def test_server_url_selected_based_on_auth_key(server):

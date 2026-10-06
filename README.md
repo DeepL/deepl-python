@@ -636,6 +636,27 @@ for language in deepl_client.get_target_languages():
         # Example: "Lithuanian (LT)"
 ```
 
+#### Listing languages per resource
+
+`get_languages_for_resource()` uses the `/v3/languages` endpoint and returns
+the languages supported by one resource (`LanguageResource.TRANSLATE_TEXT`,
+`LanguageResource.WRITE`, etc.) as a list of `LanguageSupport` objects. Each
+has `code`, `name`, `status`, `usable_as_source`, `usable_as_target` and a
+`features` map from feature name to its support status. By default only stable
+languages and features are returned; pass `include=[LanguageInclude.BETA]` to
+also get beta ones.
+
+```python
+from deepl.api_data import LanguageResource
+
+for language in deepl_client.get_languages_for_resource(
+    LanguageResource.TRANSLATE_TEXT
+):
+    if language.usable_as_target and language.supports("formality"):
+        print(f"{language.name} ({language.code}) supports formality")
+        # Example: "German (de) supports formality"
+```
+
 #### Listing available glossary languages
 
 Glossaries are supported for a subset of language pairs. To retrieve those

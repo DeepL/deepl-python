@@ -9,6 +9,9 @@ from deepl.api_data import (
     MultilingualGlossaryDictionaryInfo,
     MultilingualGlossaryInfo,
     Language,
+    LanguageInclude,
+    LanguageResource,
+    LanguageSupport,
     WriteResult,
     StyleRuleInfo,
     TranslationMemoryExport,
@@ -698,6 +701,38 @@ class DeepLClient(Translator):
             method="DELETE",
         )
         self._raise_for_status(status, content, json, glossary=True)
+
+    def get_languages_for_resource(
+        self,
+        resource: Union[str, LanguageResource],
+        *,
+        include: Optional[Iterable[Union[str, LanguageInclude]]] = None,
+    ) -> List[LanguageSupport]:
+        """Retrieves the languages supported by the given resource, each
+        with its per-feature support information.
+
+        :param resource: Resource to query, for example
+            LanguageResource.TRANSLATE_TEXT or "translate_text".
+        :param include: (Optional) Values to also include beta languages and
+            features (LanguageInclude.BETA) or third-party-backed features
+            (LanguageInclude.EXTERNAL). By default only stable languages and
+            features are returned.
+        :return: List of LanguageSupport objects.
+        """
+        resource = str(resource)
+        if len(resource) == 0:
+            raise ValueError("resource must not be empty")
+
+        params = [("resource", resource)]
+        if include is not None:
+            params.extend(("include", str(value)) for value in include)
+
+        endpoint = f"v3/languages?{urllib.parse.urlencode(params)}"
+        status, content, json = self._api_call(endpoint, method="GET")
+        self._raise_for_status(status, content, json)
+
+        languages = json if (json and isinstance(json, list)) else []
+        return [LanguageSupport.from_json(language) for language in languages]
 
     def get_all_style_rules(
         self,

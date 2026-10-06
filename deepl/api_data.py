@@ -1674,3 +1674,142 @@ class TranslationMemoryJob:
     def source_content_length(self) -> Optional[int]:
         """Returns the size in bytes declared for an import job's file."""
         return self._source_content_length
+
+
+class LanguageResource(Enum):
+    """Resources that can be passed to
+    `DeepLClient.get_languages_for_resource()`."""
+
+    TRANSLATE_TEXT = "translate_text"
+    TRANSLATE_DOCUMENT = "translate_document"
+    GLOSSARY = "glossary"
+    VOICE = "voice"
+    WRITE = "write"
+    STYLE_RULES = "style_rules"
+    TRANSLATION_MEMORY = "translation_memory"
+
+    def __str__(self):
+        return self.value
+
+
+class LanguageInclude(Enum):
+    """Options for the `include` parameter of
+    `DeepLClient.get_languages_for_resource()`. By default only stable
+    languages and features are returned."""
+
+    BETA = "beta"
+    """Also return languages and features in beta."""
+
+    EXTERNAL = "external"
+    """Also return features that rely on third-party service providers."""
+
+    def __str__(self):
+        return self.value
+
+
+class LanguageFeature:
+    """Support level of a single feature of a language for a resource.
+
+    :param status: Availability status of the feature, for example "stable"
+        or "beta".
+    """
+
+    def __init__(self, status: str):
+        self._status = status
+
+    @staticmethod
+    def from_json(json) -> "LanguageFeature":
+        """Create LanguageFeature from the given API JSON object."""
+        return LanguageFeature(status=json["status"])
+
+    @property
+    def status(self) -> str:
+        """Returns the availability status of the feature."""
+        return self._status
+
+
+class LanguageSupport:
+    """Information about a language supported by a DeepL API resource, as
+    returned by `DeepLClient.get_languages_for_resource()`.
+
+    :param code: Language code (BCP 47), for example "de" or "en-US".
+    :param name: Name of the language in English.
+    :param status: Availability status of the language, for example
+        "stable" or "beta".
+    :param usable_as_source: True if the language can be used as a source
+        language for the resource.
+    :param usable_as_target: True if the language can be used as a target
+        language for the resource.
+    :param features: Map of feature name to LanguageFeature; empty if no
+        optional features are supported.
+    """
+
+    def __init__(
+        self,
+        code: str,
+        name: str,
+        status: str,
+        usable_as_source: bool,
+        usable_as_target: bool,
+        features: Dict[str, LanguageFeature],
+    ):
+        self._code = code
+        self._name = name
+        self._status = status
+        self._usable_as_source = usable_as_source
+        self._usable_as_target = usable_as_target
+        self._features = features
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.code})"
+
+    @staticmethod
+    def from_json(json) -> "LanguageSupport":
+        """Create LanguageSupport from the given API JSON object."""
+        features = json.get("features") or {}
+        return LanguageSupport(
+            code=json["lang"],
+            name=json["name"],
+            status=json["status"],
+            usable_as_source=bool(json["usable_as_source"]),
+            usable_as_target=bool(json["usable_as_target"]),
+            features={
+                name: LanguageFeature.from_json(feature)
+                for name, feature in features.items()
+            },
+        )
+
+    def supports(self, feature: str) -> bool:
+        """Returns True if the language supports the given feature, for
+        example "formality", for the requested resource."""
+        return feature in self._features
+
+    @property
+    def code(self) -> str:
+        """Returns the language code (BCP 47)."""
+        return self._code
+
+    @property
+    def name(self) -> str:
+        """Returns the name of the language in English."""
+        return self._name
+
+    @property
+    def status(self) -> str:
+        """Returns the availability status of the language."""
+        return self._status
+
+    @property
+    def usable_as_source(self) -> bool:
+        """Returns True if usable as a source language."""
+        return self._usable_as_source
+
+    @property
+    def usable_as_target(self) -> bool:
+        """Returns True if usable as a target language."""
+        return self._usable_as_target
+
+    @property
+    def features(self) -> Dict[str, LanguageFeature]:
+        """Returns the map of feature name to LanguageFeature."""
+        return self._features
