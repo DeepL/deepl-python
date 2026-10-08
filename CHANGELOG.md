@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `get_languages_for_resource()` method to the `DeepLClient` class to
   retrieve the languages supported by a resource, with per-feature support
   information, via the `/v3/languages` endpoint.
+- Added `get_language_resources()` method to the `DeepLClient` class to
+  retrieve the API resources and their features via the
+  `/v3/languages/resources` endpoint. Results are returned as
+  `LanguageResourceInfo` and `ResourceFeature` objects.
 
 ## [1.32.0] - 2026-08-12
 ### Added

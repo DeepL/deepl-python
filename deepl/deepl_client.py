@@ -11,6 +11,7 @@ from deepl.api_data import (
     Language,
     LanguageInclude,
     LanguageResource,
+    LanguageResourceInfo,
     LanguageSupport,
     WriteResult,
     StyleRuleInfo,
@@ -733,6 +734,19 @@ class DeepLClient(Translator):
 
         languages = json if (json and isinstance(json, list)) else []
         return [LanguageSupport.from_json(language) for language in languages]
+
+    def get_language_resources(self) -> List[LanguageResourceInfo]:
+        """Retrieves the resources supported by the DeepL API, along with
+        their features and whether each feature requires support from the
+        source and/or target language.
+
+        :return: List of LanguageResourceInfo objects, one per resource.
+        """
+        status, content, json = self._api_call(
+            "v3/languages/resources", method="GET"
+        )
+        self._raise_for_status(status, content, json)
+        return [LanguageResourceInfo.from_json(resource) for resource in json]
 
     def get_all_style_rules(
         self,

@@ -181,6 +181,25 @@ def test_languages_for_resource_include(deepl_client, server):
     }
 
 
+def test_language_resources(deepl_client):
+    resources = deepl_client.get_language_resources()
+    assert len(resources) > 0
+    for resource in resources:
+        assert len(resource.resource) > 0
+        for feature_name, feature in resource.features.items():
+            assert feature_name == feature.name
+            assert feature.needs_source_support in (None, True, False)
+            assert feature.needs_target_support in (None, True, False)
+
+    by_name = {resource.resource: resource for resource in resources}
+    translate_text = by_name[LanguageResource.TRANSLATE_TEXT.value]
+    assert translate_text.supports("glossary")
+    assert not translate_text.supports("nonexistent_feature")
+    glossary = translate_text.features["glossary"]
+    assert glossary.needs_source_support is True
+    assert glossary.needs_target_support is True
+
+
 def test_server_url_selected_based_on_auth_key(server):
     translator_normal = deepl.Translator("ABCD")
     translator_free = deepl.Translator("ABCD:fx")

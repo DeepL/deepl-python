@@ -401,6 +401,101 @@ class GlossaryLanguagePair:
         return self._target_lang
 
 
+class ResourceFeature:
+    """A feature supported by a DeepL API resource, as returned by
+    DeepLClient.get_language_resources().
+
+    :param name: The feature name, for example "glossary" or "formality".
+    :param needs_source_support: True if the source language must support
+        the feature for it to be available, None if not specified.
+    :param needs_target_support: True if the target language must support
+        the feature for it to be available, None if not specified.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        needs_source_support: Optional[bool] = None,
+        needs_target_support: Optional[bool] = None,
+    ):
+        self._name = name
+        self._needs_source_support = needs_source_support
+        self._needs_target_support = needs_target_support
+
+    @staticmethod
+    def from_json(json) -> "ResourceFeature":
+        """Create ResourceFeature from the given API JSON object."""
+        return ResourceFeature(
+            name=json["name"],
+            needs_source_support=json.get("needs_source_support"),
+            needs_target_support=json.get("needs_target_support"),
+        )
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def name(self) -> str:
+        """Returns the feature name."""
+        return self._name
+
+    @property
+    def needs_source_support(self) -> Optional[bool]:
+        """Returns True if the source language must support this feature,
+        or None if the API did not specify it."""
+        return self._needs_source_support
+
+    @property
+    def needs_target_support(self) -> Optional[bool]:
+        """Returns True if the target language must support this feature,
+        or None if the API did not specify it."""
+        return self._needs_target_support
+
+
+class LanguageResourceInfo:
+    """A DeepL API resource and the features it supports, as returned by
+    DeepLClient.get_language_resources().
+
+    :param resource: The resource name, for example "translate_text".
+    :param features: Dictionary mapping feature names to ResourceFeature
+        objects.
+    """
+
+    def __init__(self, resource: str, features: Dict[str, ResourceFeature]):
+        self._resource = resource
+        self._features = features
+
+    @staticmethod
+    def from_json(json) -> "LanguageResourceInfo":
+        """Create LanguageResourceInfo from the given API JSON object."""
+        features = [
+            ResourceFeature.from_json(feature)
+            for feature in json.get("features") or []
+        ]
+        return LanguageResourceInfo(
+            resource=json["name"],
+            features={feature.name: feature for feature in features},
+        )
+
+    def __str__(self) -> str:
+        return self.resource
+
+    def supports(self, feature: str) -> bool:
+        """Returns True if this resource exposes the given feature."""
+        return feature in self._features
+
+    @property
+    def resource(self) -> str:
+        """Returns the resource name."""
+        return self._resource
+
+    @property
+    def features(self) -> Dict[str, ResourceFeature]:
+        """Returns a dictionary mapping feature names to ResourceFeature
+        objects."""
+        return self._features
+
+
 class MultilingualGlossaryDictionaryEntries:
     def __init__(
         self,
