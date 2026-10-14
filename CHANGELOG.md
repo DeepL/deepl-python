@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   retrieve the API resources and their features via the
   `/v3/languages/resources` endpoint. Results are returned as
   `LanguageResourceInfo` and `ResourceFeature` objects.
+
 ### Changed
 - `get_source_languages()`, `get_target_languages()`, and
   `get_glossary_languages()` now use the `/v3/languages` endpoint
