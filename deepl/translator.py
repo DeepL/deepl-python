@@ -241,21 +241,6 @@ class Translator:
                 http_status_code=status_code,
             )
 
-    def _check_valid_languages(
-        self, source_lang: Optional[str], target_lang: str
-    ):
-        """Internal function to check given languages are valid."""
-        if target_lang == "EN":
-            raise DeepLException(
-                'target_lang="EN" is deprecated, please use "EN-GB" or "EN-US"'
-                "instead."
-            )
-        elif target_lang == "PT":
-            raise DeepLException(
-                'target_lang="PT" is deprecated, please use "PT-PT" or "PT-BR"'
-                "instead."
-            )
-
     def _check_language_and_formality(
         self,
         source_lang: Union[str, Language, None],
@@ -322,8 +307,6 @@ class Translator:
                 != style_rule.language.upper()
             ):
                 raise ValueError("target_lang must match style rule language")
-
-        self._check_valid_languages(source_lang, target_lang)
 
         request_data: dict = {"target_lang": target_lang}
         if source_lang is not None:

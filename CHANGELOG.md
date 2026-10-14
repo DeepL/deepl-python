@@ -13,14 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   retrieve the API resources and their features via the
   `/v3/languages/resources` endpoint. Results are returned as
   `LanguageResourceInfo` and `ResourceFeature` objects.
+- Added `Language` constants for the target variants `de-CH`, `de-DE`,
+  `es-ES`, `fr-CA`, and `fr-FR`.
 
 ### Changed
+- Target languages `EN` and `PT` are no longer rejected client-side. The API
+  translates them into `EN-US` and `PT-PT` respectively.
 - `get_source_languages()`, `get_target_languages()`, and
   `get_glossary_languages()` now use the `/v3/languages` endpoint
   internally instead of the deprecated `/v2/languages` and
   `/v2/glossary-language-pairs` endpoints. Public signatures and return
   types are unchanged, but the returned language lists may now include
   additional languages.
+
+### Fixed
+- Fixed the `Language.ENGLISH` and `Language.PORTUGUESE` comments that
+  claimed they are only usable as source languages.
 
 ## [1.32.0] - 2026-08-12
 ### Added

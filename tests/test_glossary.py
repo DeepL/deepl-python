@@ -382,16 +382,6 @@ def test_glossary_translate_text_invalid(translator, glossary_manager):
                 glossary=glossary_ende,
             )
 
-        with pytest.raises(
-            deepl.DeepLException, match='target_lang="EN" is deprecated'
-        ):
-            translator.translate_text(
-                text,
-                source_lang="DE",
-                target_lang="EN",
-                glossary=glossary_deen.glossary_id,
-            )
-
         with pytest.raises(ValueError, match="GlossaryInfo"):
             translator.translate_text_with_glossary(
                 text,

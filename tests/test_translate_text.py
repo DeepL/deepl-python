@@ -101,10 +101,10 @@ def test_target_lang(translator):
         )
     )
 
-    with pytest.raises(deepl.DeepLException, match="deprecated"):
-        translator.translate_text(example_text["DE"], target_lang="EN")
-    with pytest.raises(deepl.DeepLException, match="deprecated"):
-        translator.translate_text(example_text["DE"], target_lang="PT")
+
+@pytest.mark.parametrize("target_lang", ["EN", "PT"])
+def test_bare_target_language_accepted(translator, target_lang):
+    translator.translate_text(example_text["DE"], target_lang=target_lang)
 
 
 def test_invalid_language(translator):
