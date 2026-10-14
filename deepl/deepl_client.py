@@ -746,7 +746,8 @@ class DeepLClient(Translator):
             "v3/languages/resources", method="GET"
         )
         self._raise_for_status(status, content, json)
-        return [LanguageResourceInfo.from_json(resource) for resource in json]
+        resources = json if (json and isinstance(json, list)) else []
+        return [LanguageResourceInfo.from_json(r) for r in resources]
 
     def get_all_style_rules(
         self,

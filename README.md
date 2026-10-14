@@ -657,6 +657,25 @@ for language in deepl_client.get_languages_for_resource(
         # Example: "German (de) supports formality"
 ```
 
+#### Listing resources and their features
+
+`get_language_resources()` uses the `/v3/languages/resources` endpoint and
+returns the resources the API offers (translate_text, glossary, write, etc.) as
+a list of `LanguageResourceInfo` objects. Each has `resource` (the name),
+`features` (a map from feature name to `ResourceFeature`) and
+`supports(feature)`. A `ResourceFeature` has `name`, `needs_source_support` and
+`needs_target_support`: `True` means the source (or target) language must
+support the feature for it to be available, `None` means the API did not
+specify it.
+
+```python
+for resource in deepl_client.get_language_resources():
+    for feature in resource.features.values():
+        if feature.needs_target_support:
+            print(f"{resource.resource}: {feature.name} needs target support")
+            # Example: "translate_text: formality needs target support"
+```
+
 #### Listing available glossary languages
 
 Glossaries are supported for a subset of language pairs. To retrieve those
