@@ -161,22 +161,17 @@ package:
 
 # stage: test -------------------------
 
-.test_base:
+# The offline tests intercept every request, so they need neither the network
+# nor a key and run on every supported Python version.
+.test_offline_base:
   stage: test
-  extends: .test
   parallel:
     matrix:
-      - DOCKER_IMAGE: "python:3.13"
       - DOCKER_IMAGE: "python:3.9"
-        USE_MOCK_SERVER: "use mock server"
       - DOCKER_IMAGE: "python:3.10"
-        USE_MOCK_SERVER: "use mock server"
       - DOCKER_IMAGE: "python:3.11"
-        USE_MOCK_SERVER: "use mock server"
       - DOCKER_IMAGE: "python:3.12"
-        USE_MOCK_SERVER: "use mock server"
       - DOCKER_IMAGE: "python:3.13"
-        USE_MOCK_SERVER: "use mock server"
   image: ${DOCKER_IMAGE}
   script:
     - >
@@ -184,15 +179,7 @@ package:
         echo "Running poetry add ${EXTRA_POETRY_ADD_ARGUMENT}"
         poetry add ${EXTRA_POETRY_ADD_ARGUMENT}
       fi
-    - >
-      if [[ ! -z "${USE_MOCK_SERVER}" ]]; then
-        echo "Using mock server"
-        export DEEPL_SERVER_URL=http://deepl-mock:3000
-        export DEEPL_MOCK_SERVER_PORT=3000
-        export DEEPL_PROXY_URL=http://deepl-mock:3001
-        export DEEPL_MOCK_PROXY_SERVER_PORT=3001
-      fi
-    - poetry run coverage run -m pytest --junit-xml test_report.xml
+    - poetry run coverage run -m pytest tests/offline --junit-xml test_report.xml
     - poetry run coverage report
     - poetry run coverage xml
   artifacts:
@@ -204,21 +191,53 @@ package:
         - test_report.xml
     when: always
 
-test_scheduled:
-  extends: .test_base
+test_offline_scheduled:
+  extends: .test_offline_base
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   retry: 2
 
-test_manual:
+test_offline_manual:
+  extends: .test_offline_base
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
+
+# Every endpoint once against the real API, on one Python version. No retry:
+# a retry would repeat every request.
+.test_real_api_base:
   stage: test
-  extends: .test_base
+  extends: .test
+  # Replaces the deepl-mock service of .test
+  services: []
+  image: python:3.13
+  script:
+    - poetry run coverage run -m pytest tests/real_api --junit-xml test_report.xml
+    - poetry run coverage report
+    - poetry run coverage xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+      junit:
+        - test_report.xml
+    when: always
+
+test_real_api_scheduled:
+  extends: .test_real_api_base
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+test_real_api_manual:
+  extends: .test_real_api_base
   rules:
     - if: $CI_PIPELINE_SOURCE != "schedule"
 
 .mustache_example_base:
   stage: test
   extends: .test
+  # Replaces the deepl-mock service of .test
+  services: []
   script:
     - cd examples/mustache
     - pip install deepl
@@ -243,6 +262,8 @@ mustache_example_manual:
 .basic_usage_example_base:
   stage: test
   extends: .test
+  # Replaces the deepl-mock service of .test
+  services: []
   script:
     - poetry build --verbose --no-interaction
     - cd examples/basic_usage
