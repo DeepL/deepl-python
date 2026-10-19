@@ -1172,8 +1172,9 @@ The tests are split into two groups, selected by directory:
   authentication key. They check the requests that the library sends for every
   option, and how it handles errors, retries and polling.
 - `pytest tests/real_api` runs the real-API tests. They send one request per
-  API endpoint to the DeepL API, using the authentication key and server URL
-  defined by the `DEEPL_AUTH_KEY` and `DEEPL_SERVER_URL` environment variables.
+  API endpoint to the DeepL API, using the authentication key defined by the
+  `DEEPL_AUTH_KEY` environment variable and, for a non-default server, the
+  server URL defined by `DEEPL_SERVER_URL`.
   They create and delete glossaries, style rules and translation memories named
   `sdktest-python-...`.
 
