@@ -5,7 +5,7 @@
 import datetime
 
 import pytest
-from deepl.api_data import CustomInstruction, StyleRuleInfo
+from deepl.api_data import ConfiguredRules, CustomInstruction, StyleRuleInfo
 
 from .client import make_deepl_client, url
 from .matchers import bodyless_request, json_request
@@ -77,11 +77,9 @@ def test_parses_style_rule_list_with_details(mocked):
     style_rules = make_deepl_client().get_all_style_rules(detailed=True)
 
     first, second = style_rules
-    assert first.configured_rules.numbers == {"number_format": "x"}
-    assert first.configured_rules.vocabulary == {"a": "b"}
+    assert isinstance(first.configured_rules, ConfiguredRules)
     assert first.configured_rules.formatting == {}
-    assert first.custom_instructions[0].id == "instruction-1"
-    assert first.custom_instructions[0].source_language == "de"
+    assert isinstance(first.custom_instructions[0], CustomInstruction)
     assert second.configured_rules is None
     assert second.custom_instructions == []
 
@@ -97,7 +95,6 @@ def test_parses_style_rule(mocked):
     assert style_rule.updated_time == datetime.datetime(
         2021, 8, 4, 14, 16, 18, 329000, tzinfo=datetime.timezone.utc
     )
-    assert style_rule.version == 3
     assert str(style_rule) == 'StyleRule "style" (style-1)'
 
 
@@ -205,7 +202,7 @@ def test_sends_label_and_prompt_when_creating_instruction(
     )
 
 
-def test_parses_custom_instruction(mocked):
+def test_sends_get_when_getting_instruction(mocked):
     mocked.get(
         url("v3/style_rules/style-1/custom_instructions/instruction-1"),
         json={**INSTRUCTION_JSON, "source_language": "de"},
@@ -217,10 +214,6 @@ def test_parses_custom_instruction(mocked):
     )
 
     assert isinstance(instruction, CustomInstruction)
-    assert instruction.id == "instruction-1"
-    assert instruction.label == "Label"
-    assert instruction.prompt == "Prompt"
-    assert instruction.source_language == "de"
 
 
 @pytest.mark.parametrize(

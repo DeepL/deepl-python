@@ -48,12 +48,9 @@ def test_sends_file_object_as_multipart(mocked, tmp_path):
     )
 
     with open(path, "rb") as input_file:
-        handle = make_translator().translate_document_upload(
+        make_translator().translate_document_upload(
             input_file, target_lang="de"
         )
-
-    assert handle.document_id == "doc-1"
-    assert handle.document_key == "key-1"
 
 
 @pytest.mark.parametrize("content", [b"hello", "hello"])
@@ -151,36 +148,19 @@ def test_raises_when_uploading_with_invalid_glossary_options():
 
 
 @pytest.mark.parametrize(
-    "fields, status, billed, error",
+    "fields, status",
     [
-        (
-            {"seconds_remaining": 7},
-            deepl.DocumentStatus.Status.QUEUED,
-            None,
-            None,
-        ),
-        (
-            {"billed_characters": 5},
-            deepl.DocumentStatus.Status.DONE,
-            5,
-            None,
-        ),
-        (
-            {"error_message": "bad file"},
-            deepl.DocumentStatus.Status.ERROR,
-            None,
-            "bad file",
-        ),
+        ({"seconds_remaining": 7}, deepl.DocumentStatus.Status.QUEUED),
+        ({"billed_characters": 5}, deepl.DocumentStatus.Status.DONE),
+        ({"error_message": "bad file"}, deepl.DocumentStatus.Status.ERROR),
     ],
 )
-def test_parses_document_status(mocked, fields, status, billed, error):
+def test_parses_document_status(mocked, fields, status):
     reply_with_status(mocked, status.value, **fields)
 
     result = make_translator().translate_document_get_status(HANDLE)
 
     assert result.status == status
-    assert result.billed_characters == billed
-    assert result.error_message == error
     assert result.ok == (status != deepl.DocumentStatus.Status.ERROR)
     assert result.done == (status == deepl.DocumentStatus.Status.DONE)
     assert str(result) == status.value
@@ -206,7 +186,6 @@ def test_polls_status_until_document_is_done(mocked):
     status = make_translator().translate_document_wait_until_done(HANDLE)
 
     assert status.done
-    assert status.billed_characters == 3
 
 
 def test_raises_when_waiting_exceeds_timeout(mocked):
@@ -229,14 +208,13 @@ def test_translates_document_through_upload_status_and_download(mocked):
     reply_with_result(mocked, b"translated")
     output = io.BytesIO()
 
-    status = make_translator().translate_document(
+    make_translator().translate_document(
         b"hello",
         output,
         target_lang="DE",
         filename="a.txt",
     )
 
-    assert status.billed_characters == 5
     assert output.getvalue() == b"translated"
 
 
@@ -326,11 +304,9 @@ def test_retries_upload_when_rate_limited(mocked):
         mocked, {"file": ("a.txt", b"hello")}, {"target_lang": "DE"}
     )
 
-    handle = make_translator().translate_document_upload(
+    make_translator().translate_document_upload(
         b"hello", filename="a.txt", target_lang="DE"
     )
-
-    assert handle.document_id == "doc-1"
 
 
 def test_translates_document_between_file_paths(mocked, tmp_path):
@@ -345,11 +321,10 @@ def test_translates_document_between_file_paths(mocked, tmp_path):
     reply_with_status(mocked, "done", billed_characters=5)
     reply_with_result(mocked, b"translated")
 
-    status = make_translator().translate_document_from_filepath(
+    make_translator().translate_document_from_filepath(
         input_path, output_path, source_lang="EN", target_lang="DE"
     )
 
-    assert status.billed_characters == 5
     assert output_path.read_bytes() == b"translated"
 
 

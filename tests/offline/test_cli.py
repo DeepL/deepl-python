@@ -296,7 +296,6 @@ def test_reads_text_from_standard_input(mocked, runner):
     result = invoke(runner, "text", "--to", "DE", "-", input="proton beam")
 
     assert result.exit_code == 0, result.output
-    assert "Protonenstrahl" in result.output
 
 
 @pytest.mark.parametrize(

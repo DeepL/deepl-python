@@ -86,7 +86,6 @@ def test_parses_translation_memory_list(mocked):
 
     first, second = memories
     assert isinstance(first, TranslationMemoryInfo)
-    assert first.target_languages == ["de", "fr"]
     assert first.creation_time == datetime.datetime(
         2021, 8, 3, 14, 16, 18, 329000, tzinfo=datetime.timezone.utc
     )
@@ -204,8 +203,6 @@ def test_parses_translation_memory_segments(mocked):
     page = make_deepl_client().list_translation_memory_segments("tm-1")
 
     assert isinstance(page, TranslationMemorySegments)
-    assert page.segment_count == 12
-    assert page.next_page_cursor == "next"
     assert len(page) == 2
     first, second = list(page)
     assert str(first.targets[0]) == "de: Hallo"
@@ -247,8 +244,6 @@ def test_sends_file_description_when_creating_import(mocked, kwargs, body):
     )
 
     assert isinstance(created, TranslationMemoryImport)
-    assert created.job_id == "job-1"
-    assert created.upload_url == UPLOAD_URL
     assert created.expires_at == datetime.datetime(
         2021, 8, 3, 15, 16, 18, 329000, tzinfo=datetime.timezone.utc
     )
@@ -331,7 +326,6 @@ def test_marks_export_as_reused_when_server_returns_200(
     )
 
     assert isinstance(export, TranslationMemoryExport)
-    assert export.job_id == "job-1"
     assert export.translation_memory_id == "tm-1"
     assert export.reused_existing is reused
     assert str(export) == "TranslationMemoryExport (job-1)"

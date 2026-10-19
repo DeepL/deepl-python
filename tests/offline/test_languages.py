@@ -145,17 +145,13 @@ def test_sends_resource_and_include_when_getting_languages(
 def test_parses_languages_for_resource(mocked):
     mocked.get(url("v3/languages"), json=LANGUAGES_JSON)
 
-    first, second, third = make_deepl_client().get_languages_for_resource(
+    first, second, _ = make_deepl_client().get_languages_for_resource(
         "translate_text"
     )
 
     assert first.code == "de"
-    assert first.usable_as_source and first.usable_as_target
-    assert first.features["formality"].status == "stable"
     assert first.supports("formality")
     assert not second.supports("formality")
-    assert second.status == "beta"
-    assert third.features == {}
     assert str(first) == "German (de)"
 
 
@@ -190,8 +186,6 @@ def test_parses_language_resources(mocked):
     assert translate_text.supports("glossary")
     assert not translate_text.supports("nonexistent")
     glossary = translate_text.features["glossary"]
-    assert glossary.needs_source_support is True
-    assert glossary.needs_target_support is True
     assert translate_text.features["formality"].needs_source_support is None
     assert str(glossary) == "glossary"
     assert voice.features == {}

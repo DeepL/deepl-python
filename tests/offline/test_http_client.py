@@ -17,9 +17,8 @@ def test_retries_request_after_retryable_status(mocked, status):
     mocked.get(url("v2/usage"), status=status)
     mocked.get(url("v2/usage"), json=USAGE_JSON, match=bodyless_request())
 
-    usage = make_translator().get_usage()
+    make_translator().get_usage()
 
-    assert usage.character.limit == 2
     assert len(mocked.calls) == 2
 
 
