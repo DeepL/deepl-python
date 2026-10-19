@@ -57,30 +57,17 @@ def test_sends_translation_memory_requests_from_import_to_delete():
         client.download_translation_memory_export(export_job, output)
         assert b"<tmx" in output.getvalue()
     finally:
-        # The import may have finished although waiting for it failed.
-        if translation_memory_id is None:
-            translation_memory_id = _find_by_name(client, name)
         if translation_memory_id is not None:
             client.delete_translation_memory(translation_memory_id)
 
 
 def _is_listed(client, translation_memory_id):
-    return any(
-        memory.translation_memory_id == translation_memory_id
-        for memory in _list_all(client)
-    )
-
-
-def _find_by_name(client, name):
-    for memory in _list_all(client):
-        if memory.name == name:
-            return memory.translation_memory_id
-    return None
-
-
-def _list_all(client):
     for page in range(20):
         memories = client.list_translation_memories(page=page, page_size=100)
+        if translation_memory_id in [
+            memory.translation_memory_id for memory in memories
+        ]:
+            return True
         if not memories:
-            return
-        yield from memories
+            return False
+    return False
