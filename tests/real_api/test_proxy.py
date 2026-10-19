@@ -11,10 +11,18 @@ import pytest
 from .client import make_translator
 
 
-def test_sends_requests_through_proxy(monkeypatch):
+def test_sends_requests_through_proxy(monkeypatch, tmp_path):
     monkeypatch.setattr(deepl.http_client, "max_network_retries", 0)
 
+    # proxy.py writes below the home directory unless told otherwise, which CI
+    # runners do not have.
     with proxy.Proxy(
+        input_args=[
+            "--data-dir",
+            str(tmp_path),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+        ],
         port=0,
         hostname=ipaddress.ip_address("127.0.0.1"),
         num_workers=1,
