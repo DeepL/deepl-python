@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   language of each text.
 - Fixed the `translate` CLI alias of the `text` command failing with
   `'action_translate'`.
+- Fixed the `extra_body_parameters` documentation, which claimed that entries
+  do not overwrite request fields set by the library. They do, since 1.24.0.
 
 ## [1.32.0] - 2026-08-12
 ### Added

@@ -488,9 +488,8 @@ class Translator:
             maximum length of 300 characters.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. If provided,
-            keys in this dict will be added to the request body. Existing
-            keys set by the client will not be overwritten by entries in
-            extra_body_parameters.
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: List of TextResult objects containing results, unless input
             text was one string, then a single TextResult object is returned.
         """
@@ -556,7 +555,7 @@ class Translator:
         if custom_instructions is not None:
             request_data["custom_instructions"] = custom_instructions
 
-        # Do not overwrite keys that were explicitly set by this method.
+        # Entries replace keys of the same name set above.
         if extra_body_parameters:
             for k, v in extra_body_parameters.items():
                 request_data[k] = v
@@ -689,9 +688,8 @@ class Translator:
             second, but only polls every 5 seconds.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. If provided,
-            keys in this dict will be added to the request body. Existing
-            keys set by the client will not be overwritten by entries in
-            extra_body_parameters.
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: DocumentStatus when document translation completed, this
             allows the number of billed characters to be queried.
 
@@ -786,9 +784,8 @@ class Translator:
             second, but only polls every 5 seconds.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. If provided,
-            keys in this dict will be added to the request body. Existing
-            keys set by the client will not be overwritten by entries in
-            extra_body_parameters.
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: DocumentStatus when document translation completed, this
             allows the number of billed characters to be queried.
 
@@ -876,9 +873,8 @@ class Translator:
             it differs from the input file format.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. If provided,
-            keys in this dict will be added to the request body. Existing
-            keys set by the client will not be overwritten by entries in
-            extra_body_parameters.
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: DocumentHandle with ID and key identifying document.
         """
 
