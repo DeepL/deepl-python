@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed the `Language.ENGLISH` and `Language.PORTUGUESE` comments that
   claimed they are only usable as source languages.
+- Fixed `create_glossary_from_csv()` failing with "Object of type bytes is not
+  JSON serializable" when the CSV data is given as bytes or as a file opened in
+  binary mode.
 
 ## [1.32.0] - 2026-08-12
 ### Added

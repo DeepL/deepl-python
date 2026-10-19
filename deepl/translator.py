@@ -1243,6 +1243,9 @@ class Translator:
 
         if not isinstance(entries, (bytes, str)):
             raise ValueError("Entries of the glossary are invalid")
+        # The request body is JSON, which cannot carry bytes.
+        if isinstance(entries, bytes):
+            entries = entries.decode("utf-8")
         return self._create_glossary(
             name, source_lang, target_lang, "csv", entries
         )

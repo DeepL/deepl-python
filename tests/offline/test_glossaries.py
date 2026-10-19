@@ -78,6 +78,19 @@ def test_sends_csv_data_when_creating_glossary_from_csv(mocked, csv_data):
     )
 
 
+@pytest.mark.parametrize("csv_data", [b"a,b\n", io.BytesIO(b"a,b\n")])
+def test_sends_csv_bytes_when_creating_glossary_from_csv(mocked, csv_data):
+    mocked.post(
+        url("v2/glossaries"),
+        json=GLOSSARY_JSON,
+        match=json_request(create_body("csv", "a,b\n")),
+    )
+
+    make_translator().create_glossary_from_csv(
+        "glossary", "EN", "DE", csv_data
+    )
+
+
 def test_raises_when_glossary_csv_is_not_text():
     reader = io.StringIO()
     reader.read = lambda: 5  # type: ignore[assignment,method-assign]
