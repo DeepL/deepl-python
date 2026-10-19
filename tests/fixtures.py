@@ -9,8 +9,9 @@ example_text = {
 
 example_tmx = (
     '<?xml version="1.0" encoding="UTF-8"?>\n'
-    '<tmx version="1.4"><body>'
-    '<tu><tuv xml:lang="de"><seg>Hallo</seg></tuv>'
-    '<tuv xml:lang="en"><seg>Hello</seg></tuv></tu>'
-    "</body></tmx>\n"
+    '<tmx version="1.4"><header creationtool="deepl-python-tests"'
+    ' creationtoolversion="1" segtype="sentence" o-tmf="plain" adminlang="en"'
+    ' srclang="en" datatype="plaintext"/>'
+    '<body><tu><tuv xml:lang="en"><seg>Segment number 1</seg></tuv>'
+    '<tuv xml:lang="de"><seg>Segment Nummer 1</seg></tuv></tu></body></tmx>\n'
 )
