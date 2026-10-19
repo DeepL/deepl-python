@@ -127,7 +127,7 @@ def test_sends_glossary_id_as_form_field(mocked):
     )
 
 
-def test_extra_body_parameters_override_form_fields(mocked):
+def test_sends_extra_body_parameters_over_form_fields(mocked):
     reply_with_handle(
         mocked, {"file": ("a.txt", b"hello")}, {"target_lang": "FR"}
     )
