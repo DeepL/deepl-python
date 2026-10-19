@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the `rephrase` CLI command always failing with an unexpected keyword
   argument error. `--show-detected-source` now prints the detected source
   language of each text.
+- Fixed the `translate` CLI alias of the `text` command failing with
+  `'action_translate'`.
 
 ## [1.32.0] - 2026-08-12
 ### Added

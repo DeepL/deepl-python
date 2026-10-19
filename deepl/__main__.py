@@ -1059,6 +1059,8 @@ def main(args=None, prog_name=None):
         # Call action function corresponding to command with remaining args
         # ("translation-memory" maps to action_translation_memory).
         command = args.pop("command").replace("-", "_")
+        if command == "translate":
+            command = "text"
         globals()[f"action_{command}"](deepl_client, **args)
 
     except Exception as exception:

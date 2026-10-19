@@ -282,6 +282,14 @@ def test_prints_unknown_when_model_type_used_is_missing(mocked, runner):
     assert "Model type used: unknown" in result.output
 
 
+def test_translate_is_an_alias_of_text(mocked, runner):
+    reply_with_translation(mocked, TEXT_BODY)
+
+    result = invoke(runner, "translate", "--to", "DE", "proton beam")
+
+    assert result.exit_code == 0, result.output
+
+
 def test_reads_text_from_standard_input(mocked, runner):
     reply_with_translation(mocked, TEXT_BODY)
 
