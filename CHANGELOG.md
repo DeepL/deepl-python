@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `create_glossary_from_csv()` failing with "Object of type bytes is not
   JSON serializable" when the CSV data is given as bytes or as a file opened in
   binary mode.
+- Fixed the `rephrase` CLI command always failing with an unexpected keyword
+  argument error. `--show-detected-source` now prints the detected source
+  language of each text.
 
 ## [1.32.0] - 2026-08-12
 ### Added

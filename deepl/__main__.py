@@ -116,6 +116,7 @@ def action_text(
 
 def action_rephrase(
     deepl_client: deepl.DeepLClient,
+    show_detected_source: bool = False,
     **kwargs,
 ):
     """Action function for the rephrase command."""
@@ -124,6 +125,10 @@ def action_rephrase(
         improvement if isinstance(improvement, List) else [improvement]
     )
     for output in output_list:
+        if show_detected_source:
+            print(
+                f"Detected source language: {output.detected_source_language}"
+            )
         print(output.text)
 
 

@@ -390,6 +390,32 @@ def test_prints_error_and_exits_when_api_rejects_text(mocked, runner):
     assert "Error: Authorization failure" in result.output
 
 
+def test_rephrases_text_and_prints_detected_source(mocked, runner):
+    mocked.post(
+        url("v2/write/rephrase"),
+        json={
+            "improvements": [
+                {
+                    "text": "better",
+                    "detected_source_language": "EN",
+                    "target_language": "EN-GB",
+                }
+            ]
+        },
+        match=json_request({"text": ["helo"], "target_lang": "EN-GB"}),
+    )
+
+    result = invoke(
+        runner, "rephrase", "--to", "EN-GB", "--show-detected-source", "helo"
+    )
+
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines() == [
+        "Detected source language: EN",
+        "better",
+    ]
+
+
 def reply_with_document_translation(mocked, data, filename="document.txt"):
     mocked.post(
         url("v2/document"),
