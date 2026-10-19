@@ -8,3 +8,4 @@ htmlcov/
 .coverage
 .python-version
 .tox/
+.env

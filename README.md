@@ -1165,20 +1165,21 @@ We welcome Pull Requests, please read the
 
 ### Tests
 
-Execute the tests using `pytest`. The tests communicate with the DeepL API using
-the auth key defined by the `DEEPL_AUTH_KEY` environment variable.
+The tests are split into two groups, selected by directory:
 
-Be aware that the tests make DeepL API requests that contribute toward your API
-usage.
+- `pytest tests/offline` runs the offline tests. They intercept all HTTP
+  traffic with [responses][responses], so they need no network and no
+  authentication key. They check the requests that the library sends for every
+  option, and how it handles errors, retries and polling.
+- `pytest tests/real_api` runs the real-API tests. They send one request per
+  API endpoint to the DeepL API, using the authentication key and server URL
+  defined by the `DEEPL_AUTH_KEY` and `DEEPL_SERVER_URL` environment variables.
+  They create and delete glossaries, style rules and translation memories named
+  `sdktest-python-...`.
 
-The test suite may instead be configured to communicate with the mock-server
-provided by [deepl-mock][deepl-mock]. Although most test cases work for either,
-some test cases work only with the DeepL API or the mock-server and will be
-otherwise skipped. The test cases that require the mock-server trigger server
-errors and test the client error-handling. To execute the tests using
-deepl-mock, run it in another terminal while executing the tests. Execute the
-tests using `pytest` with the `DEEPL_MOCK_SERVER_PORT` and `DEEPL_SERVER_URL`
-environment variables defined referring to the mock-server.
+Copy `.env.example` to `.env`, set your key and load it with
+`set -a; . ./.env; set +a` before running the real-API tests. Be aware that the
+real-API tests make DeepL API requests that contribute toward your API usage.
 
 [api-docs]: https://www.deepl.com/docs-api?utm_source=github&utm_medium=github-python-readme
 
@@ -1196,8 +1197,6 @@ environment variables defined referring to the mock-server.
 
 [create-account]: https://www.deepl.com/pro?utm_source=github&utm_medium=github-python-readme#developer
 
-[deepl-mock]: https://www.github.com/DeepLcom/deepl-mock
-
 [issues]: https://www.github.com/DeepLcom/deepl-python/issues
 
 [pypi-project]: https://pypi.org/project/deepl/
@@ -1209,3 +1208,5 @@ environment variables defined referring to the mock-server.
 [requests-proxy-docs]: https://docs.python-requests.org/en/latest/user/advanced/#proxies
 
 [requests-verify-ssl-docs]: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
+
+[responses]: https://github.com/getsentry/responses
