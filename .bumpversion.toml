@@ -16,7 +16,7 @@ commit = false
 filename = "deepl/version.py"
 
 [[tool.bumpversion.files]]
-filename = "tests/test_general.py"
+filename = "tests/offline/test_version.py"
 search = "\"{current_version}\" == deepl.__version__"
 replace = "\"{new_version}\" == deepl.__version__"
 

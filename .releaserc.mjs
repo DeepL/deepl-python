@@ -83,7 +83,7 @@ export default {
           ".bumpversion.toml",
           "pyproject.toml",
           "deepl/version.py",
-          "tests/test_general.py",
+          "tests/offline/test_version.py",
         ],
         // The body is what .github/workflows/release.yml reads to fill the
         // GitHub release, so it must stay the changelog section.
