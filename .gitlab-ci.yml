@@ -207,8 +207,6 @@ test_offline_manual:
 .test_real_api_base:
   stage: test
   extends: .test
-  # Replaces the deepl-mock service of .test
-  services: []
   image: python:3.13
   script:
     - poetry run coverage run -m pytest tests/real_api --junit-xml test_report.xml
@@ -236,8 +234,6 @@ test_real_api_manual:
 .mustache_example_base:
   stage: test
   extends: .test
-  # Replaces the deepl-mock service of .test
-  services: []
   script:
     - cd examples/mustache
     - pip install deepl
@@ -262,8 +258,6 @@ mustache_example_manual:
 .basic_usage_example_base:
   stage: test
   extends: .test
-  # Replaces the deepl-mock service of .test
-  services: []
   script:
     - poetry build --verbose --no-interaction
     - cd examples/basic_usage
