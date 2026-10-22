@@ -192,4 +192,10 @@ def parse_timestamp(creation_time: str) -> datetime.datetime:
     # Truncate fractional seconds to 6 digits (microseconds) since Python's
     # %f only handles up to 6 digits, but the API may return 7 (nanoseconds).
     creation_time = re.sub(r"(\.\d{6})\d+", r"\1", creation_time)
-    return datetime.datetime.strptime(creation_time, "%Y-%m-%dT%H:%M:%S.%f%z")
+    # Some timestamps (e.g. the usage billing period) have no fraction.
+    fmt = (
+        "%Y-%m-%dT%H:%M:%S.%f%z"
+        if "." in creation_time
+        else "%Y-%m-%dT%H:%M:%S%z"
+    )
+    return datetime.datetime.strptime(creation_time, fmt)

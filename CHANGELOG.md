@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `translate_document_upload()` and `translate_document_from_filepath()`. Set
   it to `True` to add a "Translated by DeepL" watermark to `docx` and `pdf`
   output.
+- Added the API Pro usage fields to `Usage`: `api_key_character`,
+  `speech_to_text_minutes` and `speech_to_speech_minutes` (as `Usage.Detail`),
+  `start_time` and `end_time` (the billing period), and `products`, a list of
+  `Usage.Product` objects with per-product usage. They are invalid or `None`
+  when the response does not contain them.
 
 ### Changed
 - Target languages `EN` and `PT` are no longer rejected client-side. The API

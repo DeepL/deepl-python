@@ -130,6 +130,9 @@ class Usage:
     The character, document and team_document properties provide details about
     each corresponding usage type. These properties allow each usage type to be
     checked individually.
+    For API Pro accounts, api_key_character, speech_to_text_minutes,
+    speech_to_speech_minutes, products, start_time and end_time provide
+    further details; for other accounts they are invalid or None.
     The any_limit_reached property checks if for any usage type the amount used
     has reached the allowed amount.
     """
@@ -174,10 +177,86 @@ class Usage:
         def __str__(self) -> str:
             return f"{self.count} of {self.limit}" if self.valid else "Unknown"
 
+    class Product:
+        """Usage of one product (e.g. "translate", "write") in the current
+        billing period.
+
+        :param product_type: Product type, for example "translate", "write",
+            "speechToText" or "speechToSpeech".
+        :param billing_unit: Unit the product is billed in, for example
+            "characters" or "minutes".
+        :param api_key_unit_count: Units used by this API key.
+        :param account_unit_count: Units used by the whole account.
+        """
+
+        def __init__(
+            self,
+            product_type: Optional[str],
+            billing_unit: Optional[str],
+            api_key_unit_count: Optional[int],
+            account_unit_count: Optional[int],
+        ):
+            self._product_type = product_type
+            self._billing_unit = billing_unit
+            self._api_key_unit_count = api_key_unit_count
+            self._account_unit_count = account_unit_count
+
+        @staticmethod
+        def from_json(json: dict) -> "Usage.Product":
+            return Usage.Product(
+                json.get("product_type"),
+                json.get("billing_unit"),
+                get_int_safe(json, "api_key_unit_count"),
+                get_int_safe(json, "account_unit_count"),
+            )
+
+        @property
+        def product_type(self) -> Optional[str]:
+            """Returns the product type, for example "translate"."""
+            return self._product_type
+
+        @property
+        def billing_unit(self) -> Optional[str]:
+            """Returns the billing unit, for example "characters"."""
+            return self._billing_unit
+
+        @property
+        def api_key_unit_count(self) -> Optional[int]:
+            """Returns the units used for this product by this API key."""
+            return self._api_key_unit_count
+
+        @property
+        def account_unit_count(self) -> Optional[int]:
+            """Returns the units used for this product by the account."""
+            return self._account_unit_count
+
+        def __str__(self) -> str:
+            return (
+                f"{self.product_type}: {self.api_key_unit_count} (API key), "
+                f"{self.account_unit_count} (account) {self.billing_unit}"
+            )
+
     def __init__(self, json: Optional[dict]):
         self._character = self.Detail(json, "character")
         self._document = self.Detail(json, "document")
         self._team_document = self.Detail(json, "team_document")
+        self._api_key_character = self.Detail(json, "api_key_character")
+        self._speech_to_text_minutes = self.Detail(
+            json, "speech_to_text_minutes"
+        )
+        self._speech_to_speech_minutes = self.Detail(
+            json, "speech_to_speech_minutes"
+        )
+        products = json.get("products") if json else None
+        self._products: Optional[List[Usage.Product]] = (
+            [Usage.Product.from_json(p) for p in products]
+            if isinstance(products, list)
+            else None
+        )
+        start_time = json.get("start_time") if json else None
+        end_time = json.get("end_time") if json else None
+        self._start_time = parse_timestamp(start_time) if start_time else None
+        self._end_time = parse_timestamp(end_time) if end_time else None
 
     @property
     def any_limit_reached(self) -> bool:
@@ -214,6 +293,43 @@ class Usage:
     def team_document(self) -> Detail:
         """Returns usage details for documents shared among your team."""
         return self._team_document
+
+    @property
+    def api_key_character(self) -> Detail:
+        """Returns character usage details for this API key, as opposed to
+        character, which covers the whole account. Only valid for API Pro
+        accounts."""
+        return self._api_key_character
+
+    @property
+    def speech_to_text_minutes(self) -> Detail:
+        """Returns speech-to-text usage details in minutes. Only valid for API
+        Pro accounts."""
+        return self._speech_to_text_minutes
+
+    @property
+    def speech_to_speech_minutes(self) -> Detail:
+        """Returns speech-to-speech usage details in minutes. Only valid for
+        API Pro accounts."""
+        return self._speech_to_speech_minutes
+
+    @property
+    def products(self) -> Optional[List["Usage.Product"]]:
+        """Returns the per-product usage details, or None if the response does
+        not contain them (only present for API Pro accounts)."""
+        return self._products
+
+    @property
+    def start_time(self) -> Optional[datetime.datetime]:
+        """Returns the start of the current billing period, or None (only
+        present for API Pro accounts)."""
+        return self._start_time
+
+    @property
+    def end_time(self) -> Optional[datetime.datetime]:
+        """Returns the end of the current billing period, or None (only
+        present for API Pro accounts)."""
+        return self._end_time
 
     def __str__(self) -> str:
         details: List[Tuple[str, Usage.Detail]] = [

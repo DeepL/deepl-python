@@ -616,6 +616,37 @@ if usage.document.valid:
     print(f"Document usage: {usage.document.count} of {usage.document.limit}")
 ```
 
+API Pro accounts also receive the following; for other accounts these usage
+subtypes are invalid and the other properties are `None`:
+
+- `api_key_character`: character usage of the API key making the request, as
+  opposed to `character`, which covers the whole account,
+- `speech_to_text_minutes` and `speech_to_speech_minutes`: speech usage in
+  minutes,
+- `start_time` and `end_time`: the current billing period as `datetime`
+  objects,
+- `products`: a list of `Usage.Product` objects, one per product, with
+  `product_type` (for example `"translate"`, `"write"`, `"speechToText"`),
+  `billing_unit` (for example `"characters"` or `"minutes"`),
+  `api_key_unit_count` and `account_unit_count`.
+
+```python
+usage = deepl_client.get_usage()
+if usage.start_time and usage.end_time:
+    print(f"Billing period: {usage.start_time} to {usage.end_time}")
+print(f"Account characters: {usage.character.count} of {usage.character.limit}")
+if usage.api_key_character.valid:
+    print(
+        f"API key characters: {usage.api_key_character.count} of "
+        f"{usage.api_key_character.limit}"
+    )
+for product in usage.products or []:
+    print(
+        f"{product.product_type}: {product.api_key_unit_count} (API key) / "
+        f"{product.account_unit_count} (account) {product.billing_unit}"
+    )
+```
+
 ### Listing available languages
 
 You can request the list of languages supported by DeepL for text and documents
