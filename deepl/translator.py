@@ -656,6 +656,7 @@ class Translator:
         style_rule: Union[str, StyleRuleInfo, None] = None,
         translation_memory: Union[str, TranslationMemoryInfo, None] = None,
         translation_memory_threshold: Optional[int] = None,
+        enable_watermark: Optional[bool] = None,
         timeout_s: Optional[int] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> DocumentStatus:
@@ -683,6 +684,9 @@ class Translator:
         :param translation_memory_threshold: (Optional) minimum matching
             percentage for fuzzy matches from the translation memory (0-100).
             Recommended minimum is 75%.
+        :param enable_watermark: (Optional) Set to True to add a "Translated
+            by DeepL" watermark to the translated document. Only supported for
+            docx and pdf output; ignored by the API for other formats.
         :param timeout_s: (beta) (Optional) Maximum time to wait before
             the call raises an error. Note that this is not accurate to the
             second, but only polls every 5 seconds.
@@ -719,6 +723,7 @@ class Translator:
                             translation_memory_threshold
                         ),
                         output_format=output_format,
+                        enable_watermark=enable_watermark,
                         timeout_s=timeout_s,
                         extra_body_parameters=extra_body_parameters,
                     )
@@ -746,6 +751,7 @@ class Translator:
         translation_memory_threshold: Optional[int] = None,
         filename: Optional[str] = None,
         output_format: Optional[str] = None,
+        enable_watermark: Optional[bool] = None,
         timeout_s: Optional[int] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> DocumentStatus:
@@ -779,6 +785,9 @@ class Translator:
             if uploading string or bytes containing file content.
         :param output_format: (Optional) Desired output file extension, if
             it differs from the input file format.
+        :param enable_watermark: (Optional) Set to True to add a "Translated
+            by DeepL" watermark to the translated document. Only supported for
+            docx and pdf output; ignored by the API for other formats.
         :param timeout_s: (beta) (Optional) Maximum time to wait before
             the call raises an error. Note that this is not accurate to the
             second, but only polls every 5 seconds.
@@ -805,6 +814,7 @@ class Translator:
             translation_memory_threshold=translation_memory_threshold,
             filename=filename,
             output_format=output_format,
+            enable_watermark=enable_watermark,
             extra_body_parameters=extra_body_parameters,
         )
 
@@ -841,6 +851,7 @@ class Translator:
         translation_memory_threshold: Optional[int] = None,
         filename: Optional[str] = None,
         output_format: Optional[str] = None,
+        enable_watermark: Optional[bool] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> DocumentHandle:
         """Upload document to be translated and return handle associated with
@@ -871,6 +882,9 @@ class Translator:
             if uploading string or bytes containing file content.
         :param output_format: (Optional) Desired output file extension, if
             it differs from the input file format.
+        :param enable_watermark: (Optional) Set to True to add a "Translated
+            by DeepL" watermark to the translated document. Only supported for
+            docx and pdf output; ignored by the API for other formats.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. If provided,
             keys in this dict will be added to the request body, and replace
@@ -890,6 +904,11 @@ class Translator:
         )
         if output_format:
             request_data["output_format"] = output_format
+        if enable_watermark is not None:
+            # Multipart form field: send "true"/"false", not Python's "True".
+            request_data["enable_watermark"] = (
+                "true" if enable_watermark else "false"
+            )
 
         # The document endpoint uses multipart/form-data. Send glossary_ids as
         # a single comma-separated field (the form form of the array), matching

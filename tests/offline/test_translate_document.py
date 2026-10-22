@@ -111,6 +111,64 @@ def test_sends_all_options_as_form_fields(mocked):
     )
 
 
+@pytest.mark.parametrize(
+    "enable_watermark, expected", [(True, "true"), (False, "false")]
+)
+def test_sends_enable_watermark_with_output_format(
+    mocked, enable_watermark, expected
+):
+    reply_with_handle(
+        mocked,
+        {"file": ("a.docx", BINARY_CONTENT)},
+        {
+            "target_lang": "DE",
+            "output_format": "pdf",
+            "enable_watermark": expected,
+        },
+    )
+
+    make_translator().translate_document_upload(
+        BINARY_CONTENT,
+        filename="a.docx",
+        target_lang="DE",
+        output_format="pdf",
+        enable_watermark=enable_watermark,
+    )
+
+
+def test_omits_enable_watermark_when_unset(mocked):
+    reply_with_handle(
+        mocked, {"file": ("a.docx", BINARY_CONTENT)}, {"target_lang": "DE"}
+    )
+
+    make_translator().translate_document_upload(
+        BINARY_CONTENT, filename="a.docx", target_lang="DE"
+    )
+
+
+def test_sends_enable_watermark_when_translating_from_filepath(
+    mocked, tmp_path
+):
+    input_path = tmp_path / "input.docx"
+    input_path.write_bytes(BINARY_CONTENT)
+    output_path = tmp_path / "output.docx"
+    reply_with_handle(
+        mocked,
+        {"file": ("input.docx", BINARY_CONTENT)},
+        {
+            "target_lang": "DE",
+            "formality": "default",
+            "enable_watermark": "true",
+        },
+    )
+    reply_with_status(mocked, "done")
+    reply_with_result(mocked)
+
+    make_translator().translate_document_from_filepath(
+        input_path, output_path, target_lang="DE", enable_watermark=True
+    )
+
+
 def test_sends_glossary_id_as_form_field(mocked):
     reply_with_handle(
         mocked,

@@ -350,6 +350,10 @@ arguments, the available `translate_document()` and
   file extension of desired format of translated file, for example: `'pdf'`. If
   unspecified, by default the translated file will be in the same format as the
   input file. 
+- `enable_watermark`: set to `True` to add a "Translated by DeepL" watermark to
+  the translated document. Only supported for `docx` and `pdf` output; for
+  other output formats the API ignores it. If unspecified, the parameter is not
+  sent and no watermark is added.
 
 ### Glossaries
 

@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `LanguageResourceInfo` and `ResourceFeature` objects.
 - Added `Language` constants for the target variants `de-CH`, `de-DE`,
   `es-ES`, `fr-CA`, and `fr-FR`.
+- Added the `enable_watermark` option to `translate_document()`,
+  `translate_document_upload()` and `translate_document_from_filepath()`. Set
+  it to `True` to add a "Translated by DeepL" watermark to `docx` and `pdf`
+  output.
 
 ### Changed
 - Target languages `EN` and `PT` are no longer rejected client-side. The API
