@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `start_time` and `end_time` (the billing period), and `products`, a list of
   `Usage.Product` objects with per-product usage. They are invalid or `None`
   when the response does not contain them.
+- Added the Spoken Terms API (`/v3/spoken-terms`) to the `DeepLClient` class:
+  `create_spoken_terms()`, `list_spoken_terms()`, `get_spoken_terms()`,
+  `update_spoken_terms()`, `get_spoken_terms_entries()`,
+  `replace_spoken_terms_list()`, `delete_spoken_terms()` and
+  `delete_spoken_terms_list()`, with the `SpokenTerms`, `SpokenTermsList` and
+  `SpokenTermsEntries` types.
 
 ### Changed
 - Target languages `EN` and `PT` are no longer rejected client-side. The API

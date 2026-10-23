@@ -21,6 +21,12 @@ from .exceptions import (  # noqa
 
 from . import http_client  # noqa
 
+from .api_data import (  # noqa
+    SpokenTerms,
+    SpokenTermsEntries,
+    SpokenTermsList,
+)
+
 from .translator import (  # noqa
     DocumentHandle,
     DocumentStatus,
@@ -51,6 +57,9 @@ __all__ = [
     "GlossaryInfo",
     "Language",
     "SplitSentences",
+    "SpokenTerms",
+    "SpokenTermsEntries",
+    "SpokenTermsList",
     "TextResult",
     "Translator",
     "Usage",

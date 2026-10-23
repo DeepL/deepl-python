@@ -805,6 +805,127 @@ class MultilingualGlossaryInfo:
         return self._creation_time
 
 
+class SpokenTermsList:
+    """Information about the term list of one language in a spoken-terms
+    collection, excluding the entries.
+
+    :param lang: Language of the terms.
+    :param entry_count: Number of terms in the list.
+    """
+
+    def __init__(self, lang: str, entry_count: int):
+        self._lang = lang
+        self._entry_count = entry_count
+
+    def __str__(self) -> str:
+        return f"SpokenTermsList: {self._lang}, {self._entry_count} entries"
+
+    @staticmethod
+    def from_json(json) -> "SpokenTermsList":
+        """Create SpokenTermsList from the given API JSON object."""
+        return SpokenTermsList(str(json["lang"]), int(json["entry_count"]))
+
+    @property
+    def lang(self) -> str:
+        return self._lang
+
+    @property
+    def entry_count(self) -> int:
+        return self._entry_count
+
+
+class SpokenTermsEntries:
+    """The terms of one language in a spoken-terms collection.
+
+    :param lang: Language of the terms.
+    :param entries: The terms, one per list item.
+    """
+
+    def __init__(self, lang: str, entries: List[str]):
+        self._lang = lang
+        self._entries = entries
+
+    def __str__(self) -> str:
+        return f"SpokenTermsEntries: {self._lang}, {self._entries}"
+
+    @staticmethod
+    def from_json(json) -> "SpokenTermsEntries":
+        """Create SpokenTermsEntries from the given API JSON object."""
+        # The API sends the terms newline-separated, one term per line.
+        entries = [
+            line for line in str(json.get("entries") or "").split("\n") if line
+        ]
+        return SpokenTermsEntries(str(json["lang"]), entries)
+
+    def to_json(self) -> dict:
+        """Create API JSON object from SpokenTermsEntries."""
+        return {"lang": self._lang, "entries": "\n".join(self._entries)}
+
+    @property
+    def lang(self) -> str:
+        return self._lang
+
+    @property
+    def entries(self) -> List[str]:
+        return self._entries
+
+
+class SpokenTerms:
+    """Information about a spoken-terms collection, excluding the entries.
+    Used by the /v3/spoken-terms API endpoints.
+
+    :param spoken_terms_id: Unique ID assigned to the collection.
+    :param name: User-defined name assigned to the collection.
+    :param creation_time: Timestamp when the collection was created.
+    :param term_lists: Term lists in this collection, one per language,
+        each with its language and the number of terms.
+    """
+
+    def __init__(
+        self,
+        spoken_terms_id: str,
+        name: str,
+        creation_time: datetime.datetime,
+        term_lists: List[SpokenTermsList],
+    ):
+        self._spoken_terms_id = spoken_terms_id
+        self._name = name
+        self._creation_time = creation_time
+        self._term_lists = term_lists
+
+    def __str__(self) -> str:
+        return f'SpokenTerms "{self._name}" ({self._spoken_terms_id})'
+
+    @staticmethod
+    def from_json(json) -> "SpokenTerms":
+        """Create SpokenTerms from the given API JSON object."""
+        return SpokenTerms(
+            json["spoken_terms_id"],
+            json["name"],
+            parse_timestamp(json["creation_time"]),
+            [
+                SpokenTermsList.from_json(term_list)
+                for term_list in json.get("term_lists") or []
+            ],
+        )
+
+    @property
+    def spoken_terms_id(self) -> str:
+        return self._spoken_terms_id
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def creation_time(self) -> datetime.datetime:
+        return self._creation_time
+
+    @property
+    def term_lists(self) -> List[SpokenTermsList]:
+        return self._term_lists
+
+
 class GlossaryInfo:
     """Information about a glossary, excluding the entry list. GlossaryInfo
     is compatible with the /v2 glossary endpoints and can only support

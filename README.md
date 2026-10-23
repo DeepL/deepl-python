@@ -588,6 +588,52 @@ deepl_client.translate_document(
 The `translate_document()`, `translate_document_from_filepath()` and
 `translate_document_upload()` functions all support the `glossary` argument.
 
+### Spoken terms
+
+A spoken-terms collection holds terms, such as product names or technical
+words, that improve speech transcription. Each collection has one term list
+per language; a term list is a list of strings. The API validates the terms
+(at most 300 characters per list, no duplicates, no leading or trailing
+whitespace). Methods that take a collection accept either its ID or a
+`SpokenTerms` object.
+
+```python
+# Create a collection with an English term list
+spoken_terms = deepl_client.create_spoken_terms(
+    "My spoken terms",
+    [deepl.SpokenTermsEntries("en", ["DeepL", "webhook"])],
+)
+print(spoken_terms.spoken_terms_id, spoken_terms.name)
+for term_list in spoken_terms.term_lists:
+    print(term_list.lang, term_list.entry_count)  # en 2
+
+# Retrieve a collection, and list all collections
+spoken_terms = deepl_client.get_spoken_terms(spoken_terms.spoken_terms_id)
+for collection in deepl_client.list_spoken_terms():
+    print(collection.name)
+
+# Rename the collection and merge terms into the English term list
+spoken_terms = deepl_client.update_spoken_terms(
+    spoken_terms,
+    name="My renamed spoken terms",
+    term_lists=[deepl.SpokenTermsEntries("en", ["authentication"])],
+)
+
+# Read the terms of one language
+entries = deepl_client.get_spoken_terms_entries(spoken_terms, "en")
+print(entries.entries)  # ['DeepL', 'authentication', 'webhook']
+
+# Replace the term list of one language, or add it if it is new
+term_list = deepl_client.replace_spoken_terms_list(
+    spoken_terms, deepl.SpokenTermsEntries("de", ["Schnittstelle"])
+)
+print(term_list.lang, term_list.entry_count)  # de 1
+
+# Delete the term list of one language, then the whole collection
+deepl_client.delete_spoken_terms_list(spoken_terms, "de")
+deepl_client.delete_spoken_terms(spoken_terms)
+```
+
 ### Checking account usage
 
 To check account usage, use the `get_usage()` function.

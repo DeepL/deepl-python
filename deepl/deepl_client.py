@@ -13,6 +13,9 @@ from deepl.api_data import (
     LanguageResource,
     LanguageResourceInfo,
     LanguageSupport,
+    SpokenTerms,
+    SpokenTermsEntries,
+    SpokenTermsList,
     WriteResult,
     StyleRuleInfo,
     TranslationMemoryExport,
@@ -702,6 +705,170 @@ class DeepLClient(Translator):
             method="DELETE",
         )
         self._raise_for_status(status, content, json, glossary=True)
+
+    def create_spoken_terms(
+        self,
+        name: str,
+        term_lists: List[SpokenTermsEntries],
+    ) -> SpokenTerms:
+        """Creates a spoken-terms collection with the given name and term
+        lists, one per language. Spoken terms improve the transcription of
+        the given terms.
+
+        :param name: User-defined name to attach to the collection.
+        :param term_lists: List of SpokenTermsEntries, each containing the
+            terms of one language.
+        :return: SpokenTerms containing information about the created
+            collection.
+        """
+        request_data = {
+            "name": name,
+            "term_lists": [entries.to_json() for entries in term_lists],
+        }
+        status, content, json = self._api_call(
+            "v3/spoken-terms", json=request_data
+        )
+        self._raise_for_status(status, content, json)
+        return SpokenTerms.from_json(json)
+
+    def list_spoken_terms(self) -> List[SpokenTerms]:
+        """Retrieves all spoken-terms collections.
+
+        :return: List of SpokenTerms for all collections.
+        """
+        status, content, json = self._api_call("v3/spoken-terms", method="GET")
+        self._raise_for_status(status, content, json)
+        spoken_terms = (
+            json.get("spoken_terms", [])
+            if (json and isinstance(json, dict))
+            else []
+        )
+        return [SpokenTerms.from_json(item) for item in spoken_terms]
+
+    def get_spoken_terms(
+        self, spoken_terms: Union[str, SpokenTerms]
+    ) -> SpokenTerms:
+        """Retrieves a spoken-terms collection.
+
+        :param spoken_terms: SpokenTerms or ID of the collection.
+        :return: SpokenTerms with information about the collection.
+        :raises DeepLException: If no collection with the given ID is found.
+        """
+        spoken_terms_id = self._spoken_terms_id(spoken_terms)
+        status, content, json = self._api_call(
+            f"v3/spoken-terms/{spoken_terms_id}", method="GET"
+        )
+        self._raise_for_status(status, content, json)
+        return SpokenTerms.from_json(json)
+
+    def update_spoken_terms(
+        self,
+        spoken_terms: Union[str, SpokenTerms],
+        *,
+        name: Optional[str] = None,
+        term_lists: Optional[List[SpokenTermsEntries]] = None,
+    ) -> SpokenTerms:
+        """Updates a spoken-terms collection: renames it and/or merges the
+        given terms into the existing term list of each given language.
+
+        :param spoken_terms: SpokenTerms or ID of the collection.
+        :param name: (Optional) New name of the collection.
+        :param term_lists: (Optional) List of SpokenTermsEntries whose terms
+            are merged into the term list of the same language.
+        :return: SpokenTerms containing information about the updated
+            collection.
+        """
+        spoken_terms_id = self._spoken_terms_id(spoken_terms)
+        request_data: Dict[str, Any] = {}
+        if name is not None:
+            request_data["name"] = name
+        if term_lists is not None:
+            request_data["term_lists"] = [
+                entries.to_json() for entries in term_lists
+            ]
+        status, content, json = self._api_call(
+            f"v3/spoken-terms/{spoken_terms_id}",
+            method="PATCH",
+            json=request_data,
+        )
+        self._raise_for_status(status, content, json)
+        return SpokenTerms.from_json(json)
+
+    def get_spoken_terms_entries(
+        self, spoken_terms: Union[str, SpokenTerms], lang: str
+    ) -> SpokenTermsEntries:
+        """Retrieves the terms of one language in a spoken-terms collection.
+
+        :param spoken_terms: SpokenTerms or ID of the collection.
+        :param lang: Language of the term list, e.g. "en".
+        :return: SpokenTermsEntries containing the terms.
+        """
+        spoken_terms_id = self._spoken_terms_id(spoken_terms)
+        query = urllib.parse.urlencode({"lang": lang})
+        status, content, json = self._api_call(
+            f"v3/spoken-terms/{spoken_terms_id}/entries?{query}",
+            method="GET",
+        )
+        self._raise_for_status(status, content, json)
+        return SpokenTermsEntries.from_json(json)
+
+    def replace_spoken_terms_list(
+        self,
+        spoken_terms: Union[str, SpokenTerms],
+        entries: SpokenTermsEntries,
+    ) -> SpokenTermsList:
+        """Replaces the term list of one language in a spoken-terms
+        collection, or adds it if the collection has no list for the
+        language.
+
+        :param spoken_terms: SpokenTerms or ID of the collection.
+        :param entries: SpokenTermsEntries with the language and its terms.
+        :return: SpokenTermsList containing information about the term list.
+        """
+        spoken_terms_id = self._spoken_terms_id(spoken_terms)
+        status, content, json = self._api_call(
+            f"v3/spoken-terms/{spoken_terms_id}/term-lists",
+            method="PUT",
+            json=entries.to_json(),
+        )
+        self._raise_for_status(status, content, json)
+        return SpokenTermsList.from_json(json)
+
+    def delete_spoken_terms(
+        self, spoken_terms: Union[str, SpokenTerms]
+    ) -> None:
+        """Deletes a spoken-terms collection.
+
+        :param spoken_terms: SpokenTerms or ID of the collection.
+        """
+        spoken_terms_id = self._spoken_terms_id(spoken_terms)
+        status, content, json = self._api_call(
+            f"v3/spoken-terms/{spoken_terms_id}", method="DELETE"
+        )
+        self._raise_for_status(status, content, json)
+
+    def delete_spoken_terms_list(
+        self, spoken_terms: Union[str, SpokenTerms], lang: str
+    ) -> None:
+        """Deletes the term list of one language from a spoken-terms
+        collection.
+
+        :param spoken_terms: SpokenTerms or ID of the collection.
+        :param lang: Language of the term list to delete, e.g. "de".
+        """
+        spoken_terms_id = self._spoken_terms_id(spoken_terms)
+        query = urllib.parse.urlencode({"lang": lang})
+        status, content, json = self._api_call(
+            f"v3/spoken-terms/{spoken_terms_id}/term-lists?{query}",
+            method="DELETE",
+        )
+        self._raise_for_status(status, content, json)
+
+    @staticmethod
+    def _spoken_terms_id(spoken_terms: Union[str, SpokenTerms]) -> str:
+        if isinstance(spoken_terms, SpokenTerms):
+            return spoken_terms.spoken_terms_id
+        return spoken_terms
 
     def get_languages_for_resource(
         self,
