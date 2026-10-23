@@ -253,15 +253,19 @@ class Usage:
             if isinstance(products, list)
             else None
         )
-        start_time = json.get("start_time") if json else None
-        end_time = json.get("end_time") if json else None
-        self._start_time = parse_timestamp(start_time) if start_time else None
-        self._end_time = parse_timestamp(end_time) if end_time else None
+        self._start_time = parse_optional_timestamp(
+            json.get("start_time") if json else None
+        )
+        self._end_time = parse_optional_timestamp(
+            json.get("end_time") if json else None
+        )
 
     @property
     def any_limit_reached(self) -> bool:
-        """True if for any API usage type, the amount used is greater than or
-        equal to the amount allowed, otherwise False."""
+        """True if for the character, document or team document usage, the
+        amount used is greater than or equal to the amount allowed, otherwise
+        False. The API Pro usage types (api_key_character and the speech
+        minutes) are not considered; check their limit_reached directly."""
         return (
             self.character.limit_reached
             or self.document.limit_reached

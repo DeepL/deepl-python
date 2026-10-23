@@ -603,7 +603,9 @@ accounts:
 Each usage subtype (if valid) has `count` and `limit` properties giving the
 amount used and maximum amount respectively, and the `limit_reached` property
 that checks if the usage has reached the limit. The top level `Usage` object has
-the `any_limit_reached` property to check all usage subtypes.
+the `any_limit_reached` property to check the `character`, `document` and
+`team_document` subtypes. It does not consider the API Pro subtypes described
+below; check `limit_reached` on those directly.
 
 ```python
 usage = deepl_client.get_usage()

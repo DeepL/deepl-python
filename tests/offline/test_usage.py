@@ -163,3 +163,21 @@ def test_parses_free_usage_without_api_pro_fields(mocked):
     assert usage.start_time is None
     assert usage.end_time is None
     assert str(usage) == "Usage this billing period:\nCharacters: 20 of 500000"
+
+
+def test_ignores_unparseable_billing_period(mocked):
+    mocked.get(
+        url("v2/usage"),
+        json={
+            "character_count": 20,
+            "character_limit": 500000,
+            "start_time": "not a timestamp",
+            "end_time": "",
+        },
+    )
+
+    usage = make_translator().get_usage()
+
+    assert usage.character.count == 20
+    assert usage.start_time is None
+    assert usage.end_time is None
