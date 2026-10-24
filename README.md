@@ -1258,8 +1258,8 @@ The tests are split into two groups, selected by directory:
   API endpoint to the DeepL API, using the authentication key defined by the
   `DEEPL_AUTH_KEY` environment variable and, for a non-default server, the
   server URL defined by `DEEPL_SERVER_URL`.
-  They create and delete glossaries, style rules and translation memories named
-  `sdktest-python-...`.
+  They create and delete glossaries, style rules, translation memories and
+  spoken-terms collections named `sdktest-python-...`.
 
 Copy `.env.example` to `.env`, set your key and load it with
 `set -a; . ./.env; set +a` before running the real-API tests. Be aware that the

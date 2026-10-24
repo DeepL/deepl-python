@@ -71,7 +71,11 @@ def test_sends_spoken_terms_requests_from_create_to_delete():
         client.delete_spoken_terms_list(created, "de")
         assert term_lists(client.get_spoken_terms(created)) == [("en", 1)]
     finally:
-        client.delete_spoken_terms(created.spoken_terms_id)
+        try:
+            client.delete_spoken_terms(created.spoken_terms_id)
+        except deepl.DeepLException as e:
+            if e.http_status_code != 404:
+                raise
 
     with pytest.raises(deepl.DeepLException) as error:
         client.get_spoken_terms(created.spoken_terms_id)
