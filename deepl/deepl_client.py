@@ -720,10 +720,14 @@ class DeepLClient(Translator):
             terms of one language.
         :return: SpokenTerms containing information about the created
             collection.
+        :raises ValueError: If a term is empty or contains a control
+            character, as validate_glossary_term() checks.
         """
         request_data = {
             "name": name,
-            "term_lists": [entries.to_json() for entries in term_lists],
+            "term_lists": [
+                self._spoken_terms_json(entries) for entries in term_lists
+            ],
         }
         status, content, json = self._api_call(
             "v3/spoken-terms", json=request_data
@@ -777,6 +781,8 @@ class DeepLClient(Translator):
             are merged into the term list of the same language.
         :return: SpokenTerms containing information about the updated
             collection.
+        :raises ValueError: If a term is empty or contains a control
+            character, as validate_glossary_term() checks.
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
         request_data: Dict[str, Any] = {}
@@ -784,7 +790,7 @@ class DeepLClient(Translator):
             request_data["name"] = name
         if term_lists is not None:
             request_data["term_lists"] = [
-                entries.to_json() for entries in term_lists
+                self._spoken_terms_json(entries) for entries in term_lists
             ]
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}",
@@ -824,12 +830,14 @@ class DeepLClient(Translator):
         :param spoken_terms: SpokenTerms or ID of the collection.
         :param entries: SpokenTermsEntries with the language and its terms.
         :return: SpokenTermsList containing information about the term list.
+        :raises ValueError: If a term is empty or contains a control
+            character, as validate_glossary_term() checks.
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}/term-lists",
             method="PUT",
-            json=entries.to_json(),
+            json=self._spoken_terms_json(entries),
         )
         self._raise_for_status(status, content, json)
         return SpokenTermsList.from_json(json)
@@ -863,6 +871,14 @@ class DeepLClient(Translator):
             method="DELETE",
         )
         self._raise_for_status(status, content, json)
+
+    @staticmethod
+    def _spoken_terms_json(entries: SpokenTermsEntries) -> dict:
+        # Terms are sent newline-separated: a term with a newline would
+        # silently become several terms.
+        for term in entries.entries:
+            util.validate_glossary_term(term)
+        return entries.to_json()
 
     @staticmethod
     def _spoken_terms_id(spoken_terms: Union[str, SpokenTerms]) -> str:

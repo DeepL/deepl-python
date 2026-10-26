@@ -592,9 +592,11 @@ The `translate_document()`, `translate_document_from_filepath()` and
 
 A spoken-terms collection holds terms, such as product names or technical
 words, that improve speech transcription. Each collection has one term list
-per language; a term list is a list of strings. The API validates the terms
-(at most 300 characters per list, no duplicates, no leading or trailing
-whitespace). Methods that take a collection accept either its ID or a
+per language; a term list is a list of strings. Before sending, the library
+checks each term like a glossary term (`validate_glossary_term()`): an empty
+term or one with a control character, such as a newline, raises `ValueError`.
+The API validates the rest (at most 300 characters per list, no duplicates, no
+leading or trailing whitespace). Methods that take a collection accept either its ID or a
 `SpokenTerms` object.
 
 ```python

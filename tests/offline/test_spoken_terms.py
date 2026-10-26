@@ -5,6 +5,7 @@
 import datetime
 
 import deepl
+import pytest
 
 from .client import make_deepl_client, url
 from .matchers import bodyless_request, json_request
@@ -57,3 +58,10 @@ def test_sends_only_the_given_fields_when_updating(mocked):
     updated = make_deepl_client().update_spoken_terms("st-1", name="renamed")
 
     assert updated.term_lists == []
+
+
+def test_rejects_a_term_with_a_newline_without_sending_a_request(mocked):
+    with pytest.raises(ValueError, match="invalid character"):
+        make_deepl_client().create_spoken_terms(
+            "terms", [deepl.SpokenTermsEntries("en", ["a\nb"])]
+        )
