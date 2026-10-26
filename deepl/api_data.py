@@ -1379,6 +1379,119 @@ def _parse_utc_timestamp(value: Any) -> Optional[datetime.datetime]:
     return timestamp
 
 
+def _string_list(value) -> List[str]:
+    """Returns the strings of an API list; a missing or non-list value is an
+    empty list and non-string entries are skipped."""
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
+class StyleProfile:
+    """Information about a style profile. Used by the /v3/style_profiles API
+    endpoints.
+
+    :param style_profile_id: Unique ID assigned to the style profile.
+    :param name: User-defined name assigned to the style profile.
+    :param description: Description of the style profile, or None if it has
+        none.
+    :param industry: Industry the style profile is written for, or None if it
+        has none.
+    :param glossary_ids: IDs of the linked glossaries, highest priority first.
+    :param style_rule_ids: IDs of the linked style rule lists.
+    :param translation_memory_ids: IDs of the linked translation memories.
+    :param glossary_priority_order_enabled: Whether the order of glossary_ids
+        decides which glossary wins when glossaries overlap.
+    :param creation_time: Timestamp when the style profile was created, or
+        None if the response has none or it cannot be parsed.
+    :param updated_time: Timestamp of the last update, or None if the
+        response has none or it cannot be parsed.
+    """
+
+    def __init__(
+        self,
+        style_profile_id: str,
+        name: str,
+        description: Optional[str],
+        industry: Optional[str],
+        glossary_ids: List[str],
+        style_rule_ids: List[str],
+        translation_memory_ids: List[str],
+        glossary_priority_order_enabled: bool,
+        creation_time: Optional[datetime.datetime],
+        updated_time: Optional[datetime.datetime],
+    ):
+        self._style_profile_id = style_profile_id
+        self._name = name
+        self._description = description
+        self._industry = industry
+        self._glossary_ids = glossary_ids
+        self._style_rule_ids = style_rule_ids
+        self._translation_memory_ids = translation_memory_ids
+        self._glossary_priority_order_enabled = glossary_priority_order_enabled
+        self._creation_time = creation_time
+        self._updated_time = updated_time
+
+    def __str__(self) -> str:
+        return f'StyleProfile "{self._name}" ({self._style_profile_id})'
+
+    @staticmethod
+    def from_json(json) -> "StyleProfile":
+        """Create StyleProfile from the given API JSON object."""
+        return StyleProfile(
+            json["style_profile_id"],
+            json["name"],
+            _str_or_none(json.get("description")),
+            _str_or_none(json.get("industry")),
+            _string_list(json.get("glossary_ids")),
+            _string_list(json.get("style_rule_ids")),
+            _string_list(json.get("translation_memory_ids")),
+            json.get("glossary_priority_order_enabled") is True,
+            parse_optional_timestamp(json.get("creation_time")),
+            parse_optional_timestamp(json.get("updated_time")),
+        )
+
+    @property
+    def style_profile_id(self) -> str:
+        return self._style_profile_id
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def description(self) -> Optional[str]:
+        return self._description
+
+    @property
+    def industry(self) -> Optional[str]:
+        return self._industry
+
+    @property
+    def glossary_ids(self) -> List[str]:
+        return self._glossary_ids
+
+    @property
+    def style_rule_ids(self) -> List[str]:
+        return self._style_rule_ids
+
+    @property
+    def translation_memory_ids(self) -> List[str]:
+        return self._translation_memory_ids
+
+    @property
+    def glossary_priority_order_enabled(self) -> bool:
+        return self._glossary_priority_order_enabled
+
+    @property
+    def creation_time(self) -> Optional[datetime.datetime]:
+        return self._creation_time
+
+    @property
+    def updated_time(self) -> Optional[datetime.datetime]:
+        return self._updated_time
+
+
 class TranslationMemoryInfo:
     """Information about a translation memory.
 

@@ -40,6 +40,7 @@ from .api_data import (  # noqa
     SpokenTerms,
     SpokenTermsEntries,
     SpokenTermsList,
+    StyleProfile,
 )
 
 from .translator import (  # noqa
@@ -86,6 +87,7 @@ __all__ = [
     "SpokenTerms",
     "SpokenTermsEntries",
     "SpokenTermsList",
+    "StyleProfile",
     "TextResult",
     "Translator",
     "Usage",

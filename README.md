@@ -907,6 +907,85 @@ The `document` command also accepts `--style-id` for document translation:
 python3 -m deepl --auth-key=YOUR_AUTH_KEY document --to=DE --style-id=YOUR_STYLE_ID /path/to/document.docx /path/to/output_dir
 ``` 
 
+### Style profiles
+
+A style profile bundles a name, an optional description and industry, and links
+to glossaries, style rule lists and translation memories. Style profiles are
+managed with `DeepLClient` and returned as `StyleProfile` objects.
+
+#### Creating a style profile
+
+Use `create_style_profile()`. Only the name is required. You can optionally
+pass `description`, `industry`, `glossary_ids` (highest priority first),
+`style_rule_ids`, `translation_memory_ids` and
+`glossary_priority_order_enabled`. If any of the component IDs cannot be used,
+the request fails and no style profile is created.
+
+```python
+# Without components
+profile = deepl_client.create_style_profile("Legal, German")
+
+# With components
+profile = deepl_client.create_style_profile(
+    "Legal, German",
+    description="Contract wording for the German market.",
+    industry="Legal",
+    glossary_ids=["YOUR_GLOSSARY_ID"],
+    style_rule_ids=["YOUR_STYLE_ID"],
+    translation_memory_ids=["YOUR_TRANSLATION_MEMORY_ID"],
+    glossary_priority_order_enabled=True,
+)
+print(f"Created: {profile.name} ({profile.style_profile_id})")
+```
+
+#### Retrieving and listing style profiles
+
+Use `get_style_profile()` to retrieve a style profile by ID or `StyleProfile`
+object, and `list_style_profiles()` to list them one page at a time. `page` is
+0-indexed (default 0); `page_size` defaults to 10, and values above 100 are
+reduced to 100.
+
+```python
+profile = deepl_client.get_style_profile("YOUR_STYLE_PROFILE_ID")
+print(profile.style_rule_ids, profile.creation_time)
+
+page = 0
+while True:
+    profiles = deepl_client.list_style_profiles(page=page, page_size=100)
+    if not profiles:
+        break
+    for profile in profiles:
+        print(f"{profile.name} ({profile.style_profile_id})")
+    page += 1
+```
+
+#### Updating a style profile
+
+Use `update_style_profile()` with the same options as `create_style_profile()`
+plus `name`. Options you leave out (`None`) are not changed. An empty string
+clears `description` or `industry`. A component list replaces the linked list
+in full, so an empty list unlinks all components of that kind.
+
+```python
+updated = deepl_client.update_style_profile(
+    "YOUR_STYLE_PROFILE_ID",
+    name="Legal, German (v2)",
+    industry="Legal",
+    description="",  # clears the description
+    style_rule_ids=[],  # unlinks all style rule lists
+)
+```
+
+#### Deleting a style profile
+
+Use `delete_style_profile()` to delete a style profile by ID or `StyleProfile`
+object. Getting, updating or deleting a style profile that does not exist
+raises a `DeepLException` with `http_status_code` 404.
+
+```python
+deepl_client.delete_style_profile("YOUR_STYLE_PROFILE_ID")
+```
+
 ### Translation Memories
 
 Translation memories allow you to store and reuse previously created translations.
@@ -1353,9 +1432,9 @@ The tests are split into two groups, selected by directory:
   `DEEPL_AUTH_KEY` environment variable and, for a non-default server, the
   server URL defined by `DEEPL_SERVER_URL`. The Admin API tests use the admin
   key defined by `DEEPL_ADMIN_KEY` instead.
-  They create and delete glossaries, style rules, translation memories and
-  spoken-terms collections named `sdktest-python-...`, and create and
-  deactivate developer keys with such labels.
+  They create and delete glossaries, style rules, style profiles, translation
+  memories and spoken-terms collections named `sdktest-python-...`, and create
+  and deactivate developer keys with such labels.
 
 Copy `.env.example` to `.env`, set your key and load it with
 `set -a; . ./.env; set +a` before running the real-API tests. Be aware that the

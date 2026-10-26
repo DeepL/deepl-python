@@ -17,6 +17,7 @@ from deepl.api_data import (
     SpokenTermsEntries,
     SpokenTermsList,
     WriteResult,
+    StyleProfile,
     StyleRuleInfo,
     TranslationMemoryExport,
     TranslationMemoryImport,
@@ -1214,6 +1215,183 @@ class DeepLClient(Translator):
             method="DELETE",
         )
         self._raise_for_status(status, content, json)
+
+    def list_style_profiles(
+        self,
+        page: Optional[int] = None,
+        page_size: Optional[int] = None,
+    ) -> List[StyleProfile]:
+        """Retrieves a page of style profiles.
+
+        :param page: Page number for pagination, 0-indexed (optional, the API
+            default is 0).
+        :param page_size: Number of items per page (optional, the API default
+            is 10; values above 100 are reduced to 100).
+        :return: List of StyleProfile objects on the requested page.
+        """
+        params = {}
+        if page is not None:
+            params["page"] = str(page)
+        if page_size is not None:
+            params["page_size"] = str(page_size)
+
+        endpoint = "v3/style_profiles"
+        if params:
+            endpoint += f"?{urllib.parse.urlencode(params)}"
+
+        status, content, json = self._api_call(endpoint, method="GET")
+        self._raise_for_status(status, content, json)
+
+        style_profiles = (
+            json.get("style_profiles") or []
+            if (json and isinstance(json, dict))
+            else []
+        )
+        return [
+            StyleProfile.from_json(style_profile)
+            for style_profile in style_profiles
+            if isinstance(style_profile, dict)
+        ]
+
+    def create_style_profile(
+        self,
+        name: str,
+        *,
+        description: Optional[str] = None,
+        industry: Optional[str] = None,
+        glossary_ids: Optional[List[str]] = None,
+        style_rule_ids: Optional[List[str]] = None,
+        translation_memory_ids: Optional[List[str]] = None,
+        glossary_priority_order_enabled: Optional[bool] = None,
+    ) -> StyleProfile:
+        """Creates a style profile. Only the name is required; if any of the
+        component IDs cannot be used, the request fails and no style profile
+        is created.
+
+        :param name: Name for the style profile.
+        :param description: (Optional) Free-text description.
+        :param industry: (Optional) Industry the style profile is written for.
+        :param glossary_ids: (Optional) IDs of the glossaries to link, highest
+            priority first.
+        :param style_rule_ids: (Optional) IDs of the style rule lists to link.
+        :param translation_memory_ids: (Optional) IDs of the translation
+            memories to link.
+        :param glossary_priority_order_enabled: (Optional) Whether the order
+            of glossary_ids decides which glossary wins when glossaries
+            overlap.
+        :return: StyleProfile for the created style profile.
+        """
+        request_data = self._style_profile_json(
+            name=name,
+            description=description,
+            industry=industry,
+            glossary_ids=glossary_ids,
+            style_rule_ids=style_rule_ids,
+            translation_memory_ids=translation_memory_ids,
+            glossary_priority_order_enabled=glossary_priority_order_enabled,
+        )
+        status, content, json = self._api_call(
+            "v3/style_profiles", json=request_data
+        )
+        self._raise_for_status(status, content, json)
+        return StyleProfile.from_json(json)
+
+    def get_style_profile(
+        self,
+        style_profile: Union[str, StyleProfile],
+    ) -> StyleProfile:
+        """Retrieves a single style profile by ID.
+
+        :param style_profile: Style profile ID string or StyleProfile object.
+        :return: StyleProfile for the requested style profile.
+        :raises DeepLException: With http_status_code 404 if no style profile
+            with the given ID is found.
+        """
+        style_profile_id = self._style_profile_id(style_profile)
+        status, content, json = self._api_call(
+            f"v3/style_profiles/{style_profile_id}", method="GET"
+        )
+        self._raise_for_status(status, content, json)
+        return StyleProfile.from_json(json)
+
+    def update_style_profile(
+        self,
+        style_profile: Union[str, StyleProfile],
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        industry: Optional[str] = None,
+        glossary_ids: Optional[List[str]] = None,
+        style_rule_ids: Optional[List[str]] = None,
+        translation_memory_ids: Optional[List[str]] = None,
+        glossary_priority_order_enabled: Optional[bool] = None,
+    ) -> StyleProfile:
+        """Updates a style profile. Options left as None are not sent and not
+        changed. An empty string clears description or industry; a component
+        list replaces the linked list in full, so an empty list unlinks all
+        components of that kind.
+
+        :param style_profile: Style profile ID string or StyleProfile object.
+        :param name: (Optional) New name for the style profile.
+        :param description: (Optional) New description; "" clears it.
+        :param industry: (Optional) New industry; "" clears it.
+        :param glossary_ids: (Optional) IDs of the glossaries to link, highest
+            priority first; [] unlinks all glossaries.
+        :param style_rule_ids: (Optional) IDs of the style rule lists to link;
+            [] unlinks all style rule lists.
+        :param translation_memory_ids: (Optional) IDs of the translation
+            memories to link; [] unlinks all translation memories.
+        :param glossary_priority_order_enabled: (Optional) Whether the order
+            of glossary_ids decides which glossary wins when glossaries
+            overlap.
+        :return: StyleProfile for the updated style profile.
+        """
+        style_profile_id = self._style_profile_id(style_profile)
+        request_data = self._style_profile_json(
+            name=name,
+            description=description,
+            industry=industry,
+            glossary_ids=glossary_ids,
+            style_rule_ids=style_rule_ids,
+            translation_memory_ids=translation_memory_ids,
+            glossary_priority_order_enabled=glossary_priority_order_enabled,
+        )
+        status, content, json = self._api_call(
+            f"v3/style_profiles/{style_profile_id}",
+            method="PATCH",
+            json=request_data,
+        )
+        self._raise_for_status(status, content, json)
+        return StyleProfile.from_json(json)
+
+    def delete_style_profile(
+        self,
+        style_profile: Union[str, StyleProfile],
+    ) -> None:
+        """Deletes a style profile.
+
+        :param style_profile: Style profile ID string or StyleProfile object.
+        :raises DeepLException: With http_status_code 404 if no style profile
+            with the given ID is found.
+        """
+        style_profile_id = self._style_profile_id(style_profile)
+        status, content, json = self._api_call(
+            f"v3/style_profiles/{style_profile_id}", method="DELETE"
+        )
+        self._raise_for_status(status, content, json)
+
+    @staticmethod
+    def _style_profile_json(**fields: Any) -> Dict[str, Any]:
+        # Unset (None) fields are not sent; "" and [] are sent as given.
+        return {k: v for k, v in fields.items() if v is not None}
+
+    @staticmethod
+    def _style_profile_id(style_profile: Union[str, StyleProfile]) -> str:
+        if isinstance(style_profile, StyleProfile):
+            style_profile = style_profile.style_profile_id
+        if not style_profile:
+            raise ValueError("style_profile must not be empty")
+        return urllib.parse.quote(style_profile, safe="")
 
     def list_translation_memories(
         self,
