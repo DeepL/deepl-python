@@ -1349,11 +1349,11 @@ class StyleRuleInfo:
 
 
 def parse_optional_timestamp(
-    value: Optional[str],
+    value: Any,
 ) -> Optional[datetime.datetime]:
-    """Parses an optional API timestamp, returning None if it is absent or in
-    an unrecognised format."""
-    if not value:
+    """Parses an optional API timestamp, returning None if it is absent, not
+    a string or in an unrecognised format."""
+    if not value or not isinstance(value, str):
         return None
     try:
         return parse_timestamp(value)

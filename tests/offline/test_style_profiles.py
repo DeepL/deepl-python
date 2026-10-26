@@ -211,10 +211,11 @@ def test_parses_a_profile_without_optional_fields():
     assert not hasattr(profile, "spoken_terms_ids")
 
 
-def test_tolerates_malformed_values(mocked):
+@pytest.mark.parametrize("creation_time", ["not a timestamp", 123])
+def test_tolerates_malformed_values(mocked, creation_time):
     malformed = dict(
         STYLE_PROFILE_JSON,
-        creation_time="not a timestamp",
+        creation_time=creation_time,
         glossary_ids=["g1", 7, None, "g2"],
         translation_memory_ids=None,
     )
