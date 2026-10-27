@@ -151,6 +151,17 @@ def test_parses_glossary_info_with_dictionaries(mocked):
     assert str(glossary) == 'MultilingualGlossary "glossary" (g-1)'
 
 
+def test_converts_glossary_info_to_json_on_instance():
+    info = glossary_info()
+
+    assert info.to_json() == {
+        "glossary_id": "g-1",
+        "name": "glossary",
+        "creation_time": info.creation_time,
+        "dictionaries": info.dictionaries,
+    }
+
+
 def test_sends_get_when_getting_glossary(mocked):
     mocked.get(
         url("v3/glossaries/g-1"),

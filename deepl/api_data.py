@@ -778,7 +778,6 @@ class MultilingualGlossaryInfo:
             ),
         )
 
-    @staticmethod
     def to_json(self) -> dict:
         """Create API JSON object from MultilingualGlossaryInfo."""
         return {

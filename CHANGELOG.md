@@ -73,6 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `'action_translate'`.
 - Fixed the `extra_body_parameters` documentation, which claimed that entries
   do not overwrite request fields set by the library. They do, since 1.24.0.
+- Fixed `MultilingualGlossaryInfo.to_json()` raising `TypeError` when called on
+  an instance.
 
 ## [1.32.0] - 2026-08-12
 ### Added
