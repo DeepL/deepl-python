@@ -8,13 +8,13 @@ import http
 import platform
 import random
 import requests  # type: ignore
+import socket
 import traceback
 import time
 from functools import lru_cache
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from .util import log_info
 from deepl import util
-
 
 user_agent = None
 max_network_retries = 5
@@ -100,9 +100,14 @@ class HttpClient:
         json: Optional[dict],
         headers: dict,
         stream: bool = False,
+        retry_only_unprocessed: bool = False,
         **kwargs,
     ) -> Tuple[int, Union[str, requests.Response]]:
         """Makes API request, retrying if necessary, and returns response.
+
+        If retry_only_unprocessed is True, the request is only retried after
+        failures that show it was not processed (HTTP 429 and DNS resolution
+        errors), for requests that are unsafe to repeat.
 
         Return and exceptions are the same as function request()."""
         backoff = _BackoffTimer()
@@ -122,7 +127,10 @@ class HttpClient:
                 exception = e
 
             if not self._should_retry(
-                response, exception, backoff.get_num_retries()
+                response,
+                exception,
+                backoff.get_num_retries(),
+                retry_only_unprocessed,
             ):
                 if response is not None:
                     return response
@@ -196,17 +204,22 @@ class HttpClient:
             message = f"Unexpected request failure: {e}"
             raise ConnectionException(message, should_retry=False) from e
 
-    def _should_retry(self, response, exception, num_retries):
+    def _should_retry(
+        self, response, exception, num_retries, only_unprocessed=False
+    ):
         if num_retries >= max_network_retries:
             return False
 
         if response is None:
+            if only_unprocessed:
+                return _is_name_resolution_error(exception)
             return exception.should_retry
 
         status_code, _ = response
         # Retry on Too-Many-Requests error and internal errors
         return status_code == http.HTTPStatus.TOO_MANY_REQUESTS or (
-            status_code >= http.HTTPStatus.INTERNAL_SERVER_ERROR
+            not only_unprocessed
+            and status_code >= http.HTTPStatus.INTERNAL_SERVER_ERROR
         )
 
     def _prepare_request(
@@ -235,6 +248,41 @@ class HttpClient:
             raise DeepLException(
                 f"Error occurred while preparing request: {e}"
             ) from e
+
+
+# urllib3 1.x has no NameResolutionError; its connection errors keep the
+# socket.gaierror as context instead.
+_NAME_RESOLUTION_ERRORS = tuple(
+    e
+    for e in (
+        socket.gaierror,
+        getattr(
+            requests.packages.urllib3.exceptions,  # type: ignore[attr-defined]
+            "NameResolutionError",
+            None,
+        ),
+    )
+    if e is not None
+)
+
+
+def _is_name_resolution_error(exception: BaseException) -> bool:
+    """Returns True if the exception was caused by a failure to resolve the
+    host name, in which case the request was never sent."""
+    pending: List[Optional[BaseException]] = [exception]
+    seen = set()
+    while pending:
+        e = pending.pop()
+        if e is None or id(e) in seen:
+            continue
+        seen.add(id(e))
+        if isinstance(e, _NAME_RESOLUTION_ERRORS):
+            return True
+        pending.extend(
+            [e.__cause__, e.__context__, getattr(e, "reason", None)]
+        )
+        pending.extend(a for a in e.args if isinstance(a, BaseException))
+    return False
 
 
 @lru_cache(maxsize=4)

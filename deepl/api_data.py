@@ -4,9 +4,9 @@
 
 import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from deepl.util import get_int_safe, parse_timestamp
+from deepl.util import get_float_safe, get_int_safe, parse_timestamp
 
 
 class TextResult:
@@ -1368,6 +1368,17 @@ def parse_optional_timestamp(
             return None
 
 
+def _parse_utc_timestamp(value: Any) -> Optional[datetime.datetime]:
+    """Parses an Admin API timestamp, taking one without a timezone offset
+    (e.g. the report start and end dates) as UTC."""
+    timestamp = (
+        parse_optional_timestamp(value) if isinstance(value, str) else None
+    )
+    if timestamp is not None and timestamp.tzinfo is None:
+        return timestamp.replace(tzinfo=datetime.timezone.utc)
+    return timestamp
+
+
 class TranslationMemoryInfo:
     """Information about a translation memory.
 
@@ -2154,3 +2165,573 @@ class LanguageSupport:
     def features(self) -> Dict[str, LanguageFeature]:
         """Returns the map of feature name to LanguageFeature."""
         return self._features
+
+
+class AdminUsageGroupBy(Enum):
+    """Options for grouping the admin usage analytics report."""
+
+    KEY = "key"
+    """Group usage by API key."""
+
+    KEY_AND_DAY = "key_and_day"
+    """Group usage by API key and usage date."""
+
+    def __str__(self):
+        return self.value
+
+
+class CustomTagUsageAggregateBy(Enum):
+    """Options for aggregating the custom tag usage analytics report."""
+
+    PERIOD = "period"
+    """Aggregate usage over the entire date range."""
+
+    DAY = "day"
+    """Aggregate usage by individual day."""
+
+    def __str__(self):
+        return self.value
+
+
+def _str_or_none(value: Any) -> Optional[str]:
+    return value if isinstance(value, str) else None
+
+
+def _limit_or_none(json: dict, key: str) -> Optional[int]:
+    return None if isinstance(json.get(key), bool) else get_int_safe(json, key)
+
+
+class DeveloperKeyUsageLimits:
+    """Usage limits of a developer key. A value of None means unlimited.
+
+    :param characters: Maximum number of characters per usage period.
+    :param speech_to_text_milliseconds: Maximum number of speech-to-text
+        milliseconds per usage period.
+    :param speech_to_speech_milliseconds: Maximum number of speech-to-speech
+        milliseconds per usage period.
+    """
+
+    def __init__(
+        self,
+        characters: Optional[int] = None,
+        speech_to_text_milliseconds: Optional[int] = None,
+        speech_to_speech_milliseconds: Optional[int] = None,
+    ):
+        self._characters = characters
+        self._speech_to_text_milliseconds = speech_to_text_milliseconds
+        self._speech_to_speech_milliseconds = speech_to_speech_milliseconds
+
+    @staticmethod
+    def from_json(json: Any) -> "DeveloperKeyUsageLimits":
+        """Create DeveloperKeyUsageLimits from the given API JSON object."""
+        json = _as_dict(json)
+        return DeveloperKeyUsageLimits(
+            characters=_limit_or_none(json, "characters"),
+            speech_to_text_milliseconds=_limit_or_none(
+                json, "speech_to_text_milliseconds"
+            ),
+            speech_to_speech_milliseconds=_limit_or_none(
+                json, "speech_to_speech_milliseconds"
+            ),
+        )
+
+    @property
+    def characters(self) -> Optional[int]:
+        """Returns the character limit, or None if unlimited."""
+        return self._characters
+
+    @property
+    def speech_to_text_milliseconds(self) -> Optional[int]:
+        """Returns the speech-to-text limit in milliseconds, or None if
+        unlimited."""
+        return self._speech_to_text_milliseconds
+
+    @property
+    def speech_to_speech_milliseconds(self) -> Optional[int]:
+        """Returns the speech-to-speech limit in milliseconds, or None if
+        unlimited."""
+        return self._speech_to_speech_milliseconds
+
+
+class DeveloperKey:
+    """Information about a developer API key, as returned by the Admin API.
+
+    :param key_id: Unique ID of the key.
+    :param label: Label assigned to the key.
+    :param creation_time: Timestamp when the key was created.
+    :param deactivated_time: Timestamp when the key was deactivated, if it was.
+    :param is_deactivated: True if the key is deactivated.
+    :param usage_limits: Usage limits configured for the key.
+    """
+
+    def __init__(
+        self,
+        key_id: str,
+        label: str,
+        creation_time: Optional[datetime.datetime],
+        deactivated_time: Optional[datetime.datetime],
+        is_deactivated: bool,
+        usage_limits: DeveloperKeyUsageLimits,
+    ):
+        self._key_id = key_id
+        self._label = label
+        self._creation_time = creation_time
+        self._deactivated_time = deactivated_time
+        self._is_deactivated = is_deactivated
+        self._usage_limits = usage_limits
+
+    def __str__(self) -> str:
+        return f'DeveloperKey "{self.label}" ({self.key_id})'
+
+    @staticmethod
+    def from_json(json: Any) -> "DeveloperKey":
+        """Create DeveloperKey from the given API JSON object."""
+        json = _as_dict(json)
+        return DeveloperKey(
+            key_id=_str_or_empty(json, "key_id"),
+            label=_str_or_empty(json, "label"),
+            creation_time=_parse_utc_timestamp(json.get("creation_time")),
+            deactivated_time=_parse_utc_timestamp(
+                json.get("deactivated_time")
+            ),
+            is_deactivated=json.get("is_deactivated") is True,
+            usage_limits=DeveloperKeyUsageLimits.from_json(
+                json.get("usage_limits")
+            ),
+        )
+
+    @property
+    def key_id(self) -> str:
+        """Returns the unique ID of the key."""
+        return self._key_id
+
+    @property
+    def label(self) -> str:
+        """Returns the label of the key."""
+        return self._label
+
+    @property
+    def creation_time(self) -> Optional[datetime.datetime]:
+        """Returns the creation timestamp."""
+        return self._creation_time
+
+    @property
+    def deactivated_time(self) -> Optional[datetime.datetime]:
+        """Returns the deactivation timestamp, or None if the key is active."""
+        return self._deactivated_time
+
+    @property
+    def is_deactivated(self) -> bool:
+        """Returns True if the key is deactivated."""
+        return self._is_deactivated
+
+    @property
+    def usage_limits(self) -> DeveloperKeyUsageLimits:
+        """Returns the usage limits of the key."""
+        return self._usage_limits
+
+
+def _as_dict(value: Any) -> dict:
+    return value if isinstance(value, dict) else {}
+
+
+def _dict_items(value: Any) -> List[dict]:
+    """Returns the object entries of a list from the API, skipping any entry
+    that is not an object."""
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _str_or_empty(d: dict, key: str) -> str:
+    value = d.get(key)
+    return value if isinstance(value, str) else ""
+
+
+def _int_or_zero(d: Any, key: str) -> int:
+    return get_int_safe(_as_dict(d), key) or 0
+
+
+def _float_or_zero(d: Any, key: str) -> float:
+    return get_float_safe(_as_dict(d), key) or 0.0
+
+
+class AdminUsageBreakdown:
+    """Usage totals in an admin usage analytics report."""
+
+    def __init__(
+        self,
+        total_characters: int,
+        text_translation_characters: int,
+        document_translation_characters: int,
+        text_improvement_characters: int,
+        speech_to_text_minutes: float,
+        speech_to_speech_minutes: float = 0.0,
+    ):
+        self._total_characters = total_characters
+        self._text_translation_characters = text_translation_characters
+        self._document_translation_characters = document_translation_characters
+        self._text_improvement_characters = text_improvement_characters
+        self._speech_to_text_minutes = speech_to_text_minutes
+        self._speech_to_speech_minutes = speech_to_speech_minutes
+
+    @staticmethod
+    def from_json(json: Any) -> "AdminUsageBreakdown":
+        """Create AdminUsageBreakdown from the given API JSON object."""
+        return AdminUsageBreakdown(
+            total_characters=_int_or_zero(json, "total_characters"),
+            text_translation_characters=_int_or_zero(
+                json, "text_translation_characters"
+            ),
+            document_translation_characters=_int_or_zero(
+                json, "document_translation_characters"
+            ),
+            text_improvement_characters=_int_or_zero(
+                json, "text_improvement_characters"
+            ),
+            speech_to_text_minutes=_float_or_zero(
+                json, "speech_to_text_minutes"
+            ),
+            speech_to_speech_minutes=_float_or_zero(
+                json, "speech_to_speech_minutes"
+            ),
+        )
+
+    @property
+    def total_characters(self) -> int:
+        """Returns the total number of characters used."""
+        return self._total_characters
+
+    @property
+    def text_translation_characters(self) -> int:
+        """Returns the number of characters used for text translation."""
+        return self._text_translation_characters
+
+    @property
+    def document_translation_characters(self) -> int:
+        """Returns the number of characters used for document translation."""
+        return self._document_translation_characters
+
+    @property
+    def text_improvement_characters(self) -> int:
+        """Returns the number of characters used for text improvement."""
+        return self._text_improvement_characters
+
+    @property
+    def speech_to_text_minutes(self) -> float:
+        """Returns the number of speech-to-text minutes used."""
+        return self._speech_to_text_minutes
+
+    @property
+    def speech_to_speech_minutes(self) -> float:
+        """Returns the number of speech-to-speech minutes used."""
+        return self._speech_to_speech_minutes
+
+
+class KeyUsage:
+    """Usage of a single API key in an admin usage analytics report.
+
+    :param api_key: Masked API key.
+    :param api_key_label: Label of the API key.
+    :param usage: Usage of the API key.
+    :param usage_date: Day of the usage, present when grouped by key and day.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        api_key_label: str,
+        usage: AdminUsageBreakdown,
+        usage_date: Optional[datetime.datetime] = None,
+    ):
+        self._api_key = api_key
+        self._api_key_label = api_key_label
+        self._usage = usage
+        self._usage_date = usage_date
+
+    @staticmethod
+    def from_json(json: Any) -> "KeyUsage":
+        """Create KeyUsage from the given API JSON object."""
+        json = _as_dict(json)
+        return KeyUsage(
+            api_key=_str_or_empty(json, "api_key"),
+            api_key_label=_str_or_empty(json, "api_key_label"),
+            usage=AdminUsageBreakdown.from_json(json.get("usage")),
+            usage_date=_parse_utc_timestamp(json.get("usage_date")),
+        )
+
+    @property
+    def api_key(self) -> str:
+        """Returns the masked API key."""
+        return self._api_key
+
+    @property
+    def api_key_label(self) -> str:
+        """Returns the label of the API key."""
+        return self._api_key_label
+
+    @property
+    def usage(self) -> AdminUsageBreakdown:
+        """Returns the usage of the API key."""
+        return self._usage
+
+    @property
+    def usage_date(self) -> Optional[datetime.datetime]:
+        """Returns the day of the usage, or None if not grouped by day."""
+        return self._usage_date
+
+
+class AdminUsageReport:
+    """Admin usage analytics report for a date range.
+
+    :param total_usage: Usage totals over the whole date range.
+    :param start_date: Start of the report period.
+    :param end_date: End of the report period.
+    :param group_by: Grouping used for the report, if any.
+    :param key_usages: Usage per key, present when grouped by key.
+    :param key_and_day_usages: Usage per key and day, present when grouped by
+        key and day.
+    """
+
+    def __init__(
+        self,
+        total_usage: AdminUsageBreakdown,
+        start_date: Optional[datetime.datetime],
+        end_date: Optional[datetime.datetime],
+        group_by: Optional[str] = None,
+        key_usages: Optional[List[KeyUsage]] = None,
+        key_and_day_usages: Optional[List[KeyUsage]] = None,
+    ):
+        self._total_usage = total_usage
+        self._start_date = start_date
+        self._end_date = end_date
+        self._group_by = group_by
+        self._key_usages = key_usages or []
+        self._key_and_day_usages = key_and_day_usages or []
+
+    @staticmethod
+    def from_json(json: Any) -> "AdminUsageReport":
+        """Create AdminUsageReport from the given API JSON object."""
+        report = _as_dict(_as_dict(json).get("usage_report"))
+        return AdminUsageReport(
+            total_usage=AdminUsageBreakdown.from_json(
+                report.get("total_usage")
+            ),
+            start_date=_parse_utc_timestamp(report.get("start_date")),
+            end_date=_parse_utc_timestamp(report.get("end_date")),
+            group_by=_str_or_none(report.get("group_by")),
+            key_usages=[
+                KeyUsage.from_json(item)
+                for item in _dict_items(report.get("key_usages"))
+            ],
+            key_and_day_usages=[
+                KeyUsage.from_json(item)
+                for item in _dict_items(report.get("key_and_day_usages"))
+            ],
+        )
+
+    @property
+    def total_usage(self) -> AdminUsageBreakdown:
+        """Returns the usage totals over the whole date range."""
+        return self._total_usage
+
+    @property
+    def start_date(self) -> Optional[datetime.datetime]:
+        """Returns the start of the report period."""
+        return self._start_date
+
+    @property
+    def end_date(self) -> Optional[datetime.datetime]:
+        """Returns the end of the report period."""
+        return self._end_date
+
+    @property
+    def group_by(self) -> Optional[str]:
+        """Returns the grouping used for the report as the API returns it
+        (currently "key" or "keyAndDay"), or None."""
+        return self._group_by
+
+    @property
+    def key_usages(self) -> List[KeyUsage]:
+        """Returns the usage per key, empty unless grouped by key."""
+        return self._key_usages
+
+    @property
+    def key_and_day_usages(self) -> List[KeyUsage]:
+        """Returns the usage per key and day, empty unless grouped by key and
+        day."""
+        return self._key_and_day_usages
+
+
+class CustomTagUsageBreakdown:
+    """Usage totals for a custom tag."""
+
+    def __init__(
+        self,
+        total_characters: int,
+        text_translation_characters: int,
+        text_improvement_characters: int,
+        speech_to_text_minutes: float,
+        speech_to_speech_minutes: float,
+    ):
+        self._total_characters = total_characters
+        self._text_translation_characters = text_translation_characters
+        self._text_improvement_characters = text_improvement_characters
+        self._speech_to_text_minutes = speech_to_text_minutes
+        self._speech_to_speech_minutes = speech_to_speech_minutes
+
+    @staticmethod
+    def from_json(json: Any) -> "CustomTagUsageBreakdown":
+        """Create CustomTagUsageBreakdown from the given API JSON object."""
+        return CustomTagUsageBreakdown(
+            total_characters=_int_or_zero(json, "total_characters"),
+            text_translation_characters=_int_or_zero(
+                json, "text_translation_characters"
+            ),
+            text_improvement_characters=_int_or_zero(
+                json, "text_improvement_characters"
+            ),
+            speech_to_text_minutes=_float_or_zero(
+                json, "speech_to_text_minutes"
+            ),
+            speech_to_speech_minutes=_float_or_zero(
+                json, "speech_to_speech_minutes"
+            ),
+        )
+
+    @property
+    def total_characters(self) -> int:
+        """Returns the total number of characters used."""
+        return self._total_characters
+
+    @property
+    def text_translation_characters(self) -> int:
+        """Returns the number of characters used for text translation."""
+        return self._text_translation_characters
+
+    @property
+    def text_improvement_characters(self) -> int:
+        """Returns the number of characters used for text improvement."""
+        return self._text_improvement_characters
+
+    @property
+    def speech_to_text_minutes(self) -> float:
+        """Returns the number of speech-to-text minutes used."""
+        return self._speech_to_text_minutes
+
+    @property
+    def speech_to_speech_minutes(self) -> float:
+        """Returns the number of speech-to-speech minutes used."""
+        return self._speech_to_speech_minutes
+
+
+class CustomTagUsage:
+    """Usage of a single custom tag.
+
+    :param custom_tag: The custom tag.
+    :param breakdown: Usage of the custom tag.
+    :param usage_date: Day of the usage, present when aggregated by day.
+    """
+
+    def __init__(
+        self,
+        custom_tag: str,
+        breakdown: CustomTagUsageBreakdown,
+        usage_date: Optional[datetime.datetime] = None,
+    ):
+        self._custom_tag = custom_tag
+        self._breakdown = breakdown
+        self._usage_date = usage_date
+
+    @staticmethod
+    def from_json(json: Any) -> "CustomTagUsage":
+        """Create CustomTagUsage from the given API JSON object."""
+        json = _as_dict(json)
+        return CustomTagUsage(
+            custom_tag=_str_or_empty(json, "custom_tag"),
+            breakdown=CustomTagUsageBreakdown.from_json(json.get("breakdown")),
+            usage_date=_parse_utc_timestamp(json.get("usage_date")),
+        )
+
+    @property
+    def custom_tag(self) -> str:
+        """Returns the custom tag."""
+        return self._custom_tag
+
+    @property
+    def breakdown(self) -> CustomTagUsageBreakdown:
+        """Returns the usage of the custom tag."""
+        return self._breakdown
+
+    @property
+    def usage_date(self) -> Optional[datetime.datetime]:
+        """Returns the day of the usage, or None if not aggregated by day."""
+        return self._usage_date
+
+
+class CustomTagUsageReport:
+    """Admin custom tag usage analytics report for a date range.
+
+    :param aggregate_by: Aggregation used for the report.
+    :param start_date: Start of the report period.
+    :param end_date: End of the report period.
+    :param next_page: Page number to request the next page, or None if this
+        is the last page.
+    :param usage: Usage entries per custom tag.
+    """
+
+    def __init__(
+        self,
+        aggregate_by: Optional[str],
+        start_date: Optional[datetime.datetime],
+        end_date: Optional[datetime.datetime],
+        next_page: Optional[int],
+        usage: List[CustomTagUsage],
+    ):
+        self._aggregate_by = aggregate_by
+        self._start_date = start_date
+        self._end_date = end_date
+        self._next_page = next_page
+        self._usage = usage
+
+    @staticmethod
+    def from_json(json: Any) -> "CustomTagUsageReport":
+        """Create CustomTagUsageReport from the given API JSON object."""
+        report = _as_dict(_as_dict(json).get("custom_tag_usage_report"))
+        return CustomTagUsageReport(
+            aggregate_by=_str_or_none(report.get("aggregate_by")),
+            start_date=_parse_utc_timestamp(report.get("start_date")),
+            end_date=_parse_utc_timestamp(report.get("end_date")),
+            next_page=get_int_safe(report, "next_page"),
+            usage=[
+                CustomTagUsage.from_json(item)
+                for item in _dict_items(report.get("usage"))
+            ],
+        )
+
+    @property
+    def aggregate_by(self) -> Optional[str]:
+        """Returns the aggregation used for the report as the API returns it
+        (e.g. "period" or "day"), or None."""
+        return self._aggregate_by
+
+    @property
+    def start_date(self) -> Optional[datetime.datetime]:
+        """Returns the start of the report period."""
+        return self._start_date
+
+    @property
+    def end_date(self) -> Optional[datetime.datetime]:
+        """Returns the end of the report period."""
+        return self._end_date
+
+    @property
+    def next_page(self) -> Optional[int]:
+        """Returns the page number of the next page, or None if this is the
+        last page."""
+        return self._next_page
+
+    @property
+    def usage(self) -> List[CustomTagUsage]:
+        """Returns the usage entries per custom tag."""
+        return self._usage

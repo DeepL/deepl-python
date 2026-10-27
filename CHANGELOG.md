@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added the `DeepLAdminClient` class for the Admin API. It must be created with
+  an admin API key and supports managing developer keys
+  (`create_developer_key()`, `get_developer_keys()`,
+  `deactivate_developer_key()`, `rename_developer_key()`,
+  `set_developer_key_usage_limits()`) and retrieving usage analytics
+  (`get_usage_analytics()`, `get_custom_tag_usage_analytics()`) with
+  the result types `DeveloperKey`, `DeveloperKeyUsageLimits`,
+  `AdminUsageReport`, `AdminUsageBreakdown`, `KeyUsage`, `CustomTagUsageReport`,
+  `CustomTagUsage` and `CustomTagUsageBreakdown`, and the request options
+  `AdminUsageGroupBy` and `CustomTagUsageAggregateBy`.
 - Added `get_languages_for_resource()` method to the `DeepLClient` class to
   retrieve the languages supported by a resource, with per-feature support
   information, via the `/v3/languages` endpoint.

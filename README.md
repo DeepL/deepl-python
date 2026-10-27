@@ -1092,6 +1092,92 @@ The `document` command also accepts `--translation-memory-id` and
 python3 -m deepl --auth-key=YOUR_AUTH_KEY document --to=DE --translation-memory-id=YOUR_TM_ID --translation-memory-threshold=75 /path/to/document.docx /path/to/output_dir
 ```
 
+### Admin API
+
+The Admin API lets you manage the developer keys of your organization and
+retrieve usage analytics. It requires an admin API key, which you can create in
+the "Admin API Keys" tab of your DeepL account. Admin keys cannot be used for
+translation, and developer keys cannot access the Admin API.
+
+Create a `DeepLAdminClient` with your admin key. It uses the
+`https://api.deepl.com` server by default.
+
+```python
+import deepl
+
+admin_client = deepl.DeepLAdminClient("YOUR_ADMIN_KEY")
+```
+
+#### Managing developer keys
+
+```python
+key = admin_client.create_developer_key(label="Staging Team Key")
+print(f"Created {key.label} ({key.key_id})")
+
+for k in admin_client.get_developer_keys():
+    print(f"{k.label}: deactivated={k.is_deactivated}")
+
+key = admin_client.rename_developer_key(key, "Production Team Key")
+
+# Only the limits you pass are changed; the others keep their current value.
+# None removes a limit (unlimited usage) and 0 blocks that usage.
+key = admin_client.set_developer_key_usage_limits(
+    key, characters=500000, speech_to_speech_milliseconds=None
+)
+
+# Deactivation is permanent.
+admin_client.deactivate_developer_key(key)
+```
+
+`rename_developer_key()`, `set_developer_key_usage_limits()` and
+`deactivate_developer_key()` accept either a key ID or a `DeveloperKey` object
+and return the updated `DeveloperKey`.
+
+#### Retrieving usage analytics
+
+`get_usage_analytics()` returns an `AdminUsageReport` for a date range. Dates
+are UTC calendar days, and both the start and the end day are included. Pass
+`datetime.date` objects or `YYYY-MM-DD` strings. For a `datetime.datetime`, the
+UTC date of that moment is used, so `2026-10-20T00:00+02:00` is sent as
+`2026-10-19`; a naive `datetime` is treated as UTC. The end date must be after
+the start date, so a report covers at least two days, and at most 366 days
+after it; otherwise the API raises a `DeepLException`. A value that is not a
+date raises a `ValueError` before any request is sent. Use
+`group_by` to break the usage down by key (`AdminUsageGroupBy.KEY`, see
+`key_usages`) or by key and day (`AdminUsageGroupBy.KEY_AND_DAY`, see
+`key_and_day_usages`). The lists are empty if the report is not grouped that
+way. The `group_by` and `aggregate_by` of a report are plain strings as the API
+names them, for example `"keyAndDay"`.
+
+```python
+report = admin_client.get_usage_analytics(
+    "2026-06-01", "2026-07-01", group_by=deepl.AdminUsageGroupBy.KEY
+)
+print(f"Total characters: {report.total_usage.total_characters}")
+for key_usage in report.key_usages:
+    print(f"{key_usage.api_key_label}: {key_usage.usage.total_characters}")
+```
+
+`get_custom_tag_usage_analytics()` returns a `CustomTagUsageReport` with the
+usage per custom tag. It accepts the same dates as `get_usage_analytics()`.
+Use `aggregate_by` to choose between the whole period
+(`CustomTagUsageAggregateBy.PERIOD`, the default) and per-day usage
+(`CustomTagUsageAggregateBy.DAY`). The results are paginated: pass the
+`next_page` value of a report as `page` to get the next page.
+
+```python
+page = None
+while True:
+    report = admin_client.get_custom_tag_usage_analytics(
+        "2026-06-01", "2026-07-01", page=page
+    )
+    for tag_usage in report.usage:
+        print(f"{tag_usage.custom_tag}: {tag_usage.breakdown.total_characters}")
+    if report.next_page is None:
+        break
+    page = report.next_page
+```
+
 ### Writing a Plugin
 
 If you use this library in an application, please identify the application with
@@ -1130,9 +1216,11 @@ logging.getLogger('deepl').setLevel(logging.DEBUG)
 #### Server URL configuration
 
 You can override the URL of the DeepL API by specifying the `server_url`
-argument when constructing a `deepl.DeepLClient`. This may be useful for testing
-purposes. You **do not** need to specify the URL to distinguish API Free and API
-Pro accounts, the library selects the correct URL automatically.
+argument when constructing a `deepl.DeepLClient`. This may be useful for
+testing purposes. You **do not** need to specify the URL to distinguish API Free
+and API Pro accounts, the library selects the correct URL automatically. A
+`deepl.DeepLAdminClient` always uses `https://api.deepl.com` unless you give it
+a `server_url`.
 
 ```python
 server_url = "http://user:pass@localhost:3000"
@@ -1180,6 +1268,10 @@ deepl.http_client.max_network_retries = 3
 c = deepl.DeepLClient(...)
 c.translate_text(...)
 ```
+
+`DeepLAdminClient.create_developer_key()` is only retried after an HTTP 429
+status code or a DNS resolution failure, because a retry after any other
+failure could create a second key.
 
 You can configure the timeout `min_connection_timeout` the same way, as well
 as set a custom `user_agent`, see the next section.
@@ -1259,9 +1351,11 @@ The tests are split into two groups, selected by directory:
 - `pytest tests/real_api` runs the real-API tests. They send one request per
   API endpoint to the DeepL API, using the authentication key defined by the
   `DEEPL_AUTH_KEY` environment variable and, for a non-default server, the
-  server URL defined by `DEEPL_SERVER_URL`.
+  server URL defined by `DEEPL_SERVER_URL`. The Admin API tests use the admin
+  key defined by `DEEPL_ADMIN_KEY` instead.
   They create and delete glossaries, style rules, translation memories and
-  spoken-terms collections named `sdktest-python-...`.
+  spoken-terms collections named `sdktest-python-...`, and create and
+  deactivate developer keys with such labels.
 
 Copy `.env.example` to `.env`, set your key and load it with
 `set -a; . ./.env; set +a` before running the real-API tests. Be aware that the

@@ -28,3 +28,13 @@ def make_translator(**kwargs) -> deepl.Translator:
 
 def make_deepl_client(**kwargs) -> deepl.DeepLClient:
     return deepl.DeepLClient(_auth_key(), server_url=server_url(), **kwargs)
+
+
+def make_admin_client(**kwargs) -> deepl.DeepLAdminClient:
+    admin_key = os.environ.get("DEEPL_ADMIN_KEY")
+    if not admin_key:
+        raise RuntimeError(
+            "The real-API admin tests need the DEEPL_ADMIN_KEY environment "
+            "variable (and DEEPL_SERVER_URL for a non-default server)."
+        )
+    return deepl.DeepLAdminClient(admin_key, server_url=server_url(), **kwargs)

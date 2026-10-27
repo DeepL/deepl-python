@@ -19,3 +19,7 @@ def make_translator(**kwargs) -> deepl.Translator:
 
 def make_deepl_client(**kwargs) -> deepl.DeepLClient:
     return deepl.DeepLClient(AUTH_KEY, **kwargs)
+
+
+def make_admin_client(**kwargs) -> deepl.DeepLAdminClient:
+    return deepl.DeepLAdminClient(AUTH_KEY, **kwargs)

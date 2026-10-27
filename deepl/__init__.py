@@ -6,6 +6,21 @@ from .version import VERSION as __version__  # noqa
 
 __author__ = "DeepL SE <python-api@deepl.com>"
 
+from .admin_client import DeepLAdminClient
+
+from .api_data import (  # noqa
+    AdminUsageBreakdown,
+    AdminUsageGroupBy,
+    AdminUsageReport,
+    CustomTagUsage,
+    CustomTagUsageAggregateBy,
+    CustomTagUsageBreakdown,
+    CustomTagUsageReport,
+    DeveloperKey,
+    DeveloperKeyUsageLimits,
+    KeyUsage,
+)
+
 from .deepl_client import DeepLClient
 
 from .exceptions import (  # noqa
@@ -50,7 +65,18 @@ from .util import (  # noqa
 __all__ = [
     "__version__",
     "__author__",
+    "AdminUsageBreakdown",
+    "AdminUsageGroupBy",
+    "AdminUsageReport",
+    "CustomTagUsage",
+    "CustomTagUsageAggregateBy",
+    "CustomTagUsageBreakdown",
+    "CustomTagUsageReport",
+    "DeepLAdminClient",
     "DeepLClient",
+    "DeveloperKey",
+    "DeveloperKeyUsageLimits",
+    "KeyUsage",
     "DocumentHandle",
     "DocumentStatus",
     "Formality",

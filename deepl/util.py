@@ -61,6 +61,14 @@ def get_int_safe(d: Optional[dict], key: str) -> Optional[int]:
         return None
 
 
+def get_float_safe(d: Optional[dict], key: str) -> Optional[float]:
+    """Returns value in dictionary with given key as float, or None."""
+    try:
+        return float(d.get(key) if d else None)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
 def auth_key_is_free_account(auth_key: str) -> bool:
     """Returns True if the given authentication key belongs to a DeepL API Free
     account, otherwise False."""
