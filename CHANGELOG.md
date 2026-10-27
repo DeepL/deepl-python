@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added the `style_profile` option to `translate_text()` and the document
+  translation functions (`translate_document()`,
+  `translate_document_from_filepath()`, `translate_document_upload()`) to
+  translate with a style profile, as a style profile ID or `StyleProfile`
+  object. The CLI accepts it as `--style-profile-id`.
 - Added the `DeepLAdminClient` class for the Admin API. It must be created with
   an admin API key and supports managing developer keys
   (`create_developer_key()`, `get_developer_keys()`,

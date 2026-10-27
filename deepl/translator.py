@@ -12,6 +12,7 @@ from deepl.api_data import (
     ModelType,
     Language,
     SplitSentences,
+    StyleProfile,
     StyleRuleInfo,
     TextResult,
     TranslationMemoryInfo,
@@ -110,6 +111,7 @@ class Translator(BaseClient):
         glossary_ids: Optional[
             List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
         ] = None,
+        style_profile: Union[str, StyleProfile, None] = None,
     ) -> dict:
         # target_lang and source_lang are case insensitive
         target_lang = str(target_lang).upper()
@@ -194,6 +196,10 @@ class Translator(BaseClient):
             request_data["style_id"] = style_rule.style_id
         elif style_rule is not None:
             request_data["style_id"] = style_rule
+        if isinstance(style_profile, StyleProfile):
+            request_data["style_profile_id"] = style_profile.style_profile_id
+        elif style_profile is not None:
+            request_data["style_profile_id"] = style_profile
         if isinstance(translation_memory, TranslationMemoryInfo):
             request_data["translation_memory_id"] = (
                 translation_memory.translation_memory_id
@@ -268,6 +274,7 @@ class Translator(BaseClient):
         ignore_tags: Union[str, List[str], None] = None,
         model_type: Union[str, ModelType, None] = None,
         style_rule: Union[str, StyleRuleInfo, None] = None,
+        style_profile: Union[str, StyleProfile, None] = None,
         translation_memory: Union[str, TranslationMemoryInfo, None] = None,
         translation_memory_threshold: Optional[int] = None,
         custom_instructions: Optional[List[str]] = None,
@@ -303,6 +310,8 @@ class Translator(BaseClient):
             to be set and cannot be combined with the glossary parameter.
         :param style_rule: (Optional) style rule or style rule ID to use for
             translation.
+        :param style_profile: (Optional) style profile or style profile ID to
+            use for the translation.
         :param translation_memory: (Optional) translation memory or translation
             memory ID to use for translation.
         :param translation_memory_threshold: (Optional) minimum matching
@@ -358,6 +367,7 @@ class Translator(BaseClient):
             translation_memory,
             translation_memory_threshold,
             glossary_ids,
+            style_profile=style_profile,
         )
         request_data["text"] = text
 
@@ -497,6 +507,7 @@ class Translator(BaseClient):
             List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
         ] = None,
         style_rule: Union[str, StyleRuleInfo, None] = None,
+        style_profile: Union[str, StyleProfile, None] = None,
         translation_memory: Union[str, TranslationMemoryInfo, None] = None,
         translation_memory_threshold: Optional[int] = None,
         enable_watermark: Optional[bool] = None,
@@ -522,6 +533,8 @@ class Translator(BaseClient):
             to be set and cannot be combined with the glossary parameter.
         :param style_rule: (Optional) style rule or style rule ID to use for
             translation.
+        :param style_profile: (Optional) style profile or style profile ID to
+            use for the translation.
         :param translation_memory: (Optional) translation memory or translation
             memory ID to use for translation.
         :param translation_memory_threshold: (Optional) minimum matching
@@ -561,6 +574,7 @@ class Translator(BaseClient):
                         glossary=glossary,
                         glossary_ids=glossary_ids,
                         style_rule=style_rule,
+                        style_profile=style_profile,
                         translation_memory=translation_memory,
                         translation_memory_threshold=(
                             translation_memory_threshold
@@ -590,6 +604,7 @@ class Translator(BaseClient):
             List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
         ] = None,
         style_rule: Union[str, StyleRuleInfo, None] = None,
+        style_profile: Union[str, StyleProfile, None] = None,
         translation_memory: Union[str, TranslationMemoryInfo, None] = None,
         translation_memory_threshold: Optional[int] = None,
         filename: Optional[str] = None,
@@ -619,6 +634,8 @@ class Translator(BaseClient):
             to be set and cannot be combined with the glossary parameter.
         :param style_rule: (Optional) style rule or style rule ID to use for
             translation.
+        :param style_profile: (Optional) style profile or style profile ID to
+            use for the translation.
         :param translation_memory: (Optional) translation memory or translation
             memory ID to use for translation.
         :param translation_memory_threshold: (Optional) minimum matching
@@ -653,6 +670,7 @@ class Translator(BaseClient):
             glossary=glossary,
             glossary_ids=glossary_ids,
             style_rule=style_rule,
+            style_profile=style_profile,
             translation_memory=translation_memory,
             translation_memory_threshold=translation_memory_threshold,
             filename=filename,
@@ -690,6 +708,7 @@ class Translator(BaseClient):
             List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
         ] = None,
         style_rule: Union[str, StyleRuleInfo, None] = None,
+        style_profile: Union[str, StyleProfile, None] = None,
         translation_memory: Union[str, TranslationMemoryInfo, None] = None,
         translation_memory_threshold: Optional[int] = None,
         filename: Optional[str] = None,
@@ -716,6 +735,8 @@ class Translator(BaseClient):
             to be set and cannot be combined with the glossary parameter.
         :param style_rule: (Optional) style rule or style rule ID to use for
             translation.
+        :param style_profile: (Optional) style profile or style profile ID to
+            use for the translation.
         :param translation_memory: (Optional) translation memory or translation
             memory ID to use for translation.
         :param translation_memory_threshold: (Optional) minimum matching
@@ -744,6 +765,7 @@ class Translator(BaseClient):
             translation_memory,
             translation_memory_threshold,
             glossary_ids=glossary_ids,
+            style_profile=style_profile,
         )
         if output_format:
             request_data["output_format"] = output_format

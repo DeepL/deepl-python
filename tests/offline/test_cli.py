@@ -339,6 +339,7 @@ def test_reads_text_from_standard_input(mocked, runner):
             {"source_lang": "EN", "glossary_ids": ["g1", "g2"]},
         ),
         (["--style-id", "style-1"], {"style_id": "style-1"}),
+        (["--style-profile-id", "sp-1"], {"style_profile_id": "sp-1"}),
         (
             [
                 "--translation-memory-id",
@@ -470,6 +471,7 @@ def test_sends_document_options(mocked, runner, tmp_path):
             "formality": "more",
             "glossary_ids": "g1,g2",
             "style_id": "style-1",
+            "style_profile_id": "sp-1",
             "translation_memory_id": "tm-1",
             "translation_memory_threshold": 80,
         },
@@ -490,6 +492,8 @@ def test_sends_document_options(mocked, runner, tmp_path):
         "g2",
         "--style-id",
         "style-1",
+        "--style-profile-id",
+        "sp-1",
         "--translation-memory-id",
         "tm-1",
         "--translation-memory-threshold",

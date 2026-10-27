@@ -89,6 +89,7 @@ def test_sends_all_options_as_form_fields(mocked):
             "formality": "prefer_more",
             "glossary_ids": "g1,g2",
             "style_id": "style-1",
+            "style_profile_id": "sp-1",
             "translation_memory_id": "tm-1",
             "translation_memory_threshold": 80,
             "output_format": "pdf",
@@ -104,10 +105,32 @@ def test_sends_all_options_as_form_fields(mocked):
         formality=deepl.Formality.PREFER_MORE,
         glossary_ids=["g1", "g2"],
         style_rule="style-1",
+        style_profile="sp-1",
         translation_memory="tm-1",
         translation_memory_threshold=80,
         output_format="pdf",
         extra_body_parameters={"extra": "value"},
+    )
+
+
+@pytest.mark.parametrize(
+    "profile",
+    [
+        "sp-1",
+        deepl.StyleProfile.from_json(
+            {"style_profile_id": "sp-1", "name": "profile"}
+        ),
+    ],
+)
+def test_sends_style_profile_id_as_form_field(mocked, profile):
+    reply_with_handle(
+        mocked,
+        {"file": ("a.txt", b"hello")},
+        {"target_lang": "DE", "style_profile_id": "sp-1"},
+    )
+
+    make_translator().translate_document_upload(
+        b"hello", filename="a.txt", target_lang="DE", style_profile=profile
     )
 
 

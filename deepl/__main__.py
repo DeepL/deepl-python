@@ -557,6 +557,12 @@ def get_parser(prog_name):
         help="ID of style rule to use for translation",
     )
     parser_text.add_argument(
+        "--style-profile-id",
+        dest="style_profile",
+        type=str,
+        help="ID of style profile to use for translation",
+    )
+    parser_text.add_argument(
         "--translation-memory-id",
         dest="translation_memory",
         type=str,
@@ -679,6 +685,12 @@ def get_parser(prog_name):
         dest="style_rule",
         type=str,
         help="ID of style rule to use for translation",
+    )
+    parser_document.add_argument(
+        "--style-profile-id",
+        dest="style_profile",
+        type=str,
+        help="ID of style profile to use for translation",
     )
     parser_document.add_argument(
         "--translation-memory-id",

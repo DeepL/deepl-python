@@ -187,6 +187,14 @@ arguments are:
   use, options are `'v1'` and `'v2'`.
 - `style_rule`: specifies a style rule to use with translation, either as a string
   containing the ID of the style rule, or a `StyleRuleInfo` object.
+- `style_profile`: specifies a style profile to use with translation, either as
+  a string containing the ID of the style profile, or a `StyleProfile` object.
+  The profile's glossaries, style rule lists and translation memories are
+  applied per text once the source language is known; a component that does
+  not fit the language pair is left out. Cannot be combined with `glossary`,
+  `glossary_ids`, `style_rule`, `translation_memory`,
+  `translation_memory_threshold` or `custom_instructions`; the API rejects such
+  requests.
 - `translation_memory`: specifies a translation memory to use with translation,
   either as a string containing the ID of the translation memory, or a
   `TranslationMemoryInfo` object.
@@ -344,6 +352,9 @@ arguments, the available `translate_document()` and
 - `glossary`: same as in [Text translation options](#text-translation-options).
 - `glossary_ids`: same as in [Text translation options](#text-translation-options).
 - `style_rule`: same as in [Text translation options](#text-translation-options).
+- `style_profile`: same as in [Text translation options](#text-translation-options).
+  A style profile that does not exist is not rejected at upload; the
+  translation fails with a `DocumentTranslationException`.
 - `translation_memory`: same as in [Text translation options](#text-translation-options).
 - `translation_memory_threshold`: same as in [Text translation options](#text-translation-options).
 - `output_format`: (`translate_document()` only)
@@ -973,6 +984,25 @@ updated = deepl_client.update_style_profile(
     industry="Legal",
     description="",  # clears the description
     style_rule_ids=[],  # unlinks all style rule lists
+)
+```
+
+#### Translating with a style profile
+
+Pass a style profile, or its ID, as `style_profile` to `translate_text()` or to
+the document translation functions to apply its glossaries, style rule lists
+and translation memories through one option. On the command line, use
+`--style-profile-id`.
+
+```python
+result = deepl_client.translate_text(
+    "The artist is here.", target_lang="DE", style_profile=profile
+)
+deepl_client.translate_document_from_filepath(
+    "/path/to/document.txt",
+    "/path/to/output.txt",
+    target_lang="DE",
+    style_profile="YOUR_STYLE_PROFILE_ID",
 )
 ```
 

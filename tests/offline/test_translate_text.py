@@ -73,6 +73,12 @@ def style_rule_info(language="en"):
     )
 
 
+def style_profile():
+    return deepl.StyleProfile.from_json(
+        {"style_profile_id": "sp-1", "name": "profile"}
+    )
+
+
 def translation_memory_info():
     return deepl.api_data.TranslationMemoryInfo.from_json(
         {
@@ -186,6 +192,15 @@ def test_sends_style_rule_id(mocked, style_rule):
 
     make_translator().translate_text(
         "hello", target_lang="EN-US", style_rule=style_rule
+    )
+
+
+@pytest.mark.parametrize("profile", ["sp-1", style_profile()])
+def test_sends_style_profile_id_without_source_lang(mocked, profile):
+    reply_with_translation(mocked, {**BASE_BODY, "style_profile_id": "sp-1"})
+
+    make_translator().translate_text(
+        "hello", target_lang="DE", style_profile=profile
     )
 
 
