@@ -28,6 +28,7 @@ import os
 import pathlib
 import requests  # type: ignore
 import time
+import warnings
 from typing import (
     Any,
     BinaryIO,
@@ -38,6 +39,23 @@ from typing import (
     TextIO,
     Union,
 )
+
+
+def _warn_skip_language_check() -> None:
+    # stacklevel=3: point at the caller of the public method, not this helper
+    warnings.warn(
+        "skip_language_check is deprecated and has no effect",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+
+
+def _warn_skip_cache() -> None:
+    warnings.warn(
+        "skip_cache is deprecated and has no effect",
+        DeprecationWarning,
+        stacklevel=3,
+    )
 
 
 class Translator(BaseClient):
@@ -77,10 +95,12 @@ class Translator(BaseClient):
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
-        skip_language_check: bool = False,
+        skip_language_check: Optional[bool] = None,
     ):
         if not auth_key:
             raise ValueError("auth_key must not be empty")
+        if skip_language_check is not None:
+            _warn_skip_language_check()
 
         if server_url is None:
             server_url = (
@@ -944,7 +964,9 @@ class Translator(BaseClient):
         else:
             return response
 
-    def get_source_languages(self, skip_cache: bool = False) -> List[Language]:
+    def get_source_languages(
+        self, skip_cache: Optional[bool] = None
+    ) -> List[Language]:
         """Request the list of available source languages.
 
         :param skip_cache: Deprecated, and now has no effect as the
@@ -952,6 +974,8 @@ class Translator(BaseClient):
             parameter will be removed in a future version.
         :return: List of supported source languages.
         """
+        if skip_cache is not None:
+            _warn_skip_cache()
         status, content, json = self._api_call(
             "v3/languages",
             method="GET",
@@ -968,7 +992,9 @@ class Translator(BaseClient):
             if language.get("usable_as_source")
         ]
 
-    def get_target_languages(self, skip_cache: bool = False) -> List[Language]:
+    def get_target_languages(
+        self, skip_cache: Optional[bool] = None
+    ) -> List[Language]:
         """Request the list of available target languages.
 
         :param skip_cache: Deprecated, and now has no effect as the
@@ -976,6 +1002,8 @@ class Translator(BaseClient):
             parameter will be removed in a future version.
         :return: List of supported target languages.
         """
+        if skip_cache is not None:
+            _warn_skip_cache()
         status, content, json = self._api_call(
             "v3/languages",
             method="GET",

@@ -26,7 +26,7 @@ from deepl.api_data import (
     TranslationMemorySegments,
 )
 from deepl.exceptions import DeepLException
-from deepl.translator import Translator
+from deepl.translator import Translator, _warn_skip_language_check
 from deepl import util
 import os
 import pathlib
@@ -54,15 +54,16 @@ class DeepLClient(Translator):
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
-        skip_language_check: bool = False,
+        skip_language_check: Optional[bool] = None,
     ):
+        if skip_language_check is not None:
+            _warn_skip_language_check()
         super().__init__(
             auth_key,
             server_url=server_url,
             proxy=proxy,
             send_platform_info=send_platform_info,
             verify_ssl=verify_ssl,
-            skip_language_check=skip_language_check,
         )
 
     def rephrase_text(

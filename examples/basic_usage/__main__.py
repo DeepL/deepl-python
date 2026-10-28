@@ -24,7 +24,7 @@ def main() -> None:
         auth_key, server_url=server_url
     )
     u: deepl.Usage = translator.get_usage()
-    u.any_limit_exceeded
+    u.any_limit_reached
 
     # Use most translation features of the library
     _ = translator.translate_text(

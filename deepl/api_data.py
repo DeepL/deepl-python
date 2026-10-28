@@ -170,7 +170,9 @@ class Usage:
             import warnings
 
             warnings.warn(
-                "limit_reached is deprecated", DeprecationWarning, stacklevel=2
+                "limit_exceeded is deprecated, use limit_reached",
+                DeprecationWarning,
+                stacklevel=2,
             )
             return self.limit_reached
 
@@ -278,7 +280,9 @@ class Usage:
         import warnings
 
         warnings.warn(
-            "any_limit_reached is deprecated", DeprecationWarning, stacklevel=2
+            "any_limit_exceeded is deprecated, use any_limit_reached",
+            DeprecationWarning,
+            stacklevel=2,
         )
         return self.any_limit_reached
 

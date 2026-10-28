@@ -265,9 +265,9 @@ def test_sends_iterable_text_as_list(mocked):
 def test_accepts_skip_language_check_without_effect(mocked):
     reply_with_translation(mocked, BASE_BODY)
 
-    make_translator(skip_language_check=True).translate_text(
-        "hello", target_lang="DE"
-    )
+    with pytest.warns(DeprecationWarning):
+        translator = make_translator(skip_language_check=True)
+    translator.translate_text("hello", target_lang="DE")
 
 
 def test_parses_single_text_into_one_result(mocked):

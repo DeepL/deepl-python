@@ -150,3 +150,17 @@ def test_passes_proxy_dictionary_to_requests(mocked):
 def test_raises_for_proxy_of_invalid_type():
     with pytest.raises(ValueError, match="proxy may be specified"):
         make_translator(proxy=["http://proxy.example.com"])
+
+
+@pytest.mark.parametrize("client_class", [deepl.Translator, deepl.DeepLClient])
+@pytest.mark.parametrize("skip_language_check", [True, False])
+def test_warns_about_deprecated_skip_language_check(
+    client_class, skip_language_check
+):
+    with pytest.warns(
+        DeprecationWarning, match="^skip_language_check is deprecated"
+    ) as w:
+        client_class("k", skip_language_check=skip_language_check)
+
+    assert len(w) == 1
+    assert w[0].filename == __file__

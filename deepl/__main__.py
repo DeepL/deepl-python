@@ -1045,13 +1045,10 @@ def main(args=None, prog_name=None):
                 f"{keyring_key_name} in {keyring_key_folder} in keyring"
             )
 
-        # Note: the get_languages() call to verify language codes is skipped
-        #       because the CLI makes one API call per execution.
         deepl_client = deepl.DeepLClient(
             auth_key=auth_key,
             server_url=server_url,
             proxy=proxy_url,
-            skip_language_check=True,
             send_platform_info=not args.noplatforminfo,
         )
 

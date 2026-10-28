@@ -60,7 +60,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   types are unchanged, but the returned language lists may now include
   additional languages.
 
+### Deprecated
+- Passing `skip_language_check` to `Translator()` or `DeepLClient()`, or
+  `skip_cache` to `get_source_languages()` or `get_target_languages()`, now
+  emits a `DeprecationWarning`. Both parameters have no effect and will be
+  removed in the next major version. Their defaults changed from `False` to
+  `None`; passing `False` explicitly also warns.
+
 ### Fixed
+- Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and
+  `Usage.any_limit_exceeded`, which named the replacement instead of the
+  deprecated property. They now read "limit_exceeded is deprecated, use
+  limit_reached" and "any_limit_exceeded is deprecated, use any_limit_reached".
+- Fixed the CLI emitting a `DeprecationWarning` for `skip_language_check`.
 - Fixed the `Language.ENGLISH` and `Language.PORTUGUESE` comments that
   claimed they are only usable as source languages.
 - Fixed `create_glossary_from_csv()` failing with "Object of type bytes is not

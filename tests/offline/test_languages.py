@@ -76,12 +76,27 @@ def test_parses_target_languages_with_formality_support(mocked):
         match=bodyless_request({"resource": "translate_text"}),
     )
 
-    languages = make_deepl_client().get_target_languages(skip_cache=True)
+    languages = make_deepl_client().get_target_languages()
 
     assert [(lang.code, lang.supports_formality) for lang in languages] == [
         ("DE", True),
         ("EN-US", False),
     ]
+
+
+@pytest.mark.parametrize(
+    "method", ["get_source_languages", "get_target_languages"]
+)
+@pytest.mark.parametrize("skip_cache", [True, False])
+def test_warns_about_deprecated_skip_cache(mocked, method, skip_cache):
+    mocked.get(url("v3/languages"), json=LANGUAGES_JSON)
+
+    with pytest.warns(
+        DeprecationWarning, match="^skip_cache is deprecated"
+    ) as w:
+        getattr(make_deepl_client(), method)(skip_cache=skip_cache)
+
+    assert w[0].filename == __file__
 
 
 def test_returns_no_languages_for_unexpected_reply(mocked):

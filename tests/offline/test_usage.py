@@ -67,9 +67,15 @@ def test_warns_about_deprecated_limit_exceeded(mocked):
 
     usage = make_translator().get_usage()
 
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(
+        DeprecationWarning,
+        match="^any_limit_exceeded is deprecated, use any_limit_reached$",
+    ):
         assert usage.any_limit_exceeded
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(
+        DeprecationWarning,
+        match="^limit_exceeded is deprecated, use limit_reached$",
+    ):
         assert usage.character.limit_exceeded
 
 
