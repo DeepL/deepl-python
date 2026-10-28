@@ -67,6 +67,27 @@ def test_appends_message_and_detail_of_error_reply(mocked):
     )
 
 
+@pytest.mark.parametrize(
+    "reply, expected",
+    [
+        ({"message": None, "detail": 7}, "Bad request, detail: 7"),
+        (
+            {"message": {"code": 1}, "detail": ["a"]},
+            'Bad request, message: {"code": 1}, detail: ["a"]',
+        ),
+    ],
+)
+def test_formats_non_string_message_and_detail_of_error_reply(
+    mocked, reply, expected
+):
+    mocked.get(url("v2/usage"), status=400, json=reply)
+
+    with pytest.raises(deepl.DeepLException) as exc_info:
+        make_translator().get_usage()
+
+    assert str(exc_info.value) == expected
+
+
 def test_ignores_error_reply_that_is_not_json(mocked):
     mocked.get(url("v2/usage"), status=400, body="<html>nope</html>")
 

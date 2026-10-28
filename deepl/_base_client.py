@@ -121,10 +121,14 @@ class BaseClient:
         downloading_document: bool = False,
     ):
         message = ""
-        if json is not None and isinstance(json, dict) and "message" in json:
-            message += ", message: " + json["message"]
-        if json is not None and isinstance(json, dict) and "detail" in json:
-            message += ", detail: " + json["detail"]
+        if isinstance(json, dict):
+            for field in ("message", "detail"):
+                value = json.get(field)
+                if value is None:
+                    continue
+                if not isinstance(value, str):
+                    value = json_module.dumps(value)
+                message += f", {field}: {value}"
 
         if 200 <= status_code < 400:
             return

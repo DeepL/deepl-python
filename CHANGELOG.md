@@ -101,6 +101,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   raised `DeepLException` with "Unexpected status code: 401".
 - `DeepLException.should_retry` is now `True` for every HTTP 5xx error. It was
   `False` for all of them except 503, although they are retried.
+- An error response whose `message` or `detail` is not a string (a number,
+  object or `null`) no longer raises `TypeError`; the value is included as
+  JSON, `null` is left out.
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and
   `Usage.any_limit_exceeded`, which named the replacement instead of the
   deprecated property. They now read "limit_exceeded is deprecated, use
