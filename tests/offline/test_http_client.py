@@ -6,7 +6,7 @@ import deepl
 import pytest
 import requests  # type: ignore
 
-from .client import make_translator, url
+from .client import make_deepl_client, make_translator, url
 from .matchers import bodyless_request
 
 USAGE_JSON = {"character_count": 1, "character_limit": 2}
@@ -51,6 +51,36 @@ def test_stops_retrying_after_max_network_retries(mocked, monkeypatch):
         make_translator().get_usage()
 
     assert len(mocked.calls) == 2
+
+
+@pytest.mark.parametrize("make_client", [make_translator, make_deepl_client])
+def test_max_retries_option_overrides_global(mocked, no_retries, make_client):
+    mocked.get(url("v2/usage"), status=503)
+    mocked.get(url("v2/usage"), status=503)
+    mocked.get(url("v2/usage"), json=USAGE_JSON)
+
+    make_client(max_retries=2).get_usage()
+
+    assert len(mocked.calls) == 3
+
+
+def test_max_retries_option_stops_retrying(mocked, monkeypatch):
+    monkeypatch.setattr(deepl.http_client, "max_network_retries", 5)
+    mocked.get(url("v2/usage"), status=500)
+
+    with pytest.raises(deepl.DeepLException, match="Unexpected status code"):
+        make_translator(max_retries=0).get_usage()
+
+    assert len(mocked.calls) == 1
+
+
+@pytest.mark.parametrize("make_client", [make_translator, make_deepl_client])
+def test_passes_timeout_option_to_requests(mocked, make_client):
+    mocked.get(url("v2/usage"), json=USAGE_JSON)
+
+    make_client(timeout_s=42.0).get_usage()
+
+    assert mocked.calls[0].request.req_kwargs["timeout"] == 42.0
 
 
 def test_raises_connection_exception_for_timeout_without_retries(

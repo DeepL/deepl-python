@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added the `max_retries` and `timeout_s` options to the `Translator`,
+  `DeepLClient` and `DeepLAdminClient` constructors, to set the maximum number
+  of retries and the minimum per-attempt timeout in seconds for each client.
 - Added the `style_profile` option to `translate_text()` and the document
   translation functions (`translate_document()`,
   `translate_document_from_filepath()`, `translate_document_upload()`) to
@@ -66,6 +69,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   emits a `DeprecationWarning`. Both parameters have no effect and will be
   removed in the next major version. Their defaults changed from `False` to
   `None`; passing `False` explicitly also warns.
+- The module-level settings `deepl.http_client.max_network_retries` and
+  `deepl.http_client.min_connection_timeout` are deprecated in favour of the
+  `max_retries` and `timeout_s` client options, and will be removed in the
+  next major version. They still apply to clients created without these
+  options. No warning is emitted.
 
 ### Fixed
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and

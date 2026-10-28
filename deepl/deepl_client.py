@@ -54,6 +54,8 @@ class DeepLClient(Translator):
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
+        max_retries: Optional[int] = None,
+        timeout_s: Optional[float] = None,
         skip_language_check: Optional[bool] = None,
     ):
         if skip_language_check is not None:
@@ -64,6 +66,8 @@ class DeepLClient(Translator):
             proxy=proxy,
             send_platform_info=send_platform_info,
             verify_ssl=verify_ssl,
+            max_retries=max_retries,
+            timeout_s=timeout_s,
         )
 
     def rephrase_text(

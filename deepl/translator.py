@@ -77,6 +77,12 @@ class Translator(BaseClient):
     :param verify_ssl: (Optional) Controls how requests verifies SSL
         certificates. This is passed to the underlying requests session, see
         the requests verify documentation for more information.
+    :param max_retries: (Optional) Maximum number of times a failed request
+        is retried, for failures that may be transient (e.g. HTTP 429). If
+        None, deepl.http_client.max_network_retries is used (default 5).
+    :param timeout_s: (Optional) Minimum timeout in seconds for each attempt
+        of a request. If None, deepl.http_client.min_connection_timeout is used
+        (default 10.0).
     :param skip_language_check: Deprecated, and now has no effect as the
         corresponding internal functionality has been removed. This parameter
         will be removed in a future version.
@@ -95,6 +101,8 @@ class Translator(BaseClient):
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
+        max_retries: Optional[int] = None,
+        timeout_s: Optional[float] = None,
         skip_language_check: Optional[bool] = None,
     ):
         if not auth_key:
@@ -115,6 +123,8 @@ class Translator(BaseClient):
             proxy=proxy,
             send_platform_info=send_platform_info,
             verify_ssl=verify_ssl,
+            max_retries=max_retries,
+            timeout_s=timeout_s,
         )
 
     def _check_language_and_formality(

@@ -1363,27 +1363,38 @@ deepl_client = deepl.DeepLClient(..., verify_ssl=False)
 This option is passed to the underlying `requests` session as the `verify`
 option, see the [documentation for requests][requests-verify-ssl-docs].
 
-#### Configure automatic retries
+#### Configure automatic retries and timeouts
 
 This SDK will automatically retry failed HTTP requests (if the failures could
-be transient, e.g. a HTTP 429 status code). This behaviour can be configured
-in `http_client.py`, for example by default the number of retries is 5. This
-can be changed to 3 as follows:
+be transient, e.g. a HTTP 429 status code). By default a request is retried up
+to 5 times, and each attempt has a timeout of at least 10 seconds. You can
+change both per client with the `max_retries` and `timeout_s` options when
+constructing a `deepl.DeepLClient`:
 
 ```python
-import deepl
-
-deepl.http_client.max_network_retries = 3
-c = deepl.DeepLClient(...)
-c.translate_text(...)
+deepl_client = deepl.DeepLClient(..., max_retries=3, timeout_s=30.0)
 ```
+
+`max_retries` is the maximum number of retries after the first attempt (0
+disables retries), and `timeout_s` is the minimum timeout in seconds for each
+attempt. Both options are also accepted by `deepl.Translator` and
+`deepl.DeepLAdminClient`.
 
 `DeepLAdminClient.create_developer_key()` is only retried after an HTTP 429
 status code or a DNS resolution failure, because a retry after any other
 failure could create a second key.
 
-You can configure the timeout `min_connection_timeout` the same way, as well
-as set a custom `user_agent`, see the next section.
+The module-level settings `deepl.http_client.max_network_retries` and
+`deepl.http_client.min_connection_timeout` are deprecated and will be removed
+in a future major version. They still apply to clients created without the
+corresponding option, and affect every client in the process:
+
+```python
+deepl.http_client.max_network_retries = 3  # deprecated, use max_retries
+deepl.http_client.min_connection_timeout = 30.0  # deprecated, use timeout_s
+```
+
+A custom `user_agent` can still be set in `http_client`, see the next section.
 
 #### Anonymous platform information
 

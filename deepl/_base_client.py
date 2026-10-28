@@ -37,10 +37,16 @@ class BaseClient:
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
+        max_retries: Optional[int] = None,
+        timeout_s: Optional[float] = None,
     ):
         self._server_url = server_url
         self._client = http_client.HttpClient(
-            proxy, send_platform_info, verify_ssl
+            proxy,
+            send_platform_info,
+            verify_ssl,
+            max_retries=max_retries,
+            timeout_s=timeout_s,
         )
         self.headers = {"Authorization": f"DeepL-Auth-Key {auth_key}"}
 

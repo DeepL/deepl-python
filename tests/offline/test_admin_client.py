@@ -491,3 +491,13 @@ def test_forbidden_raises_authorization_exception(mocked):
 
     with pytest.raises(deepl.AuthorizationException):
         make_admin_client().get_developer_keys()
+
+
+def test_admin_client_applies_retry_and_timeout_options(mocked, no_retries):
+    mocked.get(url("v2/admin/developer-keys"), status=503)
+    mocked.get(url("v2/admin/developer-keys"), json=[])
+
+    make_admin_client(max_retries=1, timeout_s=42.0).get_developer_keys()
+
+    assert len(mocked.calls) == 2
+    assert mocked.calls[1].request.req_kwargs["timeout"] == 42.0

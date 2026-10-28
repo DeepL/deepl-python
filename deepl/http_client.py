@@ -31,7 +31,8 @@ class _BackoffTimer:
     BACKOFF_JITTER = 0.23
     BACKOFF_MULTIPLIER = 1.6
 
-    def __init__(self):
+    def __init__(self, min_timeout: Optional[float] = None):
+        self._min_timeout = min_timeout
         self._num_retries = 0
         self._backoff = self.BACKOFF_INITIAL
         self._deadline = time.time() + self._backoff
@@ -40,7 +41,12 @@ class _BackoffTimer:
         return self._num_retries
 
     def get_timeout(self):
-        return max(self.get_time_until_deadline(), min_connection_timeout)
+        min_timeout = (
+            min_connection_timeout
+            if self._min_timeout is None
+            else self._min_timeout
+        )
+        return max(self.get_time_until_deadline(), min_timeout)
 
     def get_time_until_deadline(self):
         return max(self._deadline - time.time(), 0.0)
@@ -67,7 +73,11 @@ class HttpClient:
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
+        max_retries: Optional[int] = None,
+        timeout_s: Optional[float] = None,
     ):
+        self._max_retries = max_retries
+        self._timeout_s = timeout_s
         self._session = requests.Session()
         if proxy:
             if isinstance(proxy, str):
@@ -110,7 +120,7 @@ class HttpClient:
         errors), for requests that are unsafe to repeat.
 
         Return and exceptions are the same as function request()."""
-        backoff = _BackoffTimer()
+        backoff = _BackoffTimer(self._timeout_s)
         request = self._prepare_request(
             method, url, data, json, headers, **kwargs
         )
@@ -175,9 +185,15 @@ class HttpClient:
         self,
         request: requests.PreparedRequest,
         stream: bool,
-        timeout: float = min_connection_timeout,
+        timeout: Optional[float] = None,
         **kwargs,
     ) -> Tuple[int, Union[str, requests.Response]]:
+        if timeout is None:
+            timeout = (
+                min_connection_timeout
+                if self._timeout_s is None
+                else self._timeout_s
+            )
         try:
             response = self._session.send(
                 request, stream=stream, timeout=timeout, **kwargs
@@ -207,7 +223,12 @@ class HttpClient:
     def _should_retry(
         self, response, exception, num_retries, only_unprocessed=False
     ):
-        if num_retries >= max_network_retries:
+        max_retries = (
+            max_network_retries
+            if self._max_retries is None
+            else self._max_retries
+        )
+        if num_retries >= max_retries:
             return False
 
         if response is None:
