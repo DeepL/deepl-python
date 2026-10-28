@@ -1363,6 +1363,10 @@ server_url = "http://user:pass@localhost:3000"
 deepl_client = deepl.DeepLClient(..., server_url=server_url)
 ```
 
+A path in the server URL is kept: with `server_url="https://example.com/deepl"`
+requests go to `https://example.com/deepl/v2/...`. The `server_url` property
+returns the URL a client uses.
+
 #### Proxy configuration
 
 You can configure a proxy by specifying the `proxy` argument when constructing a

@@ -75,7 +75,11 @@ class BaseClient:
 
         if data is None:
             data = {}
-        url = urllib.parse.urljoin(self._server_url, url)
+        # Without a trailing slash, urljoin drops the last path segment.
+        base_url = self._server_url
+        if not base_url.endswith("/"):
+            base_url += "/"
+        url = urllib.parse.urljoin(base_url, url)
 
         util.log_info("Request to DeepL API", method=method, url=url)
         util.log_debug("Request details", data=data, json=json)

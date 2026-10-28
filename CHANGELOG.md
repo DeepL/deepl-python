@@ -104,6 +104,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An error response whose `message` or `detail` is not a string (a number,
   object or `null`) no longer raises `TypeError`; the value is included as
   JSON, `null` is left out.
+- A `server_url` with a path but no trailing slash, such as
+  `https://example.com/deepl`, no longer loses its path in request URLs.
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and
   `Usage.any_limit_exceeded`, which named the replacement instead of the
   deprecated property. They now read "limit_exceeded is deprecated, use

@@ -86,6 +86,12 @@ def test_raises_for_empty_auth_key():
         deepl.DeepLClient("")
 
 
+def test_keeps_path_prefix_of_server_url(mocked):
+    mocked.get("http://localhost:3000/prefix/v2/usage", json={})
+
+    make_deepl_client(server_url="http://localhost:3000/prefix").get_usage()
+
+
 def test_sends_requests_to_free_server_for_free_auth_key(mocked):
     mocked.get(
         "https://api-free.deepl.com/v2/usage",
