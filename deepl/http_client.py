@@ -346,8 +346,7 @@ def _generate_user_agent(
             try:
                 library_info_str += (
                     f" ({platform.platform()}) "
-                    f"python/{platform.python_version()} "
-                    f"requests/{requests.__version__}"
+                    f"python/{platform.python_version()}"
                 )
             except Exception:
                 util.log_info(

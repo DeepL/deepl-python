@@ -59,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`
   (glossary functions keep raising `GlossaryNotFoundException`, now a
   subclass of `NotFoundException`).
+- The `User-Agent` platform information no longer includes the `requests`
+  version; it ends with `python/<version>`.
 - Target languages `EN` and `PT` are no longer rejected client-side. The API
   translates them into `EN-US` and `PT-PT` respectively.
 - `get_source_languages()`, `get_target_languages()`, and

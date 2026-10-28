@@ -13,9 +13,7 @@ from responses import matchers
 from .client import AUTH_HEADER, make_deepl_client, make_translator, url
 from .matchers import bodyless_request
 
-PLATFORM_USER_AGENT = re.compile(
-    r"^deepl-python/\S+ \(.+\) python/\S+ requests/\S+$"
-)
+PLATFORM_USER_AGENT = re.compile(r"^deepl-python/\S+ \(.+\) python/\S+$")
 LIBRARY_USER_AGENT = f"deepl-python/{deepl.__version__}"
 
 

@@ -83,8 +83,8 @@ class Translator(BaseClient):
         underlying requests session, see the requests proxy documentation for
         more information.
     :param send_platform_info: (Optional) boolean that indicates if the client
-        library can send basic platform info (python version, OS, http library
-        version) to the DeepL API. True = send info, False = only send client
+        library can send basic platform info (python version, OS) to the
+        DeepL API. True = send info, False = only send client
         library version
     :param verify_ssl: (Optional) Controls how requests verifies SSL
         certificates. This is passed to the underlying requests session, see
