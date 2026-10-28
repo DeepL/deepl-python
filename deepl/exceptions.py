@@ -29,7 +29,8 @@ class DeepLException(Exception):
 
 
 class AuthorizationException(DeepLException):
-    """Authorization failed, check your authentication key."""
+    """Authorization failed (HTTP 401 or 403), check your authentication
+    key."""
 
     pass
 

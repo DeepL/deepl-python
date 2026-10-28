@@ -128,7 +128,10 @@ class BaseClient:
 
         if 200 <= status_code < 400:
             return
-        elif status_code == http.HTTPStatus.FORBIDDEN:
+        elif status_code in (
+            http.HTTPStatus.UNAUTHORIZED,
+            http.HTTPStatus.FORBIDDEN,
+        ):
             raise AuthorizationException(
                 f"Authorization failure, check auth_key{message}",
                 http_status_code=status_code,

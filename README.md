@@ -1322,7 +1322,7 @@ If invalid arguments are provided, they may raise the standard exceptions
 
 | Exception | Raised for |
 |---|---|
-| `AuthorizationException` | HTTP 403: invalid or unauthorized key |
+| `AuthorizationException` | HTTP 401 or 403: invalid or unauthorized key |
 | `NotFoundException` | HTTP 404 on any endpoint |
 | `QuotaExceededException` | HTTP 456: quota exceeded |
 | `TooManyRequestsException` | HTTP 429 after all retries |
