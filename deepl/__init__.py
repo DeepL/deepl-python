@@ -61,6 +61,7 @@ from .translator import (  # noqa
 from .util import (  # noqa
     auth_key_is_free_account,
     convert_tsv_to_dict,
+    is_free_account_auth_key,
     convert_dict_to_tsv,
     validate_glossary_term,
 )
@@ -107,5 +108,6 @@ __all__ = [
     "auth_key_is_free_account",
     "convert_tsv_to_dict",
     "convert_dict_to_tsv",
+    "is_free_account_auth_key",
     "validate_glossary_term",
 ]

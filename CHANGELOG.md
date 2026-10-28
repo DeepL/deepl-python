@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   calling `set_app_info()`.
 - Added `NotFoundException`, raised for HTTP 404 on every endpoint.
   `GlossaryNotFoundException` is now its subclass.
+- Added `is_free_account_auth_key()`, which replaces `auth_key_is_free_account()`.
 - Added the `max_retries` and `timeout_s` options to the `Translator`,
   `DeepLClient` and `DeepLAdminClient` constructors, to set the maximum number
   of retries and the minimum per-attempt timeout in seconds for each client.
@@ -84,6 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - `GlossaryNotFoundException` is deprecated, catch `NotFoundException` instead.
   It will be removed in the next major version.
+- `auth_key_is_free_account()` is deprecated, use `is_free_account_auth_key()`.
+  Calling it emits a `DeprecationWarning`.
 - The module-level setting `deepl.http_client.user_agent` is deprecated in
   favour of a `User-Agent` entry in the `headers` option, and will be removed in
   the next major version. Assigning it emits a `DeprecationWarning`.

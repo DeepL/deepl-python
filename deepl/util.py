@@ -8,6 +8,7 @@ import io
 import itertools
 import logging
 import re
+import warnings
 from typing import Any, BinaryIO, Dict, Optional, TextIO, Union
 
 logger = logging.getLogger("deepl")
@@ -69,9 +70,24 @@ def get_float_safe(d: Optional[dict], key: str) -> Optional[float]:
         return None
 
 
-def auth_key_is_free_account(auth_key: str) -> bool:
+def is_free_account_auth_key(auth_key: str) -> bool:
     """Returns True if the given authentication key belongs to a DeepL API Free
     account, otherwise False."""
+    return auth_key.strip().endswith(":fx")
+
+
+def auth_key_is_free_account(auth_key: str) -> bool:
+    """Returns True if the given authentication key belongs to a DeepL API Free
+    account, otherwise False.
+
+    .. deprecated::
+        Use is_free_account_auth_key() instead.
+    """
+    warnings.warn(
+        "auth_key_is_free_account is deprecated, use is_free_account_auth_key",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return auth_key.endswith(":fx")
 
 

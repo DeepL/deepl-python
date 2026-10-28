@@ -76,6 +76,11 @@ configuration file or environment variable.
 `DeepLClient` accepts additional options, see [Configuration](#configuration)
 for more information.
 
+`deepl.is_free_account_auth_key(auth_key)` returns `True` if the key belongs
+to a DeepL API Free account (it ends with `:fx`). `auth_key_is_free_account()`
+is deprecated in its favour. Leading and trailing whitespace of the key is
+ignored.
+
 ### Translating text
 
 To translate text, call `translate_text()`. The first argument is a string

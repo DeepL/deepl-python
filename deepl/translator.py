@@ -135,7 +135,7 @@ class Translator(BaseClient):
         if server_url is None:
             server_url = (
                 self._DEEPL_SERVER_URL_FREE
-                if util.auth_key_is_free_account(auth_key)
+                if util.is_free_account_auth_key(auth_key)
                 else self._DEEPL_SERVER_URL
             )
 

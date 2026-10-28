@@ -60,3 +60,10 @@ def test_parse_timestamp_extra_nanoseconds():
     assert result == datetime.datetime(
         2025, 1, 15, 10, 30, 0, 123456, tzinfo=datetime.timezone.utc
     )
+
+
+@pytest.mark.parametrize(
+    "auth_key, expected", [("k:fx", True), (" k:fx\n", True), ("k", False)]
+)
+def test_is_free_account_auth_key(auth_key, expected):
+    assert deepl.is_free_account_auth_key(auth_key) is expected
