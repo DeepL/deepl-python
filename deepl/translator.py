@@ -118,8 +118,9 @@ class Translator(BaseClient):
         timeout_s: Optional[float] = None,
         skip_language_check: Optional[bool] = None,
     ):
-        if not auth_key:
+        if not auth_key or not auth_key.strip():
             raise ValueError("auth_key must not be empty")
+        auth_key = auth_key.strip()
         if skip_language_check is not None:
             _warn_skip_language_check()
 

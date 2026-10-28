@@ -41,6 +41,9 @@ class BaseClient:
         max_retries: Optional[int] = None,
         timeout_s: Optional[float] = None,
     ):
+        auth_key = auth_key.strip()
+        if not auth_key:
+            raise ValueError("auth_key must not be empty")
         self._server_url = server_url
         self._client = http_client.HttpClient(
             proxy,

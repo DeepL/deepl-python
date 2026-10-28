@@ -106,6 +106,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   JSON, `null` is left out.
 - A `server_url` with a path but no trailing slash, such as
   `https://example.com/deepl`, no longer loses its path in request URLs.
+- Leading and trailing whitespace in the authentication key is removed before
+  it is sent and before the `:fx` check that selects the API Free server. A
+  key of only whitespace is rejected with `ValueError`.
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and
   `Usage.any_limit_exceeded`, which named the replacement instead of the
   deprecated property. They now read "limit_exceeded is deprecated, use

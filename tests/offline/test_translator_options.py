@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import re
+import warnings
 from unittest.mock import patch
 
 import deepl
@@ -79,11 +80,36 @@ def test_sends_library_version_when_platform_lookup_fails(mocked):
         make_translator().set_app_info("failing_platform", "1.0").get_usage()
 
 
-def test_raises_for_empty_auth_key():
+@pytest.mark.parametrize("auth_key", ["", " \t\n"])
+def test_raises_for_empty_auth_key(auth_key):
     with pytest.raises(ValueError, match="auth_key must not be empty"):
-        deepl.Translator("")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            deepl.Translator(auth_key)
     with pytest.raises(ValueError, match="auth_key must not be empty"):
-        deepl.DeepLClient("")
+        deepl.DeepLClient(auth_key)
+
+
+def test_trims_auth_key(mocked):
+    mocked.get(
+        "https://api-free.deepl.com/v2/usage",
+        json={},
+        match=[
+            matchers.header_matcher({"Authorization": "DeepL-Auth-Key k:fx"})
+        ],
+    )
+
+    deepl.DeepLClient(" k:fx\n").get_usage()
+
+
+def test_admin_client_trims_admin_key(mocked):
+    mocked.get(
+        url("v2/admin/developer-keys"),
+        json=[],
+        match=[matchers.header_matcher({"Authorization": AUTH_HEADER})],
+    )
+
+    deepl.DeepLAdminClient(" k\n").get_developer_keys()
 
 
 def test_keeps_path_prefix_of_server_url(mocked):
