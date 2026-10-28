@@ -342,6 +342,12 @@ these steps individually, you can instead use the following functions directly:
   `translate_document_wait_until_done()`), and
 - `translate_document_download()`
 
+`translate_document_download()` writes the translated document to the
+file-like object given as `output_file`, in chunks of `chunk_size` bytes
+(default 64 KiB). Calling it without `output_file` returns the streaming
+`requests.Response` instead; this is deprecated, emits a `DeprecationWarning`,
+and `output_file` will be required in the next major version.
+
 #### Document translation options
 
 In addition to the input file, output file, `source_lang` and `target_lang`
@@ -1139,6 +1145,11 @@ with open("/path/to/exported.tmx", "wb") as output_file:
         job, output_file, chunk_size=8192
     )
 ```
+
+`download_translation_memory_export()` writes in chunks of `chunk_size` bytes
+(default 64 KiB). Calling it without `output_file` returns the streaming
+`requests.Response` instead; this is deprecated, emits a `DeprecationWarning`,
+and `output_file` will be required in the next major version.
 
 #### Deleting a translation memory
 

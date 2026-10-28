@@ -62,8 +62,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `/v2/glossary-language-pairs` endpoints. Public signatures and return
   types are unchanged, but the returned language lists may now include
   additional languages.
+- The default `chunk_size` of `translate_document_download()` and
+  `download_translation_memory_export()` is now 64 KiB instead of 1 byte, so
+  downloads into `output_file` no longer write one byte per call. The written
+  content is unchanged; an explicit `chunk_size` still applies.
 
 ### Deprecated
+- Calling `translate_document_download()` or
+  `download_translation_memory_export()` without `output_file` now emits a
+  `DeprecationWarning`. It still returns the streaming `requests.Response`; in
+  the next major version `output_file` will be required and both methods will
+  return `None`.
 - Passing `skip_language_check` to `Translator()` or `DeepLClient()`, or
   `skip_cache` to `get_source_languages()` or `get_target_languages()`, now
   emits a `DeprecationWarning`. Both parameters have no effect and will be

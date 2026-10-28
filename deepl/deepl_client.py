@@ -26,7 +26,12 @@ from deepl.api_data import (
     TranslationMemorySegments,
 )
 from deepl.exceptions import DeepLException
-from deepl.translator import Translator, _warn_skip_language_check
+from deepl.translator import (
+    Translator,
+    _DOWNLOAD_CHUNK_SIZE,
+    _warn_download_without_output_file,
+    _warn_skip_language_check,
+)
 from deepl import util
 import os
 import pathlib
@@ -1712,17 +1717,18 @@ class DeepLClient(Translator):
         self,
         job: TranslationMemoryJob,
         output_file: Union[BinaryIO, Any, None] = None,
-        chunk_size: int = 1,
+        chunk_size: int = _DOWNLOAD_CHUNK_SIZE,
     ) -> Optional[requests.Response]:
         """Downloads the TMX file of a completed export job.
 
         :param job: Completed export TranslationMemoryJob carrying the
             download URL.
-        :param output_file: (Optional) File-like object to store the
-            downloaded TMX file. If not provided, use iter_content() on the
-            returned response object to read streamed file data.
-        :param chunk_size: (Optional) Size of chunk in bytes for streaming.
-            Only used if output_file is specified.
+        :param output_file: File-like object to store the downloaded TMX
+            file. Omitting it is deprecated: the requests.Response is then
+            returned instead, and iter_content() reads the streamed file data.
+            In the next major version output_file will be required.
+        :param chunk_size: (Optional) Size of chunk in bytes for streaming,
+            default 64 KiB. Only used if output_file is specified.
         :return: None if output_file is specified, otherwise the
             requests.Response.
         """
@@ -1745,6 +1751,7 @@ class DeepLClient(Translator):
             for chunk in content.iter_content(chunk_size=chunk_size):
                 output_file.write(chunk)
             return None
+        _warn_download_without_output_file()
         return content
 
     def import_translation_memory_from_filepath(

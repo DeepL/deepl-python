@@ -50,6 +50,18 @@ def _warn_skip_language_check() -> None:
     )
 
 
+# Default chunk size for writing downloads into output_file.
+_DOWNLOAD_CHUNK_SIZE = 64 * 1024
+
+
+def _warn_download_without_output_file() -> None:
+    warnings.warn(
+        "returning the response is deprecated; pass output_file",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+
+
 def _warn_skip_cache() -> None:
     warnings.warn(
         "skip_cache is deprecated and has no effect",
@@ -932,20 +944,18 @@ class Translator(BaseClient):
         self,
         handle: DocumentHandle,
         output_file: Union[TextIO, BinaryIO, Any, None] = None,
-        chunk_size: int = 1,
+        chunk_size: int = _DOWNLOAD_CHUNK_SIZE,
     ) -> Optional[requests.Response]:
         """Downloads the translated document for the request associated with
-        given handle and returns a response object for streaming the data. Call
-        iter_content() on the response object to read streamed file data.
-        Alternatively, a file-like object may be given as output_file where the
-        complete file will be downloaded and written to.
+        given handle and writes it to the file-like object output_file.
 
         :param handle: DocumentHandle associated with request.
-        :param output_file: (Optional) File-like object to store downloaded
-            document. If not provided, use iter_content() on the returned
-            response object to read streamed file data.
-        :param chunk_size: (Optional) Size of chunk in bytes for streaming.
-            Only used if output_file is specified.
+        :param output_file: File-like object to store downloaded document.
+            Omitting it is deprecated: the requests.Response is then returned
+            instead, and iter_content() reads the streamed file data. In the
+            next major version output_file will be required.
+        :param chunk_size: (Optional) Size of chunk in bytes for streaming,
+            default 64 KiB. Only used if output_file is specified.
         :return: None if output_file is specified, otherwise the
             requests.Response will be returned.
         """
@@ -973,6 +983,7 @@ class Translator(BaseClient):
                 output_file.write(chunk)
             return None
         else:
+            _warn_download_without_output_file()
             return response
 
     def get_source_languages(

@@ -540,7 +540,7 @@ def test_downloads_export_without_authorization_into_file_object(mocked):
     assert output.getvalue() == b"<tmx/>"
 
 
-def test_returns_streaming_response_when_downloading_export_without_file(
+def test_warns_and_returns_response_when_downloading_export_without_file(
     mocked,
 ):
     mocked.get(DOWNLOAD_URL, body=b"<tmx/>", match=storage_request())
@@ -548,7 +548,8 @@ def test_returns_streaming_response_when_downloading_export_without_file(
         job_json("completed", "export", download_url=DOWNLOAD_URL)
     )
 
-    response = make_deepl_client().download_translation_memory_export(job)
+    with pytest.warns(DeprecationWarning, match="pass output_file"):
+        response = make_deepl_client().download_translation_memory_export(job)
 
     assert b"".join(response.iter_content(chunk_size=3)) == b"<tmx/>"
 
