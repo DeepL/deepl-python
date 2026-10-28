@@ -1329,7 +1329,7 @@ If invalid arguments are provided, they may raise the standard exceptions
 | `ConnectionException` | no HTTP response (connection failure, timeout) |
 | `DeepLException` | any other error, with `http_status_code` set |
 
-`GlossaryNotFoundException`,
+`should_retry` is `True` for HTTP 429 and 5xx errors. `GlossaryNotFoundException`,
 raised for a 404 on glossary functions, is deprecated: it is a subclass of
 `NotFoundException`, catch that instead. It will be removed in the next major
 version.

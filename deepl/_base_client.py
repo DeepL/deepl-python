@@ -185,7 +185,7 @@ class BaseClient:
             raise DeepLException(
                 f"Unexpected status code: {status_code} {status_name}, "
                 f"content: {content_str}.",
-                should_retry=False,
+                should_retry=status_code >= 500,
                 http_status_code=status_code,
             )
 

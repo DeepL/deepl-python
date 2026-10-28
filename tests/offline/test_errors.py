@@ -28,13 +28,14 @@ from .client import make_translator, url
             "Quota for this billing period has been exceeded",
             False,
         ),
-        (500, deepl.DeepLException, "Unexpected status code: 500", False),
+        (500, deepl.DeepLException, "Unexpected status code: 500", True),
+        (502, deepl.DeepLException, "Unexpected status code: 502", True),
         (503, deepl.DeepLException, "Service unavailable", True),
         (
             599,
             deepl.DeepLException,
             "Unexpected status code: 599 Unknown",
-            False,
+            True,
         ),
     ],
 )

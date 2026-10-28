@@ -99,6 +99,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - HTTP 401 responses now raise `AuthorizationException`, like 403. Before they
   raised `DeepLException` with "Unexpected status code: 401".
+- `DeepLException.should_retry` is now `True` for every HTTP 5xx error. It was
+  `False` for all of them except 503, although they are retried.
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and
   `Usage.any_limit_exceeded`, which named the replacement instead of the
   deprecated property. They now read "limit_exceeded is deprecated, use
