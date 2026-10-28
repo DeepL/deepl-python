@@ -1450,12 +1450,16 @@ By default, we send some basic information about the platform the client library
 deepl_client = deepl.DeepLClient(..., send_platform_info=False)
 ```
 
-You can also customize the `user_agent` by setting its value explicitly before constructing your `deepl.DeepLClient` object.
+You can also replace the whole `User-Agent` with the `headers` option:
 
 ```python
-deepl.http_client.user_agent = 'my custom user agent'
-deepl_client = deepl.DeepLClient(os.environ["DEEPL_AUTH_KEY"])
+deepl_client = deepl.DeepLClient(..., headers={"User-Agent": "my custom user agent"})
 ```
+
+The module-level setting `deepl.http_client.user_agent`, which replaces the
+library part of the `User-Agent` for every client in the process, is deprecated
+in favour of the `headers` option and will be removed in the next major version.
+Assigning it emits a `DeprecationWarning`.
 
 ## Command Line Interface
 

@@ -84,6 +84,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - `GlossaryNotFoundException` is deprecated, catch `NotFoundException` instead.
   It will be removed in the next major version.
+- The module-level setting `deepl.http_client.user_agent` is deprecated in
+  favour of a `User-Agent` entry in the `headers` option, and will be removed in
+  the next major version. Assigning it emits a `DeprecationWarning`.
 - Calling `translate_document_download()` or
   `download_translation_memory_export()` without `output_file` now emits a
   `DeprecationWarning`. It still returns the streaming `requests.Response`; in

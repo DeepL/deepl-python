@@ -19,15 +19,17 @@ from typing import Dict, List, Optional, Tuple, Union
 from .util import log_info
 from deepl import util
 
+# Deprecated in favour of the headers, max_retries and timeout_s client
+# options; will be removed in the next major version. Assigning any of them
+# emits a warning.
 user_agent = None
-# Deprecated in favour of the max_retries and timeout_s client options; will be
-# removed in the next major version. Assigning either emits a warning.
 max_network_retries = 5
 min_connection_timeout = 10.0
 
 _DEPRECATED_GLOBALS = {
-    "max_network_retries": "max_retries",
-    "min_connection_timeout": "timeout_s",
+    "user_agent": "a User-Agent entry in the headers client option",
+    "max_network_retries": "the max_retries client option",
+    "min_connection_timeout": "the timeout_s client option",
 }
 
 
@@ -35,8 +37,8 @@ class _HttpClientModule(types.ModuleType):
     def __setattr__(self, name, value):
         if name in _DEPRECATED_GLOBALS:
             warnings.warn(
-                f"deepl.http_client.{name} is deprecated, use the "
-                f"{_DEPRECATED_GLOBALS[name]} client option",
+                f"deepl.http_client.{name} is deprecated, use "
+                f"{_DEPRECATED_GLOBALS[name]}",
                 DeprecationWarning,
                 stacklevel=2,
             )
