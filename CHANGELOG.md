@@ -83,6 +83,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `max_retries` and `timeout_s` client options, and will be removed in the
   next major version. They still apply to clients created without these
   options. Assigning either setting emits a `DeprecationWarning`.
+- The language code constants of `Language` (`Language.GERMAN`,
+  `Language.ENGLISH_AMERICAN`, ...) are deprecated and will be removed in the
+  next major version. Pass language codes as strings, for example `"de"`, or
+  use the codes returned by `get_source_languages()` and
+  `get_target_languages()`. The constants keep working and emit no warning.
 
 ### Fixed
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and

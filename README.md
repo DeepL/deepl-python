@@ -92,7 +92,9 @@ variant according to ISO 3166-1, for example `'EN-US'`, or `'PT-BR'`. A target
 language without a variant translates into its default variant, for example
 `'EN'` into `'EN-US'` and `'PT'` into `'PT-PT'`; specify the variant to choose
 explicitly. The full list of supported languages is in the
-[API documentation][api-docs-lang-list].
+[API documentation][api-docs-lang-list]. Language codes are plain strings; the
+language code constants of `deepl.Language` (for example `Language.GERMAN`) are
+deprecated and will be removed in the next major version.
 
 There are additional optional arguments to control translation, see
 [Text translation options](#text-translation-options) below.

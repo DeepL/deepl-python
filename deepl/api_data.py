@@ -359,6 +359,11 @@ class Language:
     :param name: Name of the language in English.
     :param supports_formality: (Optional) Specifies whether the formality
         option is available for this language; target languages only.
+
+    Deprecated: the language code constants of this class, for example
+    Language.GERMAN, will be removed in the next major version. Use language
+    code strings instead, for example "de", or the languages returned by
+    get_source_languages() and get_target_languages().
     """
 
     def __init__(
@@ -380,6 +385,8 @@ class Language:
         else:
             return str(language).upper()
 
+    # Deprecated: these constants will be removed in the next major version.
+    # Use language code strings instead, for example "de".
     ACEHNESE = "ace"
     AFRIKAANS = "af"
     ARAGONESE = "an"
