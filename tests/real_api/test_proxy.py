@@ -12,7 +12,7 @@ from .client import make_translator
 
 
 def test_sends_requests_through_proxy(monkeypatch, tmp_path):
-    monkeypatch.setattr(deepl.http_client, "max_network_retries", 0)
+    monkeypatch.setitem(vars(deepl.http_client), "max_network_retries", 0)
 
     # proxy.py writes below the home directory unless told otherwise, which CI
     # runners do not have.

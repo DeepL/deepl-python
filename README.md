@@ -1386,7 +1386,8 @@ failure could create a second key.
 
 The module-level settings `deepl.http_client.max_network_retries` and
 `deepl.http_client.min_connection_timeout` are deprecated and will be removed
-in a future major version. They still apply to clients created without the
+in a future major version. Assigning either setting emits a
+`DeprecationWarning`. They still apply to clients created without the
 corresponding option, and affect every client in the process:
 
 ```python

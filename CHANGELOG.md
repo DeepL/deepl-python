@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `deepl.http_client.min_connection_timeout` are deprecated in favour of the
   `max_retries` and `timeout_s` client options, and will be removed in the
   next major version. They still apply to clients created without these
-  options. No warning is emitted.
+  options. Assigning either setting emits a `DeprecationWarning`.
 
 ### Fixed
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and

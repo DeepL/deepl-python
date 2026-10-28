@@ -43,7 +43,7 @@ def test_retries_request_after_timeout(mocked):
 
 
 def test_stops_retrying_after_max_network_retries(mocked, monkeypatch):
-    monkeypatch.setattr(deepl.http_client, "max_network_retries", 1)
+    monkeypatch.setitem(vars(deepl.http_client), "max_network_retries", 1)
     mocked.get(url("v2/usage"), status=500)
     mocked.get(url("v2/usage"), status=500)
 
@@ -65,7 +65,7 @@ def test_max_retries_option_overrides_global(mocked, no_retries, make_client):
 
 
 def test_max_retries_option_stops_retrying(mocked, monkeypatch):
-    monkeypatch.setattr(deepl.http_client, "max_network_retries", 5)
+    monkeypatch.setitem(vars(deepl.http_client), "max_network_retries", 5)
     mocked.get(url("v2/usage"), status=500)
 
     with pytest.raises(deepl.DeepLException, match="Unexpected status code"):
@@ -81,6 +81,33 @@ def test_passes_timeout_option_to_requests(mocked, make_client):
     make_client(timeout_s=42.0).get_usage()
 
     assert mocked.calls[0].request.req_kwargs["timeout"] == 42.0
+
+
+@pytest.mark.parametrize(
+    "name, value",
+    [("max_network_retries", 0), ("min_connection_timeout", 42.0)],
+)
+def test_assigning_deprecated_global_warns_and_takes_effect(
+    mocked, monkeypatch, name, value
+):
+    # Registers the restore of the original value at teardown.
+    module_dict = vars(deepl.http_client)
+    monkeypatch.setitem(module_dict, name, module_dict[name])
+    mocked.get(url("v2/usage"), status=503)
+
+    with pytest.warns(DeprecationWarning, match=f"http_client.{name}") as rec:
+        setattr(deepl.http_client, name, value)
+
+    assert rec[0].filename == __file__
+    assert module_dict[name] == value
+    with pytest.raises(deepl.DeepLException, match="Service unavailable"):
+        make_translator(
+            **({} if name == "max_network_retries" else {"max_retries": 0})
+        ).get_usage()
+    # max_network_retries=0: no retry; min_connection_timeout: sent timeout
+    assert len(mocked.calls) == 1
+    if name == "min_connection_timeout":
+        assert mocked.calls[0].request.req_kwargs["timeout"] == 42.0
 
 
 def test_raises_connection_exception_for_timeout_without_retries(

@@ -51,10 +51,11 @@ class DeepLAdminClient(BaseClient):
         the requests verify documentation for more information.
     :param max_retries: (Optional) Maximum number of times a failed request
         is retried, for failures that may be transient (e.g. HTTP 429). If
-        None, deepl.http_client.max_network_retries is used (default 5).
+        None, the deprecated deepl.http_client.max_network_retries is used
+        (default 5).
     :param timeout_s: (Optional) Minimum timeout in seconds for each attempt
-        of a request. If None, deepl.http_client.min_connection_timeout is used
-        (default 10.0).
+        of a request. If None, the deprecated
+        deepl.http_client.min_connection_timeout is used (default 10.0).
 
     All functions may raise DeepLException or a subclass if a connection error
     occurs.

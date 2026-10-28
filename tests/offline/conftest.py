@@ -20,4 +20,5 @@ def mocked():
 def no_retries(monkeypatch):
     """Makes the SDK fail on the first 429, 5xx or connection error instead
     of retrying with backoff."""
-    monkeypatch.setattr(deepl.http_client, "max_network_retries", 0)
+    # Patch the module dict: assigning the deprecated global would warn.
+    monkeypatch.setitem(vars(deepl.http_client), "max_network_retries", 0)
