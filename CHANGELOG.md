@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added `NotFoundException`, raised for HTTP 404 on every endpoint.
+  `GlossaryNotFoundException` is now its subclass.
 - Added the `max_retries` and `timeout_s` options to the `Translator`,
   `DeepLClient` and `DeepLAdminClient` constructors, to set the maximum number
   of retries and the minimum per-attempt timeout in seconds for each client.
@@ -54,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `delete_style_profile()`, with the `StyleProfile` type.
 
 ### Changed
+- HTTP 404 responses raise `NotFoundException` instead of `DeepLException`
+  (glossary functions keep raising `GlossaryNotFoundException`, now a
+  subclass of `NotFoundException`).
 - Target languages `EN` and `PT` are no longer rejected client-side. The API
   translates them into `EN-US` and `PT-PT` respectively.
 - `get_source_languages()`, `get_target_languages()`, and
@@ -68,6 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   content is unchanged; an explicit `chunk_size` still applies.
 
 ### Deprecated
+- `GlossaryNotFoundException` is deprecated, catch `NotFoundException` instead.
+  It will be removed in the next major version.
 - Calling `translate_document_download()` or
   `download_translation_memory_export()` without `output_file` now emits a
   `DeprecationWarning`. It still returns the streaming `requests.Response`; in

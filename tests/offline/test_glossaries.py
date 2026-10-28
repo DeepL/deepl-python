@@ -243,4 +243,5 @@ def test_raises_glossary_not_found_when_server_returns_404(
     ) as exc_info:
         call(make_translator())
 
+    assert isinstance(exc_info.value, deepl.NotFoundException)
     assert exc_info.value.http_status_code == 404

@@ -30,6 +30,7 @@ from .exceptions import (  # noqa
     DocumentNotReadyException,
     DocumentTranslationException,
     GlossaryNotFoundException,
+    NotFoundException,
     TooManyRequestsException,
     QuotaExceededException,
 )
@@ -98,6 +99,7 @@ __all__ = [
     "DocumentNotReadyException",
     "DocumentTranslationException",
     "GlossaryNotFoundException",
+    "NotFoundException",
     "TooManyRequestsException",
     "QuotaExceededException",
     "auth_key_is_free_account",

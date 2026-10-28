@@ -8,6 +8,7 @@ from .exceptions import (
     DeepLException,
     DocumentNotReadyException,
     GlossaryNotFoundException,
+    NotFoundException,
     QuotaExceededException,
     TooManyRequestsException,
 )
@@ -143,7 +144,7 @@ class BaseClient:
                     f"Glossary not found{message}",
                     http_status_code=status_code,
                 )
-            raise DeepLException(
+            raise NotFoundException(
                 f"Not found{message}",
                 http_status_code=status_code,
             )

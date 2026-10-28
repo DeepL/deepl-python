@@ -34,6 +34,12 @@ class AuthorizationException(DeepLException):
     pass
 
 
+class NotFoundException(DeepLException):
+    """The requested resource was not found (HTTP 404)."""
+
+    pass
+
+
 class QuotaExceededException(DeepLException):
     """Quota for this billing period has been exceeded."""
 
@@ -90,8 +96,13 @@ class DocumentTranslationException(DeepLException):
         return self.document_handle
 
 
-class GlossaryNotFoundException(DeepLException):
-    """The specified glossary was not found."""
+class GlossaryNotFoundException(NotFoundException):
+    """The specified glossary was not found.
+
+    .. deprecated::
+        Catch NotFoundException instead, which is raised for every HTTP 404.
+        This subclass will be removed in the next major version.
+    """
 
     pass
 

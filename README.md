@@ -1320,6 +1320,20 @@ All module functions may raise `deepl.DeepLException` or one of its subclasses.
 If invalid arguments are provided, they may raise the standard exceptions
 `ValueError` and `TypeError`.
 
+| Exception | Raised for |
+|---|---|
+| `AuthorizationException` | HTTP 403: invalid or unauthorized key |
+| `NotFoundException` | HTTP 404 on any endpoint |
+| `QuotaExceededException` | HTTP 456: quota exceeded |
+| `TooManyRequestsException` | HTTP 429 after all retries |
+| `ConnectionException` | no HTTP response (connection failure, timeout) |
+| `DeepLException` | any other error, with `http_status_code` set |
+
+`GlossaryNotFoundException`,
+raised for a 404 on glossary functions, is deprecated: it is a subclass of
+`NotFoundException`, catch that instead. It will be removed in the next major
+version.
+
 ### Configuration
 
 #### Logging
@@ -1408,7 +1422,6 @@ deepl.http_client.max_network_retries = 3  # deprecated, use max_retries
 deepl.http_client.min_connection_timeout = 30.0  # deprecated, use timeout_s
 ```
 
-A custom `user_agent` can still be set in `http_client`, see the next section.
 
 #### Anonymous platform information
 

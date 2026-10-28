@@ -13,7 +13,7 @@ from .client import make_translator, url
     [
         (400, deepl.DeepLException, "Bad request", False),
         (403, deepl.AuthorizationException, "Authorization failure", False),
-        (404, deepl.DeepLException, "Not found", False),
+        (404, deepl.NotFoundException, "Not found", False),
         (413, deepl.DeepLException, "Unexpected status code: 413", False),
         (
             429,
