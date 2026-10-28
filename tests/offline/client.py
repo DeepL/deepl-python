@@ -2,6 +2,8 @@
 # Use of this source code is governed by an MIT
 # license that can be found in the LICENSE file.
 
+import warnings
+
 import deepl
 
 SERVER_URL = "https://api.deepl.com"
@@ -14,7 +16,11 @@ def url(path: str) -> str:
 
 
 def make_translator(**kwargs) -> deepl.Translator:
-    return deepl.Translator(AUTH_KEY, **kwargs)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", "Translator is deprecated", DeprecationWarning
+        )
+        return deepl.Translator(AUTH_KEY, **kwargs)
 
 
 def make_deepl_client(**kwargs) -> deepl.DeepLClient:

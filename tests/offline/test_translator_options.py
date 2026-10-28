@@ -198,6 +198,21 @@ def test_keeps_path_prefix_of_server_url(mocked):
     make_deepl_client(server_url="http://localhost:3000/prefix").get_usage()
 
 
+def test_warns_when_translator_is_created():
+    with pytest.warns(
+        DeprecationWarning, match="^Translator is deprecated, use DeepLClient"
+    ) as w:
+        deepl.Translator("k")
+
+    assert w[0].filename == __file__
+
+
+def test_does_not_warn_when_deepl_client_is_created():
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        deepl.DeepLClient("k")
+
+
 def test_sends_requests_to_free_server_for_free_auth_key(mocked):
     mocked.get(
         "https://api-free.deepl.com/v2/usage",
@@ -207,7 +222,7 @@ def test_sends_requests_to_free_server_for_free_auth_key(mocked):
         ],
     )
 
-    deepl.Translator("k:fx").get_usage()
+    deepl.DeepLClient("k:fx").get_usage()
 
 
 def test_sends_requests_to_given_server_url(mocked):
@@ -274,5 +289,6 @@ def test_warns_about_deprecated_skip_language_check(
     ) as w:
         client_class("k", skip_language_check=skip_language_check)
 
+    w = [x for x in w if "skip_language_check" in str(x.message)]
     assert len(w) == 1
     assert w[0].filename == __file__

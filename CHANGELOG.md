@@ -83,6 +83,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   content is unchanged; an explicit `chunk_size` still applies.
 
 ### Deprecated
+- `Translator` is deprecated in favour of `DeepLClient`, which supports all its
+  functions, and will be removed in the next major version. Creating a
+  `Translator` emits a `DeprecationWarning`; creating a `DeepLClient` does not.
 - `GlossaryNotFoundException` is deprecated, catch `NotFoundException` instead.
   It will be removed in the next major version.
 - `auth_key_is_free_account()` is deprecated, use `is_free_account_auth_key()`.

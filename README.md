@@ -76,6 +76,11 @@ configuration file or environment variable.
 `DeepLClient` accepts additional options, see [Configuration](#configuration)
 for more information.
 
+The `Translator` class is deprecated: it receives no new features and will be
+removed in the next major version. Creating a `Translator` emits a
+`DeprecationWarning`. `DeepLClient` supports all of its functions, so replace
+`deepl.Translator(...)` with `deepl.DeepLClient(...)`.
+
 `deepl.is_free_account_auth_key(auth_key)` returns `True` if the key belongs
 to a DeepL API Free account (it ends with `:fx`). `auth_key_is_free_account()`
 is deprecated in its favour. Leading and trailing whitespace of the key is

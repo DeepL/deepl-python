@@ -74,7 +74,10 @@ def _warn_skip_cache() -> None:
 class Translator(BaseClient):
     """Wrapper for the DeepL API for language translation.
 
-    You must create an instance of Translator to use the DeepL API.
+    .. deprecated::
+        Use DeepLClient instead, which supports every function of Translator.
+        Translator receives no new features and will be removed in the next
+        major version. Creating a Translator emits a DeprecationWarning.
 
     :param auth_key: Authentication key as found in your DeepL API account.
     :param server_url: (Optional) Base URL of DeepL API, can be overridden e.g.
@@ -126,6 +129,12 @@ class Translator(BaseClient):
         app_info: Optional[AppInfo] = None,
         skip_language_check: Optional[bool] = None,
     ):
+        if type(self) is Translator:
+            warnings.warn(
+                "Translator is deprecated, use DeepLClient",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if not auth_key or not auth_key.strip():
             raise ValueError("auth_key must not be empty")
         auth_key = auth_key.strip()

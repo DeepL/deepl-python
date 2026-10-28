@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import os
+import warnings
 from typing import Optional
 
 import deepl
@@ -23,7 +24,11 @@ def server_url() -> Optional[str]:
 
 
 def make_translator(**kwargs) -> deepl.Translator:
-    return deepl.Translator(_auth_key(), server_url=server_url(), **kwargs)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", "Translator is deprecated", DeprecationWarning
+        )
+        return deepl.Translator(_auth_key(), server_url=server_url(), **kwargs)
 
 
 def make_deepl_client(**kwargs) -> deepl.DeepLClient:
