@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 from . import http_client, util
+from .api_data import AppInfo
 from .exceptions import (
     AuthorizationException,
     DeepLException,
@@ -40,6 +41,8 @@ class BaseClient:
         verify_ssl: Union[bool, str, None] = None,
         max_retries: Optional[int] = None,
         timeout_s: Optional[float] = None,
+        headers: Optional[Dict[str, str]] = None,
+        app_info: Optional[AppInfo] = None,
     ):
         auth_key = auth_key.strip()
         if not auth_key:
@@ -52,7 +55,15 @@ class BaseClient:
             max_retries=max_retries,
             timeout_s=timeout_s,
         )
-        self.headers = {"Authorization": f"DeepL-Auth-Key {auth_key}"}
+        if app_info is not None:
+            self._client.set_app_info(*app_info)
+        # Caller headers cannot replace the Authorization header.
+        self.headers = {
+            k: v
+            for k, v in (headers or {}).items()
+            if k.lower() != "authorization"
+        }
+        self.headers["Authorization"] = f"DeepL-Auth-Key {auth_key}"
 
     def __del__(self):
         self.close()
@@ -205,6 +216,8 @@ class BaseClient:
             self._client.close()
 
     def set_app_info(self, app_info_name: str, app_info_version: str):
+        """Identifies your application in the User-Agent header, like the
+        app_info constructor option. Returns this client."""
         self._client.set_app_info(app_info_name, app_info_version)
         return self
 

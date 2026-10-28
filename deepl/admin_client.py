@@ -5,6 +5,7 @@
 from deepl.exceptions import DeepLException
 from deepl.api_data import (
     AdminUsageGroupBy,
+    AppInfo,
     AdminUsageReport,
     CustomTagUsageAggregateBy,
     CustomTagUsageReport,
@@ -56,6 +57,11 @@ class DeepLAdminClient(BaseClient):
     :param timeout_s: (Optional) Minimum timeout in seconds for each attempt
         of a request. If None, the deprecated
         deepl.http_client.min_connection_timeout is used (default 10.0).
+    :param headers: (Optional) Additional HTTP headers sent with every
+        request to the DeepL API. A User-Agent header replaces the one the
+        library generates. An Authorization header is ignored.
+    :param app_info: (Optional) AppInfo identifying your application in the
+        User-Agent header, same as set_app_info().
 
     All functions may raise DeepLException or a subclass if a connection error
     occurs.
@@ -71,6 +77,8 @@ class DeepLAdminClient(BaseClient):
         verify_ssl: Union[bool, str, None] = None,
         max_retries: Optional[int] = None,
         timeout_s: Optional[float] = None,
+        headers: Optional[Dict[str, str]] = None,
+        app_info: Optional[AppInfo] = None,
     ):
         if not admin_key or not admin_key.strip():
             raise ValueError("admin_key must not be empty")
@@ -85,6 +93,8 @@ class DeepLAdminClient(BaseClient):
             verify_ssl=verify_ssl,
             max_retries=max_retries,
             timeout_s=timeout_s,
+            headers=headers,
+            app_info=app_info,
         )
 
     def get_usage_analytics(

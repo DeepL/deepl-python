@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added the `headers` option to the `Translator`, `DeepLClient` and
+  `DeepLAdminClient` constructors: extra HTTP headers sent with every request
+  to the DeepL API. A `User-Agent` header replaces the generated one; an
+  `Authorization` header is ignored.
+- Added the `app_info` option, an `AppInfo(app_name, app_version)`, to the
+  `Translator`, `DeepLClient` and `DeepLAdminClient` constructors, the same as
+  calling `set_app_info()`.
 - Added `NotFoundException`, raised for HTTP 404 on every endpoint.
   `GlossaryNotFoundException` is now its subclass.
 - Added the `max_retries` and `timeout_s` options to the `Translator`,

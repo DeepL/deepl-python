@@ -1303,16 +1303,20 @@ while True:
 ### Writing a Plugin
 
 If you use this library in an application, please identify the application with
-`deepl.DeepLClient.set_app_info`, which needs the name and version of the app:
+the `app_info` option, which needs the name and version of the app, or with
+`set_app_info()` after construction:
 
 ```python
+deepl_client = deepl.DeepLClient(
+    ..., app_info=deepl.AppInfo("sample_python_plugin", "1.0.2")
+)
 deepl_client = deepl.DeepLClient(...).set_app_info("sample_python_plugin", "1.0.2")
 ```
 
 This information is passed along when the library makes calls to the DeepL API.
-Both name and version are required. Please note that setting the `User-Agent` header
-via `deepl.http_client.user_agent` will override this setting, if you need to use this,
-please manually identify your Application in the `User-Agent` header.
+Both name and version are required. Please note that a `User-Agent` header in the
+`headers` option (or the deprecated `deepl.http_client.user_agent`) overrides this
+setting; if you need to use one, please manually identify your application in it.
 
 ### Exceptions
 
@@ -1366,6 +1370,17 @@ deepl_client = deepl.DeepLClient(..., server_url=server_url)
 A path in the server URL is kept: with `server_url="https://example.com/deepl"`
 requests go to `https://example.com/deepl/v2/...`. The `server_url` property
 returns the URL a client uses.
+
+#### Custom HTTP headers
+
+The `headers` option adds HTTP headers to every request to the DeepL API. A
+`User-Agent` header replaces the one the library generates; an `Authorization`
+header is ignored, the library always sends your key. `deepl.Translator` and
+`deepl.DeepLAdminClient` accept the option too.
+
+```python
+deepl_client = deepl.DeepLClient(..., headers={"X-My-Header": "value"})
+```
 
 #### Proxy configuration
 

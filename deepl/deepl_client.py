@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 from deepl.api_data import (
+    AppInfo,
     CustomInstruction,
     MultilingualGlossaryDictionaryEntries,
     MultilingualGlossaryDictionaryEntriesResponse,
@@ -61,6 +62,8 @@ class DeepLClient(Translator):
         verify_ssl: Union[bool, str, None] = None,
         max_retries: Optional[int] = None,
         timeout_s: Optional[float] = None,
+        headers: Optional[Dict[str, str]] = None,
+        app_info: Optional[AppInfo] = None,
         skip_language_check: Optional[bool] = None,
     ):
         if skip_language_check is not None:
@@ -73,6 +76,8 @@ class DeepLClient(Translator):
             verify_ssl=verify_ssl,
             max_retries=max_retries,
             timeout_s=timeout_s,
+            headers=headers,
+            app_info=app_info,
         )
 
     def rephrase_text(

@@ -10,7 +10,13 @@ import deepl
 import pytest
 from responses import matchers
 
-from .client import AUTH_HEADER, make_deepl_client, make_translator, url
+from .client import (
+    AUTH_HEADER,
+    make_admin_client,
+    make_deepl_client,
+    make_translator,
+    url,
+)
 from .matchers import bodyless_request
 
 PLATFORM_USER_AGENT = re.compile(r"^deepl-python/\S+ \(.+\) python/\S+$")
@@ -69,6 +75,68 @@ def test_appends_app_info_to_custom_user_agent(mocked, monkeypatch):
     reply_with_usage(mocked, "my custom agent my_plugin/1.0")
 
     make_translator().set_app_info("my_plugin", "1.0").get_usage()
+
+
+@pytest.mark.parametrize(
+    "make_client, path, call",
+    [
+        (make_translator, "v2/usage", lambda c: c.get_usage()),
+        (make_deepl_client, "v2/usage", lambda c: c.get_usage()),
+        (
+            make_admin_client,
+            "v2/admin/developer-keys",
+            lambda c: c.get_developer_keys(),
+        ),
+    ],
+)
+def test_sends_headers_option(mocked, make_client, path, call):
+    mocked.get(url(path), json=[])
+    client = make_client(
+        headers={
+            "X-Custom": "value",
+            "user-agent": "my agent",
+            "authorization": "DeepL-Auth-Key other",
+        }
+    )
+
+    call(client)
+
+    headers = mocked.calls[0].request.headers
+    assert headers["X-Custom"] == "value"
+    assert headers["User-Agent"] == "my agent"
+    assert headers["Authorization"] == AUTH_HEADER
+
+
+@pytest.mark.parametrize(
+    "make_client, path, call",
+    [
+        (make_translator, "v2/usage", lambda c: c.get_usage()),
+        (make_deepl_client, "v2/usage", lambda c: c.get_usage()),
+        (
+            make_admin_client,
+            "v2/admin/developer-keys",
+            lambda c: c.get_developer_keys(),
+        ),
+    ],
+)
+def test_appends_app_info_option_to_user_agent(
+    mocked, make_client, path, call
+):
+    mocked.get(
+        url(path),
+        json=[],
+        match=[
+            matchers.header_matcher(
+                {"User-Agent": f"{LIBRARY_USER_AGENT} my_plugin/1.0"}
+            )
+        ],
+    )
+    client = make_client(
+        send_platform_info=False,
+        app_info=deepl.AppInfo("my_plugin", "1.0"),
+    )
+
+    call(client)
 
 
 def test_sends_library_version_when_platform_lookup_fails(mocked):

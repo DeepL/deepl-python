@@ -10,6 +10,7 @@ from .admin_client import DeepLAdminClient
 
 from .api_data import (  # noqa
     AdminUsageBreakdown,
+    AppInfo,
     AdminUsageGroupBy,
     AdminUsageReport,
     CustomTagUsage,
@@ -70,6 +71,7 @@ __all__ = [
     "AdminUsageBreakdown",
     "AdminUsageGroupBy",
     "AdminUsageReport",
+    "AppInfo",
     "CustomTagUsage",
     "CustomTagUsageAggregateBy",
     "CustomTagUsageBreakdown",

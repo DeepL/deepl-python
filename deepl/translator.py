@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 from deepl.api_data import (
+    AppInfo,
     DocumentHandle,
     DocumentStatus,
     Formality,
@@ -96,6 +97,11 @@ class Translator(BaseClient):
     :param timeout_s: (Optional) Minimum timeout in seconds for each attempt
         of a request. If None, the deprecated
         deepl.http_client.min_connection_timeout is used (default 10.0).
+    :param headers: (Optional) Additional HTTP headers sent with every
+        request to the DeepL API. A User-Agent header replaces the one the
+        library generates. An Authorization header is ignored.
+    :param app_info: (Optional) AppInfo identifying your application in the
+        User-Agent header, same as set_app_info().
     :param skip_language_check: Deprecated, and now has no effect as the
         corresponding internal functionality has been removed. This parameter
         will be removed in a future version.
@@ -116,6 +122,8 @@ class Translator(BaseClient):
         verify_ssl: Union[bool, str, None] = None,
         max_retries: Optional[int] = None,
         timeout_s: Optional[float] = None,
+        headers: Optional[Dict[str, str]] = None,
+        app_info: Optional[AppInfo] = None,
         skip_language_check: Optional[bool] = None,
     ):
         if not auth_key or not auth_key.strip():
@@ -139,6 +147,8 @@ class Translator(BaseClient):
             verify_ssl=verify_ssl,
             max_retries=max_retries,
             timeout_s=timeout_s,
+            headers=headers,
+            app_info=app_info,
         )
 
     def _check_language_and_formality(

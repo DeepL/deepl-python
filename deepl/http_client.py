@@ -278,15 +278,13 @@ class HttpClient:
         **kwargs,
     ) -> requests.PreparedRequest:
         try:
-            headers.setdefault(
-                "User-Agent",
-                _generate_user_agent(
+            if not any(k.lower() == "user-agent" for k in headers):
+                headers["User-Agent"] = _generate_user_agent(
                     user_agent,
                     self._send_platform_info,
                     self._app_info_name,
                     self._app_info_version,
-                ),
-            )
+                )
             return requests.Request(
                 method, url, data=data, headers=headers, json=json, **kwargs
             ).prepare()

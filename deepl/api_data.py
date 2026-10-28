@@ -4,9 +4,21 @@
 
 import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from deepl.util import get_float_safe, get_int_safe, parse_timestamp
+
+
+class AppInfo(NamedTuple):
+    """Identifies the application using the library, sent in the User-Agent
+    header as ``<app_name>/<app_version>``.
+
+    :param app_name: Name of the application.
+    :param app_version: Version of the application.
+    """
+
+    app_name: str
+    app_version: str
 
 
 class TextResult:
