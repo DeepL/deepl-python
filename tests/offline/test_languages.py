@@ -99,8 +99,19 @@ def test_warns_about_deprecated_skip_cache(mocked, method, skip_cache):
     assert w[0].filename == __file__
 
 
-def test_returns_no_languages_for_unexpected_reply(mocked):
-    mocked.get(url("v3/languages"), json={"message": "unexpected"})
+@pytest.mark.parametrize("body", [{"message": "unexpected"}, "text"])
+@pytest.mark.parametrize(
+    "method", ["get_source_languages", "get_target_languages"]
+)
+def test_raises_deepl_exception_for_unexpected_reply(mocked, method, body):
+    mocked.get(url("v3/languages"), json=body)
+
+    with pytest.raises(deepl.DeepLException, match="not a list"):
+        getattr(make_deepl_client(), method)()
+
+
+def test_returns_no_languages_for_empty_reply(mocked):
+    mocked.get(url("v3/languages"), json=[])
 
     assert make_deepl_client().get_source_languages() == []
 
@@ -204,3 +215,56 @@ def test_parses_language_resources(mocked):
     assert translate_text.features["formality"].needs_source_support is None
     assert str(glossary) == "glossary"
     assert voice.features == {}
+
+
+def test_target_languages_treat_null_features_as_no_features(mocked):
+    mocked.get(
+        url("v3/languages"),
+        json=[
+            {
+                "lang": "de",
+                "name": "German",
+                "usable_as_target": True,
+                "features": None,
+            },
+        ],
+    )
+
+    (german,) = make_deepl_client().get_target_languages()
+
+    assert german.supports_formality is False
+
+
+MALFORMED_LANGUAGES = [
+    [{"name": "German", "usable_as_source": True, "usable_as_target": True}],
+    [
+        {
+            "lang": None,
+            "name": "German",
+            "usable_as_source": True,
+            "usable_as_target": True,
+        }
+    ],
+    [
+        {
+            "lang": "de",
+            "name": None,
+            "usable_as_source": True,
+            "usable_as_target": True,
+        }
+    ],
+    ["de"],
+]
+
+
+@pytest.mark.parametrize("languages", MALFORMED_LANGUAGES)
+@pytest.mark.parametrize(
+    "method", ["get_source_languages", "get_target_languages"]
+)
+def test_raises_deepl_exception_for_malformed_languages(
+    mocked, method, languages
+):
+    mocked.get(url("v3/languages"), json=languages)
+
+    with pytest.raises(deepl.DeepLException, match="Malformed language"):
+        getattr(make_deepl_client(), method)()

@@ -79,6 +79,13 @@ def _warn_download_without_output_file() -> None:
     )
 
 
+def _required_str(json: dict, key: str) -> str:
+    value = json[key]
+    if not isinstance(value, str):
+        raise TypeError(f"{key!r} is not a string")
+    return value
+
+
 def _warn_skip_cache() -> None:
     warnings.warn(
         "skip_cache is deprecated and has no effect",
@@ -1093,15 +1100,22 @@ class Translator(BaseClient):
             params={"resource": "translate_text"},
         )
         self._raise_for_status(status, content, json)
-        languages = json if (json and isinstance(json, list)) else []
-        return [
-            Language(
-                language["lang"].upper(),
-                language["name"],
-            )
-            for language in languages
-            if language.get("usable_as_source")
-        ]
+        if not isinstance(json, list):
+            raise DeepLException("Languages response is not a list")
+        languages = json
+        try:
+            return [
+                Language(
+                    language["lang"].upper(),
+                    _required_str(language, "name"),
+                )
+                for language in languages
+                if language.get("usable_as_source")
+            ]
+        except (AttributeError, KeyError, TypeError) as e:
+            raise DeepLException(
+                f"Malformed language in response: {e!r}"
+            ) from e
 
     def get_target_languages(
         self, skip_cache: Optional[bool] = None
@@ -1121,16 +1135,23 @@ class Translator(BaseClient):
             params={"resource": "translate_text"},
         )
         self._raise_for_status(status, content, json)
-        languages = json if (json and isinstance(json, list)) else []
-        return [
-            Language(
-                language["lang"].upper(),
-                language["name"],
-                "formality" in language.get("features", {}),
-            )
-            for language in languages
-            if language.get("usable_as_target")
-        ]
+        if not isinstance(json, list):
+            raise DeepLException("Languages response is not a list")
+        languages = json
+        try:
+            return [
+                Language(
+                    language["lang"].upper(),
+                    _required_str(language, "name"),
+                    "formality" in (language.get("features") or {}),
+                )
+                for language in languages
+                if language.get("usable_as_target")
+            ]
+        except (AttributeError, KeyError, TypeError) as e:
+            raise DeepLException(
+                f"Malformed language in response: {e!r}"
+            ) from e
 
     def get_glossary_languages(self) -> List[GlossaryLanguagePair]:
         """Request the list of language pairs supported for glossaries.

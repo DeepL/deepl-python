@@ -223,6 +223,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   response has no `improvements` list, fewer improvements than input texts, or
   an improvement without `text`. Before, this raised `IndexError` or
   `AttributeError`, or silently returned a shorter list.
+- `get_source_languages()` and `get_target_languages()` now raise
+  `DeepLException` when the response is not a list (they returned an empty
+  list before) or a language in it is missing its code or name (instead of a
+  raw `KeyError`, `AttributeError` or `TypeError`). A null `features` field is
+  treated as no features.
 
 ## [1.32.0] - 2026-08-12
 ### Added
