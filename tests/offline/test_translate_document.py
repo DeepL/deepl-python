@@ -289,6 +289,15 @@ def test_polls_status_until_document_is_done(mocked):
     assert status.done
 
 
+def test_raises_with_error_message_when_waited_document_fails(mocked):
+    reply_with_status(mocked, "error", error_message="bad file")
+
+    with pytest.raises(deepl.DeepLException, match="bad file") as exc_info:
+        make_translator().translate_document_wait_until_done(HANDLE)
+
+    assert not isinstance(exc_info.value, deepl.DocumentTranslationException)
+
+
 def test_raises_when_waiting_exceeds_timeout(mocked):
     reply_with_status(mocked, "translating")
 

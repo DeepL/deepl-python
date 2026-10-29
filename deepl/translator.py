@@ -762,17 +762,9 @@ class Translator(BaseClient):
 
         try:
             status = self.translate_document_wait_until_done(handle, timeout_s)
-            if status.ok:
-                self.translate_document_download(handle, output_document)
+            self.translate_document_download(handle, output_document)
         except Exception as e:
             raise DocumentTranslationException(str(e), handle) from e
-
-        if not status.ok:
-            error_message = status.error_message or "unknown error"
-            raise DocumentTranslationException(
-                f"Error occurred while translating document: {error_message}",
-                handle,
-            )
         return status
 
     def translate_document_upload(
@@ -945,13 +937,15 @@ class Translator(BaseClient):
         """
         Continually polls the status of the document translation associated
         with the given handle, sleeping in between requests, and returns the
-        final status when the translation completes (whether successful or
-        not).
+        final status when the translation completes successfully.
         :param handle: DocumentHandle to the document translation to wait on.
         :param timeout_s: (beta) (Optional) Maximum time to wait before
             the call raises an error. Note that this is not accurate to the
             second, but only polls every 5 seconds.
         :return: DocumentStatus containing the status when completed.
+
+        :raises DeepLException: If the document translation fails, with the
+            API's error message, or if timeout_s is exceeded.
         """
         status = self.translate_document_get_status(handle)
         start_time_s = time.time()
@@ -976,6 +970,13 @@ class Translator(BaseClient):
                 )
                 time.sleep(secs)
                 status = self.translate_document_get_status(handle)
+        if not status.ok:
+            error_message = status.error_message or "unknown error"
+            raise DeepLException(
+                "Error occurred while translating document: "
+                f"{error_message}",
+                should_retry=False,
+            )
         return status
 
     def translate_document_download(
