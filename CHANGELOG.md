@@ -92,6 +92,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `target_lang` as positional arguments after the input (and output)
   arguments, for example `translate_document_upload(file, "EN", "DE")`.
   Keyword use is unchanged.
+- Added the `writing_style` and `extra_body_parameters` options to
+  `rephrase_text()`, and the `extra_body_parameters` option to
+  `correct_text()`. `writing_style` and `tone` accept a `WritingStyle` or
+  `WritingTone` member or a string.
 
 ### Changed
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`
@@ -155,6 +159,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   next major version. Pass language codes as strings, for example `"de"`, or
   use the codes returned by `get_source_languages()` and
   `get_target_languages()`. The constants keep working and emit no warning.
+- The `style` keyword of `rephrase_text()` is deprecated in favour of
+  `writing_style` and emits a `DeprecationWarning`. It keeps working; if both
+  are given, `writing_style` is used.
 
 ### Fixed
 - HTTP 401 responses now raise `AuthorizationException`, like 403. Before they

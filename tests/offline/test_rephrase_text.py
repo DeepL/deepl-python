@@ -40,9 +40,14 @@ def test_sends_text_without_optional_fields(mocked):
             {"style": "casual", "tone": "confident"},
             {"writing_style": "casual", "tone": "confident"},
         ),
+        ({"writing_style": "business"}, {"writing_style": "business"}),
+        (
+            {"writing_style": "academic", "style": "casual"},
+            {"writing_style": "academic"},
+        ),
         (
             {
-                "style": WritingStyle.PREFER_BUSINESS,
+                "writing_style": WritingStyle.PREFER_BUSINESS,
                 "tone": WritingTone.FRIENDLY,
             },
             {"writing_style": "prefer_business", "tone": "friendly"},
@@ -50,6 +55,13 @@ def test_sends_text_without_optional_fields(mocked):
         (
             {"target_lang": Language("en-GB", "English (British)")},
             {"target_lang": "en-GB"},
+        ),
+        (
+            {
+                "tone": "friendly",
+                "extra_body_parameters": {"tone": "diplomatic", "x": [1]},
+            },
+            {"tone": "diplomatic", "x": [1]},
         ),
     ],
 )

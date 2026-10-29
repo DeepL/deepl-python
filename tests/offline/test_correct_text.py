@@ -44,6 +44,18 @@ def test_sends_target_language_object_as_code(mocked):
     )
 
 
+def test_sends_extra_body_parameters_last(mocked):
+    reply_with_improvement(
+        mocked, {"text": ["helo"], "target_lang": "EN-GB", "x": {"y": True}}
+    )
+
+    make_deepl_client().correct_text(
+        "helo",
+        target_lang="EN-US",
+        extra_body_parameters={"target_lang": "EN-GB", "x": {"y": True}},
+    )
+
+
 def test_sends_iterable_text_as_list(mocked):
     reply_with_improvement(mocked, {"text": ["a", "b"]})
 

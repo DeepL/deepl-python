@@ -42,6 +42,7 @@ import pathlib
 import requests  # type: ignore
 import time
 import urllib.parse
+import warnings
 from typing import (
     Any,
     BinaryIO,
@@ -56,6 +57,15 @@ from typing import (
 )
 
 _T = TypeVar("_T")
+
+
+def _apply_extra_body_parameters(
+    request_data: dict, extra_body_parameters: Optional[dict]
+) -> None:
+    # Entries replace keys of the same name set by the client.
+    if extra_body_parameters:
+        for k, v in extra_body_parameters.items():
+            request_data[k] = v
 
 
 def _parse_improvements(json: Any, text_count: int) -> List[WriteResult]:
@@ -119,6 +129,8 @@ class DeepLClient(Translator):
         target_lang: Union[None, str, Language] = None,
         style: Union[str, WritingStyle, None] = None,
         tone: Union[str, WritingTone, None] = None,
+        writing_style: Union[str, WritingStyle, None] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> Union[WriteResult, List[WriteResult]]:
         """Improve the text(s) and optionally convert them to the variant of
         the `target_lang` (requires source lang to match target_lang, excluding
@@ -129,13 +141,30 @@ class DeepLClient(Translator):
             generator)
         :param target_lang: language code the final text should be in, for
             example "DE", "EN-US", "FR".
-        :param style: Writing style to be used for the improvement, as a
-            WritingStyle or string. Either style OR tone can be used.
+        :param style: Deprecated alias of `writing_style`.
+
+            .. deprecated:: 1.33.0
+                Use `writing_style` instead.
         :param tone: Tone to be used for the improvement, as a WritingTone or
-            string. Either style OR tone can be used.
+            string. Either writing_style OR tone can be used.
+        :param writing_style: Writing style to be used for the improvement, as
+            a WritingStyle or string. Either writing_style OR tone can be
+            used. Takes precedence over the deprecated `style`.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: List of WriteResult objects containing results, unless input
             text was one string, then a single WriteResult object is returned.
         """
+        if style is not None:
+            warnings.warn(
+                "style is deprecated, use writing_style",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if writing_style is None:
+                writing_style = style
 
         if isinstance(text, str):
             if len(text) == 0:
@@ -153,10 +182,11 @@ class DeepLClient(Translator):
         request_data: dict = {"text": text}
         if target_lang:
             request_data["target_lang"] = str(target_lang)
-        if style:
-            request_data["writing_style"] = str(style)
+        if writing_style:
+            request_data["writing_style"] = str(writing_style)
         if tone:
             request_data["tone"] = str(tone)
+        _apply_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v2/write/rephrase", json=request_data
@@ -172,6 +202,7 @@ class DeepLClient(Translator):
         text: Union[str, Iterable[str]],
         *,
         target_lang: Union[None, str, Language] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> Union[WriteResult, List[WriteResult]]:
         """Fix spelling and grammar errors in the text(s). Unlike
         `rephrase_text`, this applies a minimal-change correction pass and
@@ -182,6 +213,10 @@ class DeepLClient(Translator):
             generator)
         :param target_lang: language code the final text should be in, for
             example "DE", "EN-US", "FR".
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: List of WriteResult objects containing results, unless input
             text was one string, then a single WriteResult object is returned.
         """
@@ -202,6 +237,7 @@ class DeepLClient(Translator):
         request_data: dict = {"text": text}
         if target_lang:
             request_data["target_lang"] = str(target_lang)
+        _apply_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v2/write/correct", json=request_data

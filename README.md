@@ -293,15 +293,31 @@ styles and tones will fail. The current list of supported languages can be found
 [API documentation][api-docs]. We plan to also expose this information via an API endpoint
 in the future.
 
-You can pass the style or tone as a string or as one of the predefined
-constants `WritingStyle` and `WritingTone`:
+Pass the style as `writing_style` and the tone as `tone`, either as a string or
+as one of the predefined constants `WritingStyle` and `WritingTone`:
 
 ```python
 result = deepl_client.rephrase_text(
-    "A rainbouw has seven colours.", target_lang="EN-US", style=WritingStyle.BUSINESS
+    "A rainbouw has seven colours.", target_lang="EN-US", writing_style=WritingStyle.BUSINESS
 )
 print(result.text)
 ```
+
+The `style` keyword is a deprecated alias of `writing_style`; it still works but
+emits a `DeprecationWarning`.
+
+To only fix spelling and grammar without rewriting the text for style or tone,
+use `correct_text()`, which takes the text and the optional `target_lang`:
+
+```python
+result = deepl_client.correct_text("A rainbouw has seven colours.")
+print(result.text)
+```
+
+Both `rephrase_text()` and `correct_text()` accept `extra_body_parameters`: a
+dictionary of extra parameters to pass in the body of the HTTP request, as for
+`translate_text()`. Its entries replace parameters of the same name set by the
+library.
 
 ### Translating documents
 
