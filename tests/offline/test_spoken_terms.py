@@ -71,3 +71,22 @@ def test_url_encodes_the_id_in_the_path(mocked):
     mocked.delete(url("v3/spoken-terms/a%2Fb%3Fc"), status=204)
 
     make_deepl_client().delete_spoken_terms("a/b?c")
+
+
+def test_strips_terms_before_sending(mocked):
+    mocked.put(
+        url("v3/spoken-terms/st-1/term-lists"),
+        json={"lang": "en", "entry_count": 2},
+        match=json_request({"lang": "en", "entries": "DeepL\nwebhook"}),
+    )
+
+    make_deepl_client().replace_spoken_terms_list(
+        "st-1", deepl.SpokenTermsEntries("en", [" DeepL ", "webhook\t"])
+    )
+
+
+def test_rejects_a_whitespace_only_term(mocked):
+    with pytest.raises(ValueError, match="not a valid string"):
+        make_deepl_client().create_spoken_terms(
+            "terms", [deepl.SpokenTermsEntries("en", ["a", "  "])]
+        )

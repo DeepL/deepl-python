@@ -736,8 +736,9 @@ class DeepLClient(Translator):
             terms of one language.
         :return: SpokenTerms containing information about the created
             collection.
-        :raises ValueError: If a term is empty or contains a control
-            character, as validate_glossary_term() checks.
+        :raises ValueError: If a term, after stripping leading and trailing
+            whitespace, is empty or contains a control character, as
+            validate_glossary_term() checks.
         """
         request_data = {
             "name": name,
@@ -797,8 +798,9 @@ class DeepLClient(Translator):
             are merged into the term list of the same language.
         :return: SpokenTerms containing information about the updated
             collection.
-        :raises ValueError: If a term is empty or contains a control
-            character, as validate_glossary_term() checks.
+        :raises ValueError: If a term, after stripping leading and trailing
+            whitespace, is empty or contains a control character, as
+            validate_glossary_term() checks.
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
         request_data: Dict[str, Any] = {}
@@ -846,8 +848,9 @@ class DeepLClient(Translator):
         :param spoken_terms: SpokenTerms or ID of the collection.
         :param entries: SpokenTermsEntries with the language and its terms.
         :return: SpokenTermsList containing information about the term list.
-        :raises ValueError: If a term is empty or contains a control
-            character, as validate_glossary_term() checks.
+        :raises ValueError: If a term, after stripping leading and trailing
+            whitespace, is empty or contains a control character, as
+            validate_glossary_term() checks.
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
         status, content, json = self._api_call(
@@ -892,9 +895,10 @@ class DeepLClient(Translator):
     def _spoken_terms_json(entries: SpokenTermsEntries) -> dict:
         # Terms are sent newline-separated: a term with a newline would
         # silently become several terms.
-        for term in entries.entries:
+        terms = [term.strip() for term in entries.entries]
+        for term in terms:
             util.validate_glossary_term(term)
-        return entries.to_json()
+        return SpokenTermsEntries(entries.lang, terms).to_json()
 
     @staticmethod
     def _spoken_terms_id(spoken_terms: Union[str, SpokenTerms]) -> str:
