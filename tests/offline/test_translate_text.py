@@ -323,6 +323,17 @@ def test_raises_when_target_language_is_missing():
         make_translator().translate_text("hello", "EN")
 
 
+def test_parses_missing_billed_characters_as_none(mocked):
+    mocked.post(
+        url("v2/translate"),
+        json={"translations": [{"text": "hallo"}]},
+    )
+
+    result = make_translator().translate_text("hello", target_lang="DE")
+
+    assert result.billed_characters is None
+
+
 @pytest.mark.parametrize(
     "translation, expected",
     [

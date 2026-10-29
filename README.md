@@ -115,7 +115,8 @@ There are additional optional arguments to control translation, see
 corresponding to your input text(s). `TextResult` has the following properties:
 - `text` is the translated text,
 - `detected_source_lang` is the detected source language code,
-- `billed_characters` is the number of characters billed for the translation.
+- `billed_characters` is the number of characters billed for the translation,
+  or `None` if the response does not contain it.
 - `model_type_used` indicates the translation model used, but is `None` unless
   the `model_type` option is specified. 
 - `tag_handling_version` is the version of the tag handling algorithm used, for

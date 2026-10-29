@@ -28,7 +28,7 @@ class TextResult:
         self,
         text: str,
         detected_source_lang: str,
-        billed_characters: int,
+        billed_characters: Optional[int],
         model_type_used: Optional[str] = None,
         tag_handling_version: Optional[str] = None,
     ):

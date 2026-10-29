@@ -503,7 +503,9 @@ class Translator(BaseClient):
                 if translation
                 else ""
             )
-            billed_characters = int(translation.get("billed_characters"))
+            billed_characters = util.get_int_safe(
+                translation, "billed_characters"
+            )
             model_type_used = translation.get("model_type_used")
             output.append(
                 TextResult(

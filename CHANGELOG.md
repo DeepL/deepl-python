@@ -135,6 +135,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Leading and trailing whitespace in the authentication key is removed before
   it is sent and before the `:fx` check that selects the API Free server. A
   key of only whitespace is rejected with `ValueError`.
+- Fixed `translate_text()` raising `TypeError` when a translation in the
+  response has no `billed_characters`. `TextResult.billed_characters` is now
+  `None` in that case.
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and
   `Usage.any_limit_exceeded`, which named the replacement instead of the
   deprecated property. They now read "limit_exceeded is deprecated, use
