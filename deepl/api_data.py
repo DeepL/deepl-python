@@ -82,7 +82,8 @@ class DocumentHandle:
 class DocumentStatus:
     """Status of a document translation request.
 
-    :param status: One of the Status enum values below.
+    :param status: One of the Status enum values below. A status the API
+        sends that is not one of these values is kept as a string.
     :param seconds_remaining: Estimated time until document translation
         completes in seconds, or None if unknown.
     :param billed_characters: Number of characters billed for this document, or
@@ -105,13 +106,21 @@ class DocumentStatus:
         billed_characters=None,
         error_message=None,
     ):
-        self._status = self.Status(status)
+        try:
+            self._status: Union[DocumentStatus.Status, str] = self.Status(
+                status
+            )
+        except ValueError:
+            # Keep a status this version does not know as a plain string.
+            self._status = status
         self._seconds_remaining = seconds_remaining
         self._billed_characters = billed_characters
         self._error_message = error_message
 
     def __str__(self) -> str:
-        return self.status.value
+        if isinstance(self._status, self.Status):
+            return self._status.value
+        return str(self._status)
 
     @property
     def ok(self) -> bool:
@@ -122,7 +131,9 @@ class DocumentStatus:
         return self._status == self.Status.DONE
 
     @property
-    def status(self) -> Status:
+    def status(self) -> Union[Status, str]:
+        """The status as a Status member, or as the API's string if it is not
+        one of the Status values."""
         return self._status
 
     @property

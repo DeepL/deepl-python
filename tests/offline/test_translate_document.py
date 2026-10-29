@@ -247,6 +247,26 @@ def test_parses_document_status(mocked, fields, status):
     assert str(result) == status.value
 
 
+def test_keeps_unknown_document_status_as_string(mocked):
+    reply_with_status(mocked, "postprocessing")
+
+    result = make_translator().translate_document_get_status(HANDLE)
+
+    assert result.status == "postprocessing"
+    assert str(result) == "postprocessing"
+    assert result.ok
+    assert not result.done
+
+
+def test_keeps_polling_while_document_status_is_unknown(mocked, no_sleep):
+    reply_with_status(mocked, "postprocessing")
+    reply_with_status(mocked, "done")
+
+    status = make_translator().translate_document_wait_until_done(HANDLE)
+
+    assert status.done
+
+
 def test_raises_when_document_status_is_empty(mocked):
     mocked.post(
         url("v2/document/doc-1"), json={}, match=json_request(KEY_BODY)

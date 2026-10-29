@@ -22,3 +22,9 @@ def no_retries(monkeypatch):
     of retrying with backoff."""
     # Patch the module dict: assigning the deprecated global would warn.
     monkeypatch.setitem(vars(deepl.http_client), "max_network_retries", 0)
+
+
+@pytest.fixture
+def no_sleep(monkeypatch):
+    """Skips the sleep between document status polls."""
+    monkeypatch.setattr(deepl.translator.time, "sleep", lambda secs: None)
