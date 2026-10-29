@@ -131,6 +131,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MultilingualGlossaryInfo`, `MultilingualGlossaryDictionaryInfo` and
   `MultilingualGlossaryDictionaryEntries` are exported from the `deepl` package.
 - Added `MultilingualGlossaryDictionaryInfo.to_json()`.
+- Added the `content_type` and `extra_body_parameters` options to
+  `import_translation_memory_from_filepath()`, and the `extra_body_parameters`
+  option to `create_translation_memory_import()`. `content_type` is declared
+  when creating the import job and sent with the upload; extra body parameters
+  are added to the request that creates the import job and replace keys of
+  the same name.
 
 ### Changed
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`

@@ -270,6 +270,30 @@ def test_sends_file_description_when_creating_import(mocked, kwargs, body):
     assert str(created) == "TranslationMemoryImport (job-1)"
 
 
+def test_sends_extra_body_parameters_last_when_creating_import(mocked):
+    mocked.post(
+        url("v3/translation_memories/import"),
+        json=IMPORT_JSON,
+        match=json_request(
+            {
+                "source_file": {"file_name": "a.tmx", "content_length": 10},
+                "parameters": {"display_name": "Extra"},
+                "custom": [1, True],
+            }
+        ),
+    )
+
+    make_deepl_client().create_translation_memory_import(
+        "a.tmx",
+        10,
+        display_name="Name",
+        extra_body_parameters={
+            "parameters": {"display_name": "Extra"},
+            "custom": [1, True],
+        },
+    )
+
+
 def test_raises_when_creating_import_with_invalid_file():
     client = make_deepl_client()
 
@@ -466,6 +490,35 @@ def test_imports_file_by_creating_job_uploading_and_waiting(mocked, tmp_path):
     )
 
     assert job.result.translation_memory_id == "tm-1"
+
+
+def test_imports_file_with_content_type_and_extra_body_parameters(
+    mocked, tmp_path
+):
+    path = tmp_path / "example.tmx"
+    path.write_text(example_tmx)
+    mocked.post(
+        url("v3/translation_memories/import"),
+        json=IMPORT_JSON,
+        match=json_request(
+            {
+                "source_file": {
+                    "file_name": "example.tmx",
+                    "content_length": path.stat().st_size,
+                    "content_type": "text/xml",
+                },
+                "custom": "value",
+            }
+        ),
+    )
+    mocked.put(UPLOAD_URL, match=storage_request("text/xml", example_tmx))
+    reply_with_job(mocked, "completed", translation_memory_id="tm-1")
+
+    make_deepl_client().import_translation_memory_from_filepath(
+        path,
+        content_type="text/xml",
+        extra_body_parameters={"custom": "value"},
+    )
 
 
 def test_raises_when_imported_file_does_not_exist(tmp_path):

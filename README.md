@@ -1213,6 +1213,17 @@ print(f"Created translation memory {job.result.translation_memory_id}")
 print(f"Skipped segments: {job.result.skipped_segment_count}")
 ```
 
+`import_translation_memory_from_filepath()` accepts these keyword arguments:
+
+- `display_name`: name of the new translation memory, defaults to the file
+  name.
+- `timeout_s`: maximum time in seconds to wait for processing to finish.
+- `content_type`: MIME type of the file, declared when creating the import job
+  and sent with the upload. Defaults to `application/xml`.
+- `extra_body_parameters`: dictionary of additional key/value pairs to include
+  in the JSON body of the request that creates the import job, replacing keys
+  of the same name that the library sets.
+
 Importing takes a while: the API detects the uploaded file asynchronously, so
 the job keeps reporting `awaiting_input` for roughly half a minute after the
 upload before completing. Pass `timeout_s` to bound how long to wait.
@@ -1221,6 +1232,9 @@ The three steps are also available separately, for example to upload the file
 yourself or to poll for progress. `create_translation_memory_import()` returns
 an upload URL that the file must be uploaded to before processing starts, then
 `get_translation_memory_job()` reports the status.
+`create_translation_memory_import()` takes the file name and size, and the
+optional keyword arguments `content_type`, `display_name` and
+`extra_body_parameters`, with the same meaning as above.
 
 ```python
 created = deepl_client.create_translation_memory_import(

@@ -2014,6 +2014,7 @@ class DeepLClient(Translator):
         *,
         content_type: Optional[str] = None,
         display_name: Optional[str] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> TranslationMemoryImport:
         """Creates an import job for a new translation memory.
 
@@ -2030,6 +2031,10 @@ class DeepLClient(Translator):
             "application/xml".
         :param display_name: (Optional) Name for the resulting translation
             memory, defaults to the file name.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: TranslationMemoryImport with the job ID and upload URL.
         """
         if not file_name:
@@ -2047,6 +2052,10 @@ class DeepLClient(Translator):
         request_data: Dict[str, Any] = {"source_file": source_file}
         if display_name is not None:
             request_data["parameters"] = {"display_name": display_name}
+
+        # Entries replace keys of the same name set above.
+        if extra_body_parameters:
+            request_data.update(extra_body_parameters)
 
         status, content, json = self._api_call(
             "v3/translation_memories/import", json=request_data
@@ -2231,6 +2240,8 @@ class DeepLClient(Translator):
         *,
         display_name: Optional[str] = None,
         timeout_s: Optional[int] = None,
+        content_type: Optional[str] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> TranslationMemoryJob:
         """Imports a TMX file as a new translation memory: creates the import
         job, uploads the file, and waits for processing to finish.
@@ -2241,6 +2252,12 @@ class DeepLClient(Translator):
         :param timeout_s: (Optional) Maximum time to wait for the import to
             finish. Note that this is not accurate to the second, but only
             polls every 5 seconds.
+        :param content_type: (Optional) MIME type of the file, declared when
+            creating the import job and sent with the upload. Defaults to
+            "application/xml".
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON body of the request that creates the import
+            job, replacing keys of the same name that the client sets.
         :return: TranslationMemoryJob for the completed import; its result
             carries the new translation memory ID.
 
@@ -2253,10 +2270,16 @@ class DeepLClient(Translator):
         created = self.create_translation_memory_import(
             file_name=file_path.name,
             content_length=file_path.stat().st_size,
+            content_type=content_type,
             display_name=display_name,
+            extra_body_parameters=extra_body_parameters,
         )
         with open(file_path, "rb") as input_file:
-            self.upload_translation_memory_file(created, input_file)
+            self.upload_translation_memory_file(
+                created,
+                input_file,
+                content_type=content_type or "application/xml",
+            )
 
         job = self.wait_until_translation_memory_job_done(
             created.job_id, timeout_s
