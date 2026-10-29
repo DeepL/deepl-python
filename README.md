@@ -1312,14 +1312,18 @@ while True:
 
 ### Writing a Plugin
 
-If you use this library in an application, please identify the application with
-the `app_info` option, which needs the name and version of the app, or with
-`set_app_info()` after construction:
+If you use this library in an application, please identify the application
+with the name and version of the app. Use either the `app_info` option:
 
 ```python
 deepl_client = deepl.DeepLClient(
     ..., app_info=deepl.AppInfo("sample_python_plugin", "1.0.2")
 )
+```
+
+or, equivalently, `set_app_info()` after construction:
+
+```python
 deepl_client = deepl.DeepLClient(...).set_app_info("sample_python_plugin", "1.0.2")
 ```
 
