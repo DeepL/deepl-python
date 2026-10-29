@@ -207,6 +207,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   do not overwrite request fields set by the library. They do, since 1.24.0.
 - Fixed `MultilingualGlossaryInfo.to_json()` raising `TypeError` when called on
   an instance.
+- Fixed `rephrase_text()` and `correct_text()` failing with "Object of type
+  ... is not JSON serializable" when `target_lang` is a `Language` object or
+  the style or tone is a `WritingStyle` or `WritingTone` member. The value is
+  now sent as its string code.
 
 ## [1.32.0] - 2026-08-12
 ### Added

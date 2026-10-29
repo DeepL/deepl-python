@@ -293,11 +293,12 @@ styles and tones will fail. The current list of supported languages can be found
 [API documentation][api-docs]. We plan to also expose this information via an API endpoint
 in the future.
 
-You can use the predefined constants in the library to use a style:
+You can pass the style or tone as a string or as one of the predefined
+constants `WritingStyle` and `WritingTone`:
 
 ```python
 result = deepl_client.rephrase_text(
-    "A rainbouw has seven colours.", target_lang="EN-US", style=WritingStyle.BUSINESS.value
+    "A rainbouw has seven colours.", target_lang="EN-US", style=WritingStyle.BUSINESS
 )
 print(result.text)
 ```

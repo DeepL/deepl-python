@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import pytest
-from deepl.api_data import WriteResult
+from deepl.api_data import Language, WriteResult, WritingStyle, WritingTone
 
 from .client import make_deepl_client, url
 from .matchers import json_request
@@ -38,6 +38,17 @@ def test_sends_text_without_optional_fields(mocked):
         (
             {"style": "casual", "tone": "confident"},
             {"writing_style": "casual", "tone": "confident"},
+        ),
+        (
+            {
+                "style": WritingStyle.PREFER_BUSINESS,
+                "tone": WritingTone.FRIENDLY,
+            },
+            {"writing_style": "prefer_business", "tone": "friendly"},
+        ),
+        (
+            {"target_lang": Language("en-GB", "English (British)")},
+            {"target_lang": "en-GB"},
         ),
     ],
 )

@@ -19,6 +19,8 @@ from deepl.api_data import (
     SpokenTermsEntries,
     SpokenTermsList,
     WriteResult,
+    WritingStyle,
+    WritingTone,
     StyleProfile,
     StyleRuleInfo,
     TranslationMemoryExport,
@@ -90,8 +92,8 @@ class DeepLClient(Translator):
         text: Union[str, Iterable[str]],
         *,
         target_lang: Union[None, str, Language] = None,
-        style: Optional[str] = None,
-        tone: Optional[str] = None,
+        style: Union[str, WritingStyle, None] = None,
+        tone: Union[str, WritingTone, None] = None,
     ) -> Union[WriteResult, List[WriteResult]]:
         """Improve the text(s) and optionally convert them to the variant of
         the `target_lang` (requires source lang to match target_lang, excluding
@@ -102,10 +104,10 @@ class DeepLClient(Translator):
             generator)
         :param target_lang: language code the final text should be in, for
             example "DE", "EN-US", "FR".
-        :param style: Writing style to be used for the improvement. Either
-            style OR tone can be used.
-        :param tone: Tone to be used for the improvement. Either style OR tone
-            can be used.
+        :param style: Writing style to be used for the improvement, as a
+            WritingStyle or string. Either style OR tone can be used.
+        :param tone: Tone to be used for the improvement, as a WritingTone or
+            string. Either style OR tone can be used.
         :return: List of WriteResult objects containing results, unless input
             text was one string, then a single WriteResult object is returned.
         """
@@ -125,11 +127,11 @@ class DeepLClient(Translator):
 
         request_data: dict = {"text": text}
         if target_lang:
-            request_data["target_lang"] = target_lang
+            request_data["target_lang"] = str(target_lang)
         if style:
-            request_data["writing_style"] = style
+            request_data["writing_style"] = str(style)
         if tone:
-            request_data["tone"] = tone
+            request_data["tone"] = str(tone)
 
         status, content, json = self._api_call(
             "v2/write/rephrase", json=request_data
@@ -193,7 +195,7 @@ class DeepLClient(Translator):
 
         request_data: dict = {"text": text}
         if target_lang:
-            request_data["target_lang"] = target_lang
+            request_data["target_lang"] = str(target_lang)
 
         status, content, json = self._api_call(
             "v2/write/correct", json=request_data

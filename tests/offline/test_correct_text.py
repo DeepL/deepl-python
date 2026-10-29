@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import pytest
-from deepl.api_data import WriteResult
+from deepl.api_data import Language, WriteResult
 
 from .client import make_deepl_client, url
 from .matchers import json_request
@@ -33,6 +33,14 @@ def test_sends_target_language(mocked):
     reply_with_improvement(mocked, {"text": ["helo"], "target_lang": "EN-US"})
 
     make_deepl_client().correct_text("helo", target_lang="EN-US")
+
+
+def test_sends_target_language_object_as_code(mocked):
+    reply_with_improvement(mocked, {"text": ["helo"], "target_lang": "en-US"})
+
+    make_deepl_client().correct_text(
+        "helo", target_lang=Language("en-US", "English (American)")
+    )
 
 
 def test_sends_iterable_text_as_list(mocked):
