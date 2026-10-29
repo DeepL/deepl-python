@@ -266,6 +266,24 @@ def test_keeps_polling_while_document_status_is_unknown(mocked, no_sleep):
     assert status.done
 
 
+def test_url_encodes_document_id_in_status_and_download_paths(mocked):
+    handle = deepl.DocumentHandle("doc/1 ?", "key-1")
+    mocked.post(
+        url("v2/document/doc%2F1%20%3F"),
+        json={"document_id": "doc/1 ?", "status": "done"},
+        match=json_request(KEY_BODY),
+    )
+    mocked.post(
+        url("v2/document/doc%2F1%20%3F/result"),
+        body=b"translated",
+        match=json_request(KEY_BODY),
+    )
+    translator = make_translator()
+
+    translator.translate_document_get_status(handle)
+    translator.translate_document_download(handle, io.BytesIO())
+
+
 def test_raises_when_document_status_is_empty(mocked):
     mocked.post(
         url("v2/document/doc-1"), json={}, match=json_request(KEY_BODY)

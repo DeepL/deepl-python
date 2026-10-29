@@ -31,6 +31,7 @@ import os
 import pathlib
 import requests  # type: ignore
 import time
+import urllib.parse
 import warnings
 from typing import (
     Any,
@@ -42,6 +43,11 @@ from typing import (
     TextIO,
     Union,
 )
+
+
+def _quote_path(value: str) -> str:
+    """URL-encodes a value for use as a single URL path segment."""
+    return urllib.parse.quote(value, safe="")
 
 
 def _warn_skip_language_check() -> None:
@@ -895,7 +901,7 @@ class Translator(BaseClient):
         """
 
         data = {"document_key": handle.document_key}
-        url = f"v2/document/{handle.document_id}"
+        url = f"v2/document/{_quote_path(handle.document_id)}"
 
         status_code, content, json = self._api_call(url, json=data)
 
@@ -1000,7 +1006,7 @@ class Translator(BaseClient):
         """
 
         data = {"document_key": handle.document_key}
-        url = f"v2/document/{handle.document_id}/result"
+        url = f"v2/document/{_quote_path(handle.document_id)}/result"
 
         status_code, response, json = self._api_call(
             url, json=data, stream=True
