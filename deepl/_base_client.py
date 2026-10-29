@@ -98,10 +98,16 @@ class BaseClient:
         util.log_info("Request to DeepL API", method=method, url=url)
         util.log_debug("Request details", data=data, json=json)
 
-        if headers is None:
-            headers = dict()
+        # Headers set by the library for this call (Accept, Content-Type) win
+        # over client headers; names compare case-insensitively.
+        headers = dict(headers or {})
+        call_header_names = {k.lower() for k in headers}
         headers.update(
-            {k: v for k, v in self.headers.items() if k not in headers}
+            {
+                k: v
+                for k, v in self.headers.items()
+                if k.lower() not in call_header_names
+            }
         )
 
         status_code, content = self._client.request_with_backoff(

@@ -8,7 +8,7 @@ import io
 import deepl
 import pytest
 
-from .client import make_translator, url
+from .client import make_deepl_client, make_translator, url
 from .matchers import bodyless_request, json_request
 
 GLOSSARY_JSON = {
@@ -189,6 +189,17 @@ def test_sends_tsv_accept_header_when_getting_entries(mocked, glossary):
     entries = make_translator().get_glossary_entries(glossary)
 
     assert entries == {"Hello": "Hallo", "A%=&": "B&=%"}
+
+
+def test_client_headers_do_not_replace_accept_header_of_entries(mocked):
+    mocked.get(
+        url("v2/glossaries/g-1/entries"),
+        body="Hello\tHallo",
+        match=[deepl_accept_tsv],
+    )
+    client = make_deepl_client(headers={"accept": "application/json"})
+
+    assert client.get_glossary_entries("g-1") == {"Hello": "Hallo"}
 
 
 def deepl_accept_tsv(request):
