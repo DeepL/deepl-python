@@ -42,13 +42,17 @@ import urllib.parse
 from typing import (
     Any,
     BinaryIO,
+    Callable,
     Dict,
     Iterable,
     List,
     Optional,
     TextIO,
+    TypeVar,
     Union,
 )
+
+_T = TypeVar("_T")
 
 
 class DeepLClient(Translator):
@@ -750,7 +754,7 @@ class DeepLClient(Translator):
             "v3/spoken-terms", json=request_data
         )
         self._raise_for_status(status, content, json)
-        return SpokenTerms.from_json(json)
+        return self._parse_spoken_terms_response(SpokenTerms.from_json, json)
 
     def list_spoken_terms(self) -> List[SpokenTerms]:
         """Retrieves all spoken-terms collections.
@@ -764,7 +768,10 @@ class DeepLClient(Translator):
             if (json and isinstance(json, dict))
             else []
         )
-        return [SpokenTerms.from_json(item) for item in spoken_terms]
+        return self._parse_spoken_terms_response(
+            lambda items: [SpokenTerms.from_json(item) for item in items],
+            spoken_terms,
+        )
 
     def get_spoken_terms(
         self, spoken_terms: Union[str, SpokenTerms]
@@ -780,7 +787,7 @@ class DeepLClient(Translator):
             f"v3/spoken-terms/{spoken_terms_id}", method="GET"
         )
         self._raise_for_status(status, content, json)
-        return SpokenTerms.from_json(json)
+        return self._parse_spoken_terms_response(SpokenTerms.from_json, json)
 
     def update_spoken_terms(
         self,
@@ -816,7 +823,7 @@ class DeepLClient(Translator):
             json=request_data,
         )
         self._raise_for_status(status, content, json)
-        return SpokenTerms.from_json(json)
+        return self._parse_spoken_terms_response(SpokenTerms.from_json, json)
 
     def get_spoken_terms_entries(
         self, spoken_terms: Union[str, SpokenTerms], lang: str
@@ -834,7 +841,9 @@ class DeepLClient(Translator):
             method="GET",
         )
         self._raise_for_status(status, content, json)
-        return SpokenTermsEntries.from_json(json)
+        return self._parse_spoken_terms_response(
+            SpokenTermsEntries.from_json, json
+        )
 
     def replace_spoken_terms_list(
         self,
@@ -859,7 +868,9 @@ class DeepLClient(Translator):
             json=self._spoken_terms_json(entries),
         )
         self._raise_for_status(status, content, json)
-        return SpokenTermsList.from_json(json)
+        return self._parse_spoken_terms_response(
+            SpokenTermsList.from_json, json
+        )
 
     def delete_spoken_terms(
         self, spoken_terms: Union[str, SpokenTerms]
@@ -890,6 +901,17 @@ class DeepLClient(Translator):
             method="DELETE",
         )
         self._raise_for_status(status, content, json)
+
+    @staticmethod
+    def _parse_spoken_terms_response(
+        parse: Callable[[Any], _T], json: Any
+    ) -> _T:
+        try:
+            return parse(json)
+        except (AttributeError, KeyError, TypeError, ValueError) as e:
+            raise DeepLException(
+                f"Malformed spoken-terms response: {e!r}"
+            ) from e
 
     @staticmethod
     def _spoken_terms_json(entries: SpokenTermsEntries) -> dict:

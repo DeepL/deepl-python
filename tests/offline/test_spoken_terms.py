@@ -90,3 +90,58 @@ def test_rejects_a_whitespace_only_term(mocked):
         make_deepl_client().create_spoken_terms(
             "terms", [deepl.SpokenTermsEntries("en", ["a", "  "])]
         )
+
+
+@pytest.mark.parametrize(
+    "method, path, body, call",
+    [
+        (
+            "POST",
+            "v3/spoken-terms",
+            {"name": "terms"},
+            lambda c: c.create_spoken_terms("terms", []),
+        ),
+        (
+            "GET",
+            "v3/spoken-terms/st-1",
+            {**SPOKEN_TERMS_JSON, "creation_time": "yesterday"},
+            lambda c: c.get_spoken_terms("st-1"),
+        ),
+        (
+            "PATCH",
+            "v3/spoken-terms/st-1",
+            "not json",
+            lambda c: c.update_spoken_terms("st-1", name="renamed"),
+        ),
+        (
+            "GET",
+            "v3/spoken-terms",
+            {"spoken_terms": [{"name": "terms"}]},
+            lambda c: c.list_spoken_terms(),
+        ),
+        (
+            "GET",
+            "v3/spoken-terms/st-1/entries",
+            "not json",
+            lambda c: c.get_spoken_terms_entries("st-1", "en"),
+        ),
+        (
+            "PUT",
+            "v3/spoken-terms/st-1/term-lists",
+            {"lang": "en", "entry_count": "many"},
+            lambda c: c.replace_spoken_terms_list(
+                "st-1", deepl.SpokenTermsEntries("en", ["a"])
+            ),
+        ),
+    ],
+)
+def test_raises_deepl_exception_on_a_malformed_response(
+    mocked, method, path, body, call
+):
+    if isinstance(body, dict):
+        mocked.add(method, url(path), json=body)
+    else:
+        mocked.add(method, url(path), body=body)
+
+    with pytest.raises(deepl.DeepLException, match="Malformed"):
+        call(make_deepl_client())
