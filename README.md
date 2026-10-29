@@ -310,7 +310,10 @@ functions, the first and second arguments correspond to the input and output
 files respectively.
 
 Just as for the `translate_text()` function, the `source_lang` and
-`target_lang` arguments specify the source and target language codes.
+`target_lang` arguments specify the source and target language codes. They
+may be passed as keywords or positionally after the input and output files,
+for example `translate_document_from_filepath(input_path, output_path, "EN",
+"DE")`.
 
 There are additional optional arguments to control translation, see
 [Document translation options](#document-translation-options) below.
@@ -338,16 +341,17 @@ try:
         )
 
 except deepl.DocumentTranslationException as error:
-    # If an error occurs during document translation after the document was
-    # already uploaded, a DocumentTranslationException is raised. The
-    # document_handle property contains the document handle that may be used to
-    # later retrieve the document from the server, or contact DeepL support.
-    doc_id = error.document_handle.id
-    doc_key = error.document_handle.key
-    print(f"Error after uploading ${error}, id: ${doc_id} key: ${doc_key}")
-except deepl.DeepLException as error:
-    # Errors during upload raise a DeepLException
-    print(error)
+    # If an error occurs during document translation, a
+    # DocumentTranslationException is raised. If the document was already
+    # uploaded, the document_handle property contains the document handle that
+    # may be used to later retrieve the document from the server, or contact
+    # DeepL support. If the upload itself failed, document_handle is None.
+    if error.document_handle is not None:
+        doc_id = error.document_handle.document_id
+        doc_key = error.document_handle.document_key
+        print(f"Error after uploading {error}, id: {doc_id} key: {doc_key}")
+    else:
+        print(f"Error during upload: {error}")
 ```
 
 `translate_document()` and `translate_document_from_filepath()` are convenience
@@ -359,6 +363,15 @@ these steps individually, you can instead use the following functions directly:
 - `translate_document_get_status()` (or
   `translate_document_wait_until_done()`), and
 - `translate_document_download()`
+
+`translate_document_get_status()` returns a `DocumentStatus` with the
+`document_id`, `status`, `seconds_remaining`, `billed_characters` and
+`error_message` of the document, and the `done` (translation succeeded) and
+`ok` (translation has not failed) properties. A status value this library
+version does not know is kept as a string in `status`.
+`translate_document_wait_until_done()` polls the status until the translation
+is done and returns the final `DocumentStatus`; if the translation fails it
+raises a `DeepLException` with the API's error message.
 
 `translate_document_download()` writes the translated document to the
 file-like object given as `output_file`, in chunks of `chunk_size` bytes

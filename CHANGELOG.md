@@ -70,6 +70,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `translate_text()` accepts `source_lang` and `target_lang` positionally after
   the text, for example `translate_text("Hello", None, "DE")`. Keyword use is
   unchanged; omitting `target_lang` still raises `TypeError`.
+- Added the `document_id` property to `DocumentStatus`, read from the status
+  response of `translate_document_get_status()` (falling back to the handle's
+  document ID).
+- `translate_document()`, `translate_document_from_filepath()` and
+  `translate_document_upload()` now also accept `source_lang` and
+  `target_lang` as positional arguments after the input (and output)
+  arguments, for example `translate_document_upload(file, "EN", "DE")`.
+  Keyword use is unchanged.
 
 ### Changed
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`
@@ -89,6 +97,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `download_translation_memory_export()` is now 64 KiB instead of 1 byte, so
   downloads into `output_file` no longer write one byte per call. The written
   content is unchanged; an explicit `chunk_size` still applies.
+- `DocumentStatus.status` is now typed `Union[DocumentStatus.Status, str]`: a
+  status value the API returns that this version does not know is kept as a
+  string instead of raising `ValueError`. Type-checked code that reads
+  `status.status.value` may need an `isinstance(..., DocumentStatus.Status)`
+  guard; `str(status)` returns the status string in both cases.
+- `translate_document_wait_until_done()` now raises `DeepLException` with the
+  API's error message when the document translation fails, instead of
+  returning the `DocumentStatus` with status `error`.
+- `translate_document()` and `translate_document_from_filepath()` now also
+  wrap upload failures in `DocumentTranslationException`, with
+  `document_handle` set to `None` and the original exception as `__cause__`.
+  Invalid arguments still raise `ValueError` or `TypeError`.
 
 ### Deprecated
 - `Translator` is deprecated in favour of `DeepLClient`, which supports all its
@@ -140,6 +160,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `None` in that case.
 - Fixed `translate_text()` raising `IndexError` when the response holds fewer
   translations than texts sent. It now raises `DeepLException`.
+- Fixed `translate_document_get_status()` raising `ValueError` and
+  `translate_document_wait_until_done()` stopping when the API returns a
+  document status this version does not know. `DocumentStatus.status` keeps
+  such a status as a string, and polling continues.
+- Fixed `translate_document()` and `translate_document_from_filepath()`
+  sending `formality=default` when `formality` was not set. It is now sent
+  only when given.
+- Fixed `translate_document_get_status()` and `translate_document_download()`
+  not URL-encoding the document ID in the request path.
+- Fixed `translate_document_upload()` returning an empty `DocumentHandle` when
+  the response lacks `document_id` or `document_key`, and raising
+  `AttributeError` when the response body is not a JSON object. Both now
+  raise `DeepLException`.
+- Fixed the type annotation of `DocumentStatus.error_message`, which is a
+  string, not an integer.
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and
   `Usage.any_limit_exceeded`, which named the replacement instead of the
   deprecated property. They now read "limit_exceeded is deprecated, use
