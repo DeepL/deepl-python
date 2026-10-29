@@ -1302,16 +1302,17 @@ class DeepLClient(Translator):
         status, content, json = self._api_call(endpoint, method="GET")
         self._raise_for_status(status, content, json)
 
-        style_profiles = (
-            json.get("style_profiles") or []
-            if (json and isinstance(json, dict))
-            else []
-        )
-        return [
-            StyleProfile.from_json(style_profile)
-            for style_profile in style_profiles
-            if isinstance(style_profile, dict)
-        ]
+        if not isinstance(json, dict):
+            raise DeepLException(
+                "Style profile list response is not a JSON object"
+            )
+        style_profiles = json.get("style_profiles") or []
+        if not isinstance(style_profiles, list):
+            raise DeepLException(
+                "Style profile list response has a malformed style_profiles"
+            )
+        # from_json raises DeepLException for a malformed entry.
+        return [StyleProfile.from_json(p) for p in style_profiles]
 
     def create_style_profile(
         self,

@@ -70,7 +70,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `create_style_profile()` and `update_style_profile()` accept IDs or
   `GlossaryInfo`, `MultilingualGlossaryInfo`, `StyleRuleInfo` and
   `TranslationMemoryInfo` objects, and both functions accept
-  `extra_body_parameters`.
+  `extra_body_parameters`. A style profile response that is not a JSON object,
+  or lacks a valid `style_profile_id`, `name`, `creation_time` or
+  `updated_time`, raises `DeepLException`.
 - Added the `TagHandlingMode` (`HTML`, `XML`) and `TagHandlingVersion` (`V1`,
   `V2`) enums. The `tag_handling` and `tag_handling_version` options of
   `translate_text()` accept them as well as strings.

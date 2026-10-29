@@ -207,7 +207,12 @@ def test_sends_all_options_as_form_fields(mocked):
     [
         "sp-1",
         deepl.StyleProfile.from_json(
-            {"style_profile_id": "sp-1", "name": "profile"}
+            {
+                "style_profile_id": "sp-1",
+                "name": "profile",
+                "creation_time": "2026-10-26T16:27:10Z",
+                "updated_time": "2026-10-26T16:27:10Z",
+            }
         ),
     ],
 )

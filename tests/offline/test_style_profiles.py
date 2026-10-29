@@ -216,11 +216,9 @@ def test_parses_a_profile_without_optional_fields():
     assert not hasattr(profile, "spoken_terms_ids")
 
 
-@pytest.mark.parametrize("creation_time", ["not a timestamp", 123])
-def test_tolerates_malformed_values(mocked, creation_time):
+def test_tolerates_malformed_optional_values(mocked):
     malformed = dict(
         STYLE_PROFILE_JSON,
-        creation_time=creation_time,
         glossary_ids=["g1", 7, None, "g2"],
         translation_memory_ids=None,
     )
@@ -229,12 +227,10 @@ def test_tolerates_malformed_values(mocked, creation_time):
 
     profile = make_deepl_client().get_style_profile(PROFILE_ID)
 
-    assert profile.creation_time is None
     assert profile.glossary_ids == ["g1", "g2"]
     assert profile.translation_memory_ids == []
     assert profile.glossary_priority_order_enabled is False
     assert profile.name == "Legal, German"
-    assert profile.updated_time == utc(2026, 8, 6, 9, 12, 44, 108000)
 
 
 def test_maps_404_to_not_found(mocked):
@@ -322,3 +318,64 @@ def test_update_merges_extra_body_parameters_last(mocked):
         glossary_ids=[GLOSSARY],
         extra_body_parameters={"glossary_ids": ["x"], "extra": True},
     )
+
+
+def _without(field):
+    return {k: v for k, v in STYLE_PROFILE_JSON.items() if k != field}
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        _without("style_profile_id"),
+        _without("name"),
+        _without("creation_time"),
+        _without("updated_time"),
+        dict(STYLE_PROFILE_JSON, creation_time="not a timestamp"),
+        dict(STYLE_PROFILE_JSON, updated_time=123),
+        dict(STYLE_PROFILE_JSON, name=None),
+    ],
+)
+def test_raises_for_a_missing_or_malformed_required_field(mocked, body):
+    mocked.get(url(f"v3/style_profiles/{PROFILE_ID}"), json=body)
+
+    with pytest.raises(deepl.DeepLException):
+        make_deepl_client().get_style_profile(PROFILE_ID)
+
+
+@pytest.mark.parametrize(
+    "entry", [_without("style_profile_id"), "not an object", None]
+)
+def test_list_raises_for_a_malformed_entry(mocked, entry):
+    mocked.get(
+        url("v3/style_profiles"),
+        json={"style_profiles": [STYLE_PROFILE_JSON, entry]},
+    )
+
+    with pytest.raises(deepl.DeepLException):
+        make_deepl_client().list_style_profiles()
+
+
+@pytest.mark.parametrize(
+    "method, path, call",
+    [
+        ("GET", "v3/style_profiles", lambda c: c.list_style_profiles()),
+        ("POST", "v3/style_profiles", lambda c: c.create_style_profile("n")),
+        (
+            "GET",
+            f"v3/style_profiles/{PROFILE_ID}",
+            lambda c: c.get_style_profile(PROFILE_ID),
+        ),
+        (
+            "PATCH",
+            f"v3/style_profiles/{PROFILE_ID}",
+            lambda c: c.update_style_profile(PROFILE_ID, name="n"),
+        ),
+    ],
+)
+@pytest.mark.parametrize("body", ["not json", "[]", "null"])
+def test_raises_for_a_non_object_body(mocked, method, path, call, body):
+    mocked.add(method, url(path), body=body)
+
+    with pytest.raises(deepl.DeepLException):
+        call(make_deepl_client())

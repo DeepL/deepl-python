@@ -1466,10 +1466,8 @@ class StyleProfile:
     :param translation_memory_ids: IDs of the linked translation memories.
     :param glossary_priority_order_enabled: Whether the order of glossary_ids
         decides which glossary wins when glossaries overlap.
-    :param creation_time: Timestamp when the style profile was created, or
-        None if the response has none or it cannot be parsed.
-    :param updated_time: Timestamp of the last update, or None if the
-        response has none or it cannot be parsed.
+    :param creation_time: Timestamp when the style profile was created.
+    :param updated_time: Timestamp of the last update.
     """
 
     def __init__(
@@ -1482,8 +1480,8 @@ class StyleProfile:
         style_rule_ids: List[str],
         translation_memory_ids: List[str],
         glossary_priority_order_enabled: bool,
-        creation_time: Optional[datetime.datetime],
-        updated_time: Optional[datetime.datetime],
+        creation_time: datetime.datetime,
+        updated_time: datetime.datetime,
     ):
         self._style_profile_id = style_profile_id
         self._name = name
@@ -1501,7 +1499,31 @@ class StyleProfile:
 
     @staticmethod
     def from_json(json) -> "StyleProfile":
-        """Create StyleProfile from the given API JSON object."""
+        """Create StyleProfile from the given API JSON object.
+
+        :raises DeepLException: If the response is not a JSON object, or a
+            required field is missing or malformed.
+        """
+        # Imported here: deepl.exceptions imports this module.
+        from deepl.exceptions import DeepLException
+
+        if not isinstance(json, dict):
+            raise DeepLException("Style profile response is not a JSON object")
+        for field in ("style_profile_id", "name"):
+            if not isinstance(json.get(field), str):
+                raise DeepLException(
+                    f"Style profile response is missing {field}"
+                )
+
+        def required_timestamp(field: str) -> datetime.datetime:
+            timestamp = parse_optional_timestamp(json.get(field))
+            if timestamp is None:
+                raise DeepLException(
+                    f"Style profile response has a missing or malformed "
+                    f"{field}"
+                )
+            return timestamp
+
         return StyleProfile(
             json["style_profile_id"],
             json["name"],
@@ -1511,8 +1533,8 @@ class StyleProfile:
             _string_list(json.get("style_rule_ids")),
             _string_list(json.get("translation_memory_ids")),
             json.get("glossary_priority_order_enabled") is True,
-            parse_optional_timestamp(json.get("creation_time")),
-            parse_optional_timestamp(json.get("updated_time")),
+            required_timestamp("creation_time"),
+            required_timestamp("updated_time"),
         )
 
     @property
@@ -1548,11 +1570,11 @@ class StyleProfile:
         return self._glossary_priority_order_enabled
 
     @property
-    def creation_time(self) -> Optional[datetime.datetime]:
+    def creation_time(self) -> datetime.datetime:
         return self._creation_time
 
     @property
-    def updated_time(self) -> Optional[datetime.datetime]:
+    def updated_time(self) -> datetime.datetime:
         return self._updated_time
 
 
