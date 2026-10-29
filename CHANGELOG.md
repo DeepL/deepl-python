@@ -230,6 +230,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   list before) or a language in it is missing its code or name (instead of a
   raw `KeyError`, `AttributeError` or `TypeError`). A null `features` field is
   treated as no features.
+- Multilingual glossary entries returned by the API are parsed into a
+  dictionary of source-target terms; `MultilingualGlossaryDictionaryEntries.entries`
+  previously held the raw TSV string.
+- A malformed multilingual glossary response raises `DeepLException` instead of
+  a raw `KeyError`, `TypeError` or `ValueError`.
+- `MultilingualGlossaryInfo.to_json()` returns a JSON-serialisable dictionary:
+  `creation_time` as an ISO 8601 string and `dictionaries` as dictionaries.
 
 ## [1.32.0] - 2026-08-12
 ### Added

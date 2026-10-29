@@ -4,6 +4,7 @@
 
 import datetime
 import io
+import json
 
 import deepl
 import pytest
@@ -151,14 +152,17 @@ def test_parses_glossary_info_with_dictionaries(mocked):
     assert str(glossary) == 'MultilingualGlossary "glossary" (g-1)'
 
 
-def test_converts_glossary_info_to_json_on_instance():
-    info = glossary_info()
+def test_converts_glossary_info_to_serialisable_json():
+    result = glossary_info().to_json()
 
-    assert info.to_json() == {
+    assert json.loads(json.dumps(result)) == {
         "glossary_id": "g-1",
         "name": "glossary",
-        "creation_time": info.creation_time,
-        "dictionaries": info.dictionaries,
+        "creation_time": "2021-08-03T14:16:18.329000+00:00",
+        "dictionaries": [
+            {"source_lang": "EN", "target_lang": "DE", "entry_count": 2},
+            {"source_lang": "DE", "target_lang": "EN", "entry_count": 1},
+        ],
     }
 
 
@@ -294,7 +298,7 @@ def test_sends_base_languages_when_getting_dictionary_entries(
         glossary, "EN-US", "DE"
     )
 
-    assert len(response.dictionaries) == 1
+    assert [d.entries for d in response.dictionaries] == [{"Hello": "Hallo"}]
 
 
 @pytest.mark.parametrize("glossary", ["g-1", glossary_info()])
@@ -372,3 +376,46 @@ def test_raises_glossary_not_found_when_server_returns_404(
         deepl.GlossaryNotFoundException, match="Glossary not found.*gone"
     ):
         call(make_deepl_client())
+
+
+@pytest.mark.parametrize(
+    "parse, json_body",
+    [
+        (
+            MultilingualGlossaryInfo.from_json,
+            {**GLOSSARY_JSON, "name": None, "creation_time": "yesterday"},
+        ),  # noqa: E501
+        (MultilingualGlossaryInfo.from_json, {"glossary_id": "g-1"}),
+        (
+            MultilingualGlossaryInfo.from_json,
+            {**GLOSSARY_JSON, "dictionaries": [{"source_lang": "en"}]},
+        ),  # noqa: E501
+        (MultilingualGlossaryInfo.from_json, None),
+        (
+            MultilingualGlossaryDictionaryInfo.from_json,
+            {**DICTIONARY_JSON, "entry_count": "many"},
+        ),  # noqa: E501
+        (
+            MultilingualGlossaryDictionaryEntries.from_json,
+            {
+                "source_lang": "en",
+                "target_lang": "de",
+                "entries": "no separator",
+            },
+        ),  # noqa: E501
+        (
+            MultilingualGlossaryDictionaryEntries.from_json,
+            {"source_lang": "en", "target_lang": "de", "entries": 3},
+        ),  # noqa: E501
+    ],
+)
+def test_raises_deepl_exception_on_malformed_response(parse, json_body):
+    with pytest.raises(deepl.DeepLException, match="Unexpected response"):
+        parse(json_body)
+
+
+def test_raises_deepl_exception_when_glossary_response_is_malformed(mocked):
+    mocked.get(url("v3/glossaries/g-1"), json={"glossary_id": "g-1"})
+
+    with pytest.raises(deepl.DeepLException, match="MultilingualGlossaryInfo"):
+        make_deepl_client().get_multilingual_glossary("g-1")

@@ -6,7 +6,12 @@ import datetime
 from enum import Enum, auto
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
-from deepl.util import get_float_safe, get_int_safe, parse_timestamp
+from deepl.util import (
+    convert_tsv_to_dict,
+    get_float_safe,
+    get_int_safe,
+    parse_timestamp,
+)
 
 
 class AppInfo(NamedTuple):
@@ -672,6 +677,15 @@ class LanguageResource:
         return self._features
 
 
+def _malformed_response(type_name: str, error: Exception) -> Exception:
+    # Imported here: deepl.exceptions imports this module.
+    from deepl.exceptions import DeepLException
+
+    return DeepLException(
+        f"Unexpected response for {type_name}: {type(error).__name__}: {error}"
+    )
+
+
 class MultilingualGlossaryDictionaryEntries:
     def __init__(
         self,
@@ -693,13 +707,24 @@ class MultilingualGlossaryDictionaryEntries:
     @staticmethod
     def from_json(json) -> "MultilingualGlossaryDictionaryEntries":
         """Create MultilingualGlossaryDictionaryEntries from the given
-        API JSON object.
+        API JSON object. Entries in TSV format, as the API returns them, are
+        parsed into a dictionary of source-target terms.
         """
-        return MultilingualGlossaryDictionaryEntries(
-            str(json["source_lang"]),
-            str(json["target_lang"]),
-            json["entries"],
-        )
+        try:
+            entries = json["entries"]
+            if isinstance(entries, str):
+                entries = convert_tsv_to_dict(entries, skip_checks=True)
+            elif not isinstance(entries, dict):
+                raise TypeError(f"entries is a {type(entries).__name__}")
+            return MultilingualGlossaryDictionaryEntries(
+                str(json["source_lang"]),
+                str(json["target_lang"]),
+                entries,
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise _malformed_response(
+                "MultilingualGlossaryDictionaryEntries", error
+            ) from error
 
     def to_json(self):
         """Create API JSON object from
@@ -741,7 +766,12 @@ class MultilingualGlossaryDictionaryEntriesResponse:
         """Create MultilingualGlossaryDictionaryEntriesResponse from the given
         API JSON object.
         """
-        glossary_dicts = list(json["dictionaries"])
+        try:
+            glossary_dicts = list(json["dictionaries"])
+        except (KeyError, TypeError) as error:
+            raise _malformed_response(
+                "MultilingualGlossaryDictionaryEntriesResponse", error
+            ) from error
         serialized_dicts = list(
             map(
                 lambda glossary_dict: MultilingualGlossaryDictionaryEntries.from_json(  # noqa: E501
@@ -767,11 +797,24 @@ class MultilingualGlossaryDictionaryInfo:
     def from_json(json) -> "MultilingualGlossaryDictionaryInfo":
         """Create MultilingualGlossaryDictionaryInfo from the given API JSON
         object."""
-        return MultilingualGlossaryDictionaryInfo(
-            str(json["source_lang"]).upper(),
-            str(json["target_lang"]).upper(),
-            int(json["entry_count"]),
-        )
+        try:
+            return MultilingualGlossaryDictionaryInfo(
+                str(json["source_lang"]).upper(),
+                str(json["target_lang"]).upper(),
+                int(json["entry_count"]),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise _malformed_response(
+                "MultilingualGlossaryDictionaryInfo", error
+            ) from error
+
+    def to_json(self) -> dict:
+        """Create API JSON object from MultilingualGlossaryDictionaryInfo."""
+        return {
+            "source_lang": self._source_lang,
+            "target_lang": self._target_lang,
+            "entry_count": self._entry_count,
+        }
 
     @property
     def source_lang(self) -> str:
@@ -815,18 +858,23 @@ class MultilingualGlossaryInfo:
     @staticmethod
     def from_json(json) -> "MultilingualGlossaryInfo":
         """Create MultilingualGlossaryInfo from the given API JSON object."""
+        try:
+            glossary_id = json["glossary_id"]
+            name = json["name"]
+            creation_time = parse_timestamp(json["creation_time"])
+            dictionaries = list(json["dictionaries"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise _malformed_response(
+                "MultilingualGlossaryInfo", error
+            ) from error
         return MultilingualGlossaryInfo(
-            json["glossary_id"],
-            json["name"],
-            parse_timestamp(json["creation_time"]),
-            list(
-                map(
-                    lambda entry: MultilingualGlossaryDictionaryInfo.from_json(
-                        entry
-                    ),
-                    json["dictionaries"],
-                )
-            ),
+            glossary_id,
+            name,
+            creation_time,
+            [
+                MultilingualGlossaryDictionaryInfo.from_json(entry)
+                for entry in dictionaries
+            ],
         )
 
     def to_json(self) -> dict:
@@ -834,8 +882,8 @@ class MultilingualGlossaryInfo:
         return {
             "glossary_id": self._glossary_id,
             "name": self._name,
-            "creation_time": self._creation_time,
-            "dictionaries": self._dictionaries,
+            "creation_time": self._creation_time.isoformat(),
+            "dictionaries": [d.to_json() for d in self._dictionaries],
         }
 
     @property
