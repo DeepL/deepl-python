@@ -50,6 +50,14 @@ def _quote_path(value: str) -> str:
     return urllib.parse.quote(value, safe="")
 
 
+def _check_target_lang_given(
+    method: str, target_lang: Union[str, Language, None]
+) -> Union[str, Language]:
+    if target_lang is None:
+        raise TypeError(f"{method}() missing required argument: 'target_lang'")
+    return target_lang
+
+
 def _warn_skip_language_check() -> None:
     # stacklevel=3: point at the caller of the public method, not this helper
     warnings.warn(
@@ -583,9 +591,9 @@ class Translator(BaseClient):
         self,
         input_path: Union[str, pathlib.PurePath],
         output_path: Union[str, pathlib.PurePath],
+        source_lang: Union[str, Language, None] = None,
+        target_lang: Union[str, Language, None] = None,
         *,
-        source_lang: Optional[str] = None,
-        target_lang: str,
         formality: Union[str, Formality, None] = None,
         glossary: Union[
             str, GlossaryInfo, MultilingualGlossaryInfo, None
@@ -644,6 +652,9 @@ class Translator(BaseClient):
             translation. The exception includes information about the document
             request.
         """
+        _check_target_lang_given(
+            "translate_document_from_filepath", target_lang
+        )
         # Determine output_format from output path
         in_ext = pathlib.PurePath(input_path).suffix.lower()
         out_ext = pathlib.PurePath(output_path).suffix.lower()
@@ -680,9 +691,9 @@ class Translator(BaseClient):
         self,
         input_document: Union[TextIO, BinaryIO, Any],
         output_document: Union[TextIO, BinaryIO, Any],
+        source_lang: Union[str, Language, None] = None,
+        target_lang: Union[str, Language, None] = None,
         *,
-        source_lang: Optional[str] = None,
-        target_lang: str,
         formality: Union[str, Formality, None] = None,
         glossary: Union[
             str, GlossaryInfo, MultilingualGlossaryInfo, None
@@ -748,6 +759,7 @@ class Translator(BaseClient):
         :raises DocumentTranslationException: If an error occurs during
             translation, the exception includes the document handle.
         """
+        _check_target_lang_given("translate_document", target_lang)
 
         handle = self.translate_document_upload(
             input_document,
@@ -776,9 +788,9 @@ class Translator(BaseClient):
     def translate_document_upload(
         self,
         input_document: Union[TextIO, BinaryIO, str, bytes, Any],
+        source_lang: Union[str, Language, None] = None,
+        target_lang: Union[str, Language, None] = None,
         *,
-        source_lang: Optional[str] = None,
-        target_lang: str,
         formality: Union[str, Formality, None] = None,
         glossary: Union[
             str, GlossaryInfo, MultilingualGlossaryInfo, None
@@ -837,6 +849,9 @@ class Translator(BaseClient):
         :raises DeepLException: If the upload fails, or the response does not
             contain the document ID and key.
         """
+        target_lang = _check_target_lang_given(
+            "translate_document_upload", target_lang
+        )
 
         request_data = self._check_language_and_formality(
             source_lang,

@@ -97,6 +97,77 @@ def test_raises_when_upload_response_lacks_document_handle(mocked, body):
         )
 
 
+def test_accepts_source_and_target_lang_positionally_on_upload(mocked):
+    reply_with_handle(
+        mocked,
+        {"file": ("a.txt", b"hello")},
+        {"target_lang": "DE", "source_lang": "EN"},
+    )
+
+    make_translator().translate_document_upload(
+        b"hello", "en", "de", filename="a.txt"
+    )
+
+
+def test_accepts_source_and_target_lang_positionally(mocked):
+    reply_with_handle(
+        mocked,
+        {"file": ("a.txt", b"hello")},
+        {"target_lang": "DE", "source_lang": "EN"},
+    )
+    reply_with_status(mocked, "done")
+    reply_with_result(mocked)
+
+    make_translator().translate_document(
+        b"hello", io.BytesIO(), "EN", "DE", filename="a.txt"
+    )
+
+
+def test_accepts_source_and_target_lang_positionally_from_filepath(
+    mocked, tmp_path
+):
+    input_path = tmp_path / "input.txt"
+    input_path.write_text("hello")
+    reply_with_handle(
+        mocked,
+        {"file": ("input.txt", b"hello")},
+        {"target_lang": "DE"},
+    )
+    reply_with_status(mocked, "done")
+    reply_with_result(mocked)
+
+    make_translator().translate_document_from_filepath(
+        input_path, tmp_path / "output.txt", None, "DE"
+    )
+
+
+@pytest.mark.parametrize(
+    "method, call",
+    [
+        (
+            "translate_document_upload",
+            lambda t, tmp: t.translate_document_upload(b"x", filename="a.txt"),
+        ),
+        (
+            "translate_document",
+            lambda t, tmp: t.translate_document(b"x", io.BytesIO(), "EN"),
+        ),
+        (
+            "translate_document_from_filepath",
+            lambda t, tmp: t.translate_document_from_filepath(
+                tmp / "in.txt", tmp / "out.txt", source_lang="EN"
+            ),
+        ),
+    ],
+)
+def test_raises_when_target_lang_is_missing(method, call, tmp_path):
+    with pytest.raises(
+        TypeError,
+        match=rf"^{method}\(\) missing required argument: 'target_lang'$",
+    ):
+        call(make_translator(), tmp_path)
+
+
 def test_sends_all_options_as_form_fields(mocked):
     reply_with_handle(
         mocked,
