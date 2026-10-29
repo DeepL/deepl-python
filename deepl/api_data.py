@@ -152,7 +152,7 @@ class DocumentStatus:
         return self._billed_characters
 
     @property
-    def error_message(self) -> Optional[int]:
+    def error_message(self) -> Optional[str]:
         return self._error_message
 
 
