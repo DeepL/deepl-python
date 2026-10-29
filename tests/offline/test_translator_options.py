@@ -99,7 +99,7 @@ def test_warns_about_deprecated_user_agent_global(monkeypatch):
         (
             make_admin_client,
             "v2/admin/developer-keys",
-            lambda c: c.get_developer_keys(),
+            lambda c: c.list_developer_keys(),
         ),
     ],
 )
@@ -129,7 +129,7 @@ def test_sends_headers_option(mocked, make_client, path, call):
         (
             make_admin_client,
             "v2/admin/developer-keys",
-            lambda c: c.get_developer_keys(),
+            lambda c: c.list_developer_keys(),
         ),
     ],
 )
@@ -189,7 +189,7 @@ def test_admin_client_trims_admin_key(mocked):
         match=[matchers.header_matcher({"Authorization": AUTH_HEADER})],
     )
 
-    deepl.DeepLAdminClient(" k\n").get_developer_keys()
+    deepl.DeepLAdminClient(" k\n").list_developer_keys()
 
 
 def test_keeps_path_prefix_of_server_url(mocked):

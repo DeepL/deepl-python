@@ -46,7 +46,7 @@ def test_get_custom_tag_usage_analytics():
 def _assert_key_listed(client, key_id, attempts=5):
     # A newly created key can be briefly invisible to the list call.
     for attempt in range(attempts):
-        if key_id in [k.key_id for k in client.get_developer_keys()]:
+        if key_id in [k.key_id for k in client.list_developer_keys()]:
             return
         if attempt < attempts - 1:
             time.sleep(1)

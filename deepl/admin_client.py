@@ -198,7 +198,7 @@ class DeepLAdminClient(BaseClient):
         self._raise_for_status(status, content, json)
         return _parse_key(json)
 
-    def get_developer_keys(self) -> List[DeveloperKey]:
+    def list_developer_keys(self) -> List[DeveloperKey]:
         """Retrieves all developer keys in the organization, including
         deactivated ones.
 

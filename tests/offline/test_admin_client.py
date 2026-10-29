@@ -265,7 +265,7 @@ def test_response_with_malformed_values_is_parsed_tolerantly(mocked):
 
     report = client.get_usage_analytics("2026-05-03", "2026-05-04")
     tags = client.get_custom_tag_usage_analytics("2026-05-03", "2026-05-04")
-    keys = client.get_developer_keys()
+    keys = client.list_developer_keys()
 
     assert report.group_by is None
     assert report.start_date is None
@@ -325,7 +325,7 @@ def test_non_list_developer_keys_response_raises_exception(mocked):
     mocked.get(url("v2/admin/developer-keys"), json={"keys": []})
 
     with pytest.raises(deepl.DeepLException, match="not a list"):
-        make_admin_client().get_developer_keys()
+        make_admin_client().list_developer_keys()
 
 
 @pytest.mark.parametrize("body", [[], "oops", None])
@@ -400,12 +400,12 @@ def test_other_admin_requests_are_retried(mocked):
     mocked.get(url("v2/admin/developer-keys"), status=503)
     mocked.get(url("v2/admin/developer-keys"), json=[])
 
-    make_admin_client().get_developer_keys()
+    make_admin_client().list_developer_keys()
 
     assert len(mocked.calls) == 2
 
 
-def test_get_developer_keys(mocked):
+def test_list_developer_keys(mocked):
     deactivated = dict(
         DEVELOPER_KEY_JSON,
         is_deactivated=True,
@@ -417,7 +417,7 @@ def test_get_developer_keys(mocked):
         json=[DEVELOPER_KEY_JSON, deactivated],
     )
 
-    keys = make_admin_client().get_developer_keys()
+    keys = make_admin_client().list_developer_keys()
 
     assert [k.is_deactivated for k in keys] == [False, True]
     assert keys[1].deactivated_time is not None
@@ -490,14 +490,14 @@ def test_forbidden_raises_authorization_exception(mocked):
     mocked.get(url("v2/admin/developer-keys"), status=403)
 
     with pytest.raises(deepl.AuthorizationException):
-        make_admin_client().get_developer_keys()
+        make_admin_client().list_developer_keys()
 
 
 def test_admin_client_applies_retry_and_timeout_options(mocked, no_retries):
     mocked.get(url("v2/admin/developer-keys"), status=503)
     mocked.get(url("v2/admin/developer-keys"), json=[])
 
-    make_admin_client(max_retries=1, timeout_s=42.0).get_developer_keys()
+    make_admin_client(max_retries=1, timeout_s=42.0).list_developer_keys()
 
     assert len(mocked.calls) == 2
     assert mocked.calls[1].request.req_kwargs["timeout"] == 42.0

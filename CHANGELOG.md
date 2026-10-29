@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   object. The CLI accepts it as `--style-profile-id`.
 - Added the `DeepLAdminClient` class for the Admin API. It must be created with
   an admin API key and supports managing developer keys
-  (`create_developer_key()`, `get_developer_keys()`,
+  (`create_developer_key()`, `list_developer_keys()`,
   `deactivate_developer_key()`, `rename_developer_key()`,
   `set_developer_key_usage_limits()`) and retrieving usage analytics
   (`get_usage_analytics()`, `get_custom_tag_usage_analytics()`) with

@@ -1273,7 +1273,7 @@ admin_client = deepl.DeepLAdminClient("YOUR_ADMIN_KEY")
 key = admin_client.create_developer_key(label="Staging Team Key")
 print(f"Created {key.label} ({key.key_id})")
 
-for k in admin_client.get_developer_keys():
+for k in admin_client.list_developer_keys():
     print(f"{k.label}: deactivated={k.is_deactivated}")
 
 key = admin_client.rename_developer_key(key, "Production Team Key")
