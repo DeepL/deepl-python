@@ -833,6 +833,9 @@ class Translator(BaseClient):
             keys in this dict will be added to the request body, and replace
             keys of the same name that the client sets.
         :return: DocumentHandle with ID and key identifying document.
+
+        :raises DeepLException: If the upload fails, or the response does not
+            contain the document ID and key.
         """
 
         request_data = self._check_language_and_formality(
@@ -881,11 +884,23 @@ class Translator(BaseClient):
         )
         self._raise_for_status(status, content, json)
 
-        if not json:
-            json = {}
-        return DocumentHandle(
-            json.get("document_id", ""), json.get("document_key", "")
+        document_id = (
+            json.get("document_id") if isinstance(json, dict) else None
         )
+        document_key = (
+            json.get("document_key") if isinstance(json, dict) else None
+        )
+        if not (
+            isinstance(document_id, str)
+            and document_id
+            and isinstance(document_key, str)
+            and document_key
+        ):
+            raise DeepLException(
+                "Document upload response did not contain a document_id and "
+                f"document_key, content: {content}"
+            )
+        return DocumentHandle(document_id, document_key)
 
     def translate_document_get_status(
         self, handle: DocumentHandle

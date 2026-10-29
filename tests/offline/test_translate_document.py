@@ -79,6 +79,24 @@ def test_raises_when_uploading_content_without_filename():
         make_translator().translate_document_upload(b"hello", target_lang="DE")
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        [{"document_id": "doc-1", "document_key": "key-1"}],
+        {"document_id": "doc-1"},
+        {"document_key": "key-1"},
+        {"document_id": "", "document_key": "key-1"},
+    ],
+)
+def test_raises_when_upload_response_lacks_document_handle(mocked, body):
+    mocked.post(url("v2/document"), json=body)
+
+    with pytest.raises(deepl.DeepLException, match="document_id"):
+        make_translator().translate_document_upload(
+            b"hello", target_lang="DE", filename="a.txt"
+        )
+
+
 def test_sends_all_options_as_form_fields(mocked):
     reply_with_handle(
         mocked,
