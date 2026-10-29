@@ -15,6 +15,8 @@ from deepl.api_data import (
     SplitSentences,
     StyleProfile,
     StyleRuleInfo,
+    TagHandlingMode,
+    TagHandlingVersion,
     TextResult,
     TranslationMemoryInfo,
     Usage,
@@ -316,9 +318,9 @@ class Translator(BaseClient):
     def translate_text(
         self,
         text: Union[str, Iterable[str]],
-        *,
         source_lang: Union[str, Language, None] = None,
-        target_lang: Union[str, Language],
+        target_lang: Union[str, Language, None] = None,
+        *,
         context: Optional[str] = None,
         split_sentences: Union[str, SplitSentences, None] = None,
         preserve_formatting: Optional[bool] = None,
@@ -329,8 +331,8 @@ class Translator(BaseClient):
         glossary_ids: Optional[
             List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
         ] = None,
-        tag_handling: Optional[str] = None,
-        tag_handling_version: Optional[str] = None,
+        tag_handling: Union[str, TagHandlingMode, None] = None,
+        tag_handling_version: Union[str, TagHandlingVersion, None] = None,
         outline_detection: Optional[bool] = None,
         non_splitting_tags: Union[str, List[str], None] = None,
         splitting_tags: Union[str, List[str], None] = None,
@@ -349,10 +351,12 @@ class Translator(BaseClient):
         :type text: UTF-8 :class:`str`; string sequence (list, tuple, iterator,
             generator)
         :param source_lang: (Optional) Language code of input text, for example
-            "DE", "EN", "FR". If omitted, DeepL will auto-detect the input
-            language. If a glossary is used, source_lang must be specified.
-        :param target_lang: language code to translate text into, for example
-            "DE", "EN-US", "FR".
+            "DE", "EN", "FR". If omitted or None, DeepL will auto-detect the
+            input language. If a glossary is used, source_lang must be
+            specified. May be passed positionally after text.
+        :param target_lang: Required. Language code to translate text into,
+            for example "DE", "EN-US", "FR". May be passed positionally after
+            source_lang.
         :param context: (Optional) Additional contextual text to influence
             translations, that is not translated itself. Characters in the
             `context` parameter are not counted toward billing. See the API
@@ -381,9 +385,9 @@ class Translator(BaseClient):
             percentage for fuzzy matches from the translation memory (0-100).
             Recommended minimum is 75%.
         :param tag_handling: (Optional) Type of tags to parse before
-            translation, only "xml" and "html" are currently available.
+            translation, as TagHandlingMode enum, "xml" or "html".
         :param tag_handling_version: (Optional) Version of tag handling
-            algorithm to use, "v1" or "v2".
+            algorithm to use, as TagHandlingVersion enum, "v1" or "v2".
         :param outline_detection: (Optional) Set to False to disable automatic
             tag detection.
         :param non_splitting_tags: (Optional) XML tags that should not split a
@@ -408,6 +412,10 @@ class Translator(BaseClient):
         :return: List of TextResult objects containing results, unless input
             text was one string, then a single TextResult object is returned.
         """
+        if target_lang is None:
+            raise TypeError(
+                "translate_text() missing required argument: 'target_lang'"
+            )
         if isinstance(text, str):
             if len(text) == 0:
                 raise ValueError("text must not be empty")
@@ -445,9 +453,9 @@ class Translator(BaseClient):
         if preserve_formatting is not None:
             request_data["preserve_formatting"] = bool(preserve_formatting)
         if tag_handling is not None:
-            request_data["tag_handling"] = tag_handling
+            request_data["tag_handling"] = str(tag_handling)
         if tag_handling_version is not None:
-            request_data["tag_handling_version"] = tag_handling_version
+            request_data["tag_handling_version"] = str(tag_handling_version)
         if outline_detection is not None:
             request_data["outline_detection"] = bool(outline_detection)
         if model_type is not None:
@@ -503,6 +511,7 @@ class Translator(BaseClient):
                     detected_source_language,
                     billed_characters,
                     model_type_used,
+                    translation.get("tag_handling_version"),
                 )
             )
 

@@ -115,6 +115,21 @@ def test_sends_text_and_target_language(mocked):
             {"tag_handling": "xml", "tag_handling_version": "v2"},
             {"tag_handling": "xml", "tag_handling_version": "v2"},
         ),
+        (
+            {
+                "tag_handling": deepl.TagHandlingMode.HTML,
+                "tag_handling_version": deepl.TagHandlingVersion.V1,
+            },
+            {"tag_handling": "html", "tag_handling_version": "v1"},
+        ),
+        (
+            {"tag_handling": deepl.TagHandlingMode.XML},
+            {"tag_handling": "xml"},
+        ),
+        (
+            {"tag_handling_version": deepl.TagHandlingVersion.V2},
+            {"tag_handling_version": "v2"},
+        ),
         ({"outline_detection": False}, {"outline_detection": False}),
         ({"non_splitting_tags": "a,b"}, {"non_splitting_tags": ["a", "b"]}),
         (
@@ -288,6 +303,57 @@ def test_parses_single_text_into_one_result(mocked):
 
     assert isinstance(result, deepl.TextResult)
     assert result.billed_characters == 5
+
+
+@pytest.mark.parametrize(
+    "args, body",
+    [
+        (("en", "de"), {**BASE_BODY, "source_lang": "EN"}),
+        ((None, "de"), BASE_BODY),
+    ],
+)
+def test_sends_positional_source_and_target_language(mocked, args, body):
+    reply_with_translation(mocked, body)
+
+    make_translator().translate_text("hello", *args)
+
+
+def test_raises_when_target_language_is_missing():
+    with pytest.raises(TypeError, match="target_lang"):
+        make_translator().translate_text("hello", "EN")
+
+
+@pytest.mark.parametrize(
+    "translation, expected",
+    [
+        (
+            {
+                "text": "a",
+                "billed_characters": 1,
+                "tag_handling_version": "v2",
+            },
+            "v2",
+        ),
+        (
+            {
+                "text": "a",
+                "billed_characters": 1,
+                "tag_handling_version": "v3",
+            },
+            "v3",
+        ),
+        ({"text": "a", "billed_characters": 1}, None),
+    ],
+)
+def test_parses_tag_handling_version(mocked, translation, expected):
+    mocked.post(
+        url("v2/translate"),
+        json={"translations": [translation]},
+    )
+
+    result = make_translator().translate_text("hello", target_lang="DE")
+
+    assert result.tag_handling_version == expected
 
 
 def test_parses_text_list_into_list_of_results(mocked):

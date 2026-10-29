@@ -30,11 +30,13 @@ class TextResult:
         detected_source_lang: str,
         billed_characters: int,
         model_type_used: Optional[str] = None,
+        tag_handling_version: Optional[str] = None,
     ):
         self.text = text
         self.detected_source_lang = detected_source_lang
         self.billed_characters = billed_characters
         self.model_type_used = model_type_used
+        self.tag_handling_version = tag_handling_version
 
     def __str__(self):
         return self.text
@@ -1066,6 +1068,28 @@ class SplitSentences(Enum):
     ALL = "1"
     NO_NEWLINES = "nonewlines"
     DEFAULT = ALL
+
+    def __str__(self):
+        return self.value
+
+
+class TagHandlingMode(Enum):
+    """Options for the tag_handling parameter: the type of tags to parse
+    before translation."""
+
+    HTML = "html"
+    XML = "xml"
+
+    def __str__(self):
+        return self.value
+
+
+class TagHandlingVersion(Enum):
+    """Options for the tag_handling_version parameter: the version of the tag
+    handling algorithm to use."""
+
+    V1 = "v1"
+    V2 = "v2"
 
     def __str__(self):
         return self.value

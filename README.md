@@ -93,8 +93,10 @@ containing the text you want to translate, or a list of strings if you want to
 translate multiple texts.
 
 `source_lang` and `target_lang` specify the source and target language codes
-respectively. The `source_lang` is optional, if it is unspecified the source
-language will be auto-detected.
+respectively. The `source_lang` is optional, if it is unspecified (or `None`)
+the source language will be auto-detected. Both may be passed as keyword
+arguments or positionally after the text, for example
+`translate_text("Hello", None, "FR")`.
 
 Language codes are **case-insensitive** strings according to ISO 639-1, for
 example `'DE'`, `'FR'`, `'JA''`. Some target languages also include the regional
@@ -116,6 +118,8 @@ corresponding to your input text(s). `TextResult` has the following properties:
 - `billed_characters` is the number of characters billed for the translation.
 - `model_type_used` indicates the translation model used, but is `None` unless
   the `model_type` option is specified. 
+- `tag_handling_version` is the version of the tag handling algorithm used, for
+  example `'v2'`, but is `None` unless the `tag_handling` option is specified.
 
 ```python
 # Translate text into a target language, in this case, French:
@@ -194,9 +198,10 @@ arguments are:
   - `'latency_optimized'` (`ModelType.LATENCY_OPTIMIZED`): use a translation
     model that minimizes response time, at the cost of translation quality.
 - `tag_handling`: type of tags to parse before translation, options are `'html'`
-  and `'xml'`.
+  (`TagHandlingMode.HTML`) and `'xml'` (`TagHandlingMode.XML`).
 - `tag_handling_version`: specifies which version of the tag handling algorithm to
-  use, options are `'v1'` and `'v2'`.
+  use, options are `'v1'` (`TagHandlingVersion.V1`) and `'v2'`
+  (`TagHandlingVersion.V2`).
 - `style_rule`: specifies a style rule to use with translation, either as a string
   containing the ID of the style rule, or a `StyleRuleInfo` object.
 - `style_profile`: specifies a style profile to use with translation, either as

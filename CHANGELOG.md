@@ -62,6 +62,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   class: `list_style_profiles()`, `create_style_profile()`,
   `get_style_profile()`, `update_style_profile()` and
   `delete_style_profile()`, with the `StyleProfile` type.
+- Added the `TagHandlingMode` (`HTML`, `XML`) and `TagHandlingVersion` (`V1`,
+  `V2`) enums. The `tag_handling` and `tag_handling_version` options of
+  `translate_text()` accept them as well as strings.
+- Added `tag_handling_version` to `TextResult`: the tag handling version the
+  API used, or `None` when the response does not contain it.
+- `translate_text()` accepts `source_lang` and `target_lang` positionally after
+  the text, for example `translate_text("Hello", None, "DE")`. Keyword use is
+  unchanged; omitting `target_lang` still raises `TypeError`.
 
 ### Changed
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`
