@@ -1235,6 +1235,12 @@ an upload URL that the file must be uploaded to before processing starts, then
 `create_translation_memory_import()` takes the file name and size, and the
 optional keyword arguments `content_type`, `display_name` and
 `extra_body_parameters`, with the same meaning as above.
+`upload_translation_memory_file()` takes the import job (or its upload URL),
+the file `content` as bytes or a binary file object, and an optional
+`content_type` (default `application/xml`) that must match the one declared
+when creating the job. The keyword `input_file` is a deprecated alias of
+`content`: it emits a `DeprecationWarning` and will be removed in the next
+major version.
 
 ```python
 created = deepl_client.create_translation_memory_import(
@@ -1243,7 +1249,7 @@ created = deepl_client.create_translation_memory_import(
     display_name="Legal TM",
 )
 with open("/path/to/legal.tmx", "rb") as input_file:
-    deepl_client.upload_translation_memory_file(created, input_file)
+    deepl_client.upload_translation_memory_file(created, content=input_file)
 
 # The job reports "awaiting_input" both before the upload and for a while
 # afterwards, until the API detects it; this polls through that status.

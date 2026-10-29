@@ -329,8 +329,26 @@ def test_sends_given_content_type_when_uploading_file(mocked):
     )
 
     make_deepl_client().upload_translation_memory_file(
-        UPLOAD_URL, b"<tmx/>", content_type="text/xml"
+        UPLOAD_URL, content=b"<tmx/>", content_type="text/xml"
     )
+
+
+def test_warns_when_uploading_file_with_input_file_keyword(mocked):
+    mocked.put(UPLOAD_URL, match=storage_request("application/xml", "<tmx/>"))
+
+    with pytest.warns(
+        DeprecationWarning, match="input_file is deprecated, use content"
+    ):
+        make_deepl_client().upload_translation_memory_file(
+            UPLOAD_URL, input_file=b"<tmx/>"
+        )
+
+
+def test_raises_when_uploading_file_with_content_and_input_file():
+    with pytest.raises(ValueError, match="either content or input_file"):
+        make_deepl_client().upload_translation_memory_file(
+            UPLOAD_URL, b"a", input_file=b"b"
+        )
 
 
 def test_raises_when_uploading_file_without_url():

@@ -2068,19 +2068,40 @@ class DeepLClient(Translator):
     def upload_translation_memory_file(
         self,
         translation_memory_import: Union[str, TranslationMemoryImport],
-        input_file: Union[BinaryIO, bytes, Any],
+        content: Union[BinaryIO, bytes, Any] = None,
         content_type: str = "application/xml",
+        *,
+        input_file: Union[BinaryIO, bytes, Any] = None,
     ) -> None:
         """Uploads a TMX file to the upload URL of an import job, which starts
         processing.
 
         :param translation_memory_import: TranslationMemoryImport returned by
             create_translation_memory_import(), or its upload URL.
-        :param input_file: TMX file content as bytes or a file-like object
+        :param content: TMX file content as bytes or a file-like object
             opened in binary mode.
         :param content_type: (Optional) MIME type of the file. Must match the
             content_type declared when the import job was created.
+        :param input_file: Deprecated alias of content.
+
+            .. deprecated::
+                Use content instead. input_file will be removed in the next
+                major version.
         """
+        if input_file is not None:
+            if content is not None:
+                raise ValueError("pass either content or input_file, not both")
+            warnings.warn(
+                "input_file is deprecated, use content",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            content = input_file
+        if content is None:
+            raise TypeError(
+                "upload_translation_memory_file() missing required argument: "
+                "'content'"
+            )
         if isinstance(translation_memory_import, TranslationMemoryImport):
             upload_url = translation_memory_import.upload_url
         else:
@@ -2091,17 +2112,17 @@ class DeepLClient(Translator):
         # Read a file-like object into bytes up front. The request is prepared
         # once and reused across retries, so a stream body would already be at
         # EOF on the second attempt and upload nothing.
-        if hasattr(input_file, "read"):
-            input_file = input_file.read()
+        if hasattr(content, "read"):
+            content = content.read()
 
-        status_code, content = self._asset_call(
+        status_code, response_content = self._asset_call(
             "PUT",
             upload_url,
-            data=input_file,
+            data=content,
             headers={"Content-Type": content_type},
         )
         self._raise_for_asset_status(
-            status_code, content, "uploading translation memory file"
+            status_code, response_content, "uploading translation memory file"
         )
 
     def create_translation_memory_export(

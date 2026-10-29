@@ -143,6 +143,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `expired`, and the plain string for any other value. Members are strings
   that compare equal to the API value, so existing comparisons with strings
   and the `TranslationMemoryJobResult.STATUS_*` constants keep working.
+- Added the `content` parameter name to `upload_translation_memory_file()`
+  for the file content, replacing `input_file`. Positional calls are
+  unaffected.
 
 ### Changed
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`
@@ -214,6 +217,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The argument names `glossary_dicts`, `glossary_dict`, `csv_data` and
   `glossary_id` of the multilingual glossary functions are deprecated, use
   `dictionaries`, `dictionary`, `csv` and `glossary`.
+- The `input_file` keyword of `upload_translation_memory_file()` is
+  deprecated in favour of `content` and will be removed in the next major
+  version. Passing it emits a `DeprecationWarning`.
 
 ### Fixed
 - HTTP 401 responses now raise `AuthorizationException`, like 403. Before they
