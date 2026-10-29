@@ -180,7 +180,6 @@ def test_sends_enable_watermark_when_translating_from_filepath(
         {"file": ("input.docx", BINARY_CONTENT)},
         {
             "target_lang": "DE",
-            "formality": "default",
             "enable_watermark": "true",
         },
     )
@@ -312,7 +311,7 @@ def test_translates_document_through_upload_status_and_download(mocked):
     reply_with_handle(
         mocked,
         {"file": ("a.txt", b"hello")},
-        {"target_lang": "DE", "formality": "default"},
+        {"target_lang": "DE"},
     )
     reply_with_status(mocked, "done", billed_characters=5)
     reply_with_result(mocked, b"translated")
@@ -332,7 +331,7 @@ def test_raises_with_handle_when_document_translation_fails(mocked):
     reply_with_handle(
         mocked,
         {"file": ("a.txt", b"hello")},
-        {"target_lang": "DE", "formality": "default"},
+        {"target_lang": "DE"},
     )
     reply_with_status(mocked, "error", error_message="bad file")
 
@@ -353,7 +352,7 @@ def test_raises_with_handle_when_document_status_fails(mocked):
     reply_with_handle(
         mocked,
         {"file": ("a.txt", b"hello")},
-        {"target_lang": "DE", "formality": "default"},
+        {"target_lang": "DE"},
     )
     mocked.post(
         url("v2/document/doc-1"),
@@ -429,7 +428,7 @@ def test_translates_document_between_file_paths(mocked, tmp_path):
     reply_with_handle(
         mocked,
         {"file": ("input.txt", b"hello")},
-        {"target_lang": "DE", "source_lang": "EN", "formality": "default"},
+        {"target_lang": "DE", "source_lang": "EN"},
     )
     reply_with_status(mocked, "done", billed_characters=5)
     reply_with_result(mocked, b"translated")
@@ -448,7 +447,7 @@ def test_sends_output_format_from_different_output_extension(mocked, tmp_path):
     reply_with_handle(
         mocked,
         {"file": ("input.docx", BINARY_CONTENT)},
-        {"target_lang": "DE", "formality": "default", "output_format": "pdf"},
+        {"target_lang": "DE", "output_format": "pdf"},
     )
     reply_with_status(mocked, "done")
     reply_with_result(mocked, b"%PDF")
@@ -466,7 +465,7 @@ def test_overwrites_existing_output_file(mocked, tmp_path):
     reply_with_handle(
         mocked,
         {"file": ("input.txt", b"hello")},
-        {"target_lang": "DE", "formality": "default"},
+        {"target_lang": "DE"},
     )
     reply_with_status(mocked, "done")
     reply_with_result(mocked, b"new")
@@ -485,7 +484,7 @@ def test_removes_output_file_when_document_translation_fails(mocked, tmp_path):
     reply_with_handle(
         mocked,
         {"file": ("input.txt", b"hello")},
-        {"target_lang": "DE", "formality": "default"},
+        {"target_lang": "DE"},
     )
     reply_with_status(mocked, "error", error_message="bad file")
 

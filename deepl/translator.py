@@ -580,7 +580,7 @@ class Translator(BaseClient):
         *,
         source_lang: Optional[str] = None,
         target_lang: str,
-        formality: Union[str, Formality] = Formality.DEFAULT,
+        formality: Union[str, Formality, None] = None,
         glossary: Union[
             str, GlossaryInfo, MultilingualGlossaryInfo, None
         ] = None,
@@ -677,7 +677,7 @@ class Translator(BaseClient):
         *,
         source_lang: Optional[str] = None,
         target_lang: str,
-        formality: Union[str, Formality] = Formality.DEFAULT,
+        formality: Union[str, Formality, None] = None,
         glossary: Union[
             str, GlossaryInfo, MultilingualGlossaryInfo, None
         ] = None,
