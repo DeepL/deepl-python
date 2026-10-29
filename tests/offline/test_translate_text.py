@@ -28,6 +28,7 @@ def reply_with_translation(mocked, body):
                     "billed_characters": 5,
                 }
             ]
+            * len(body["text"])
         },
         match=json_request(body),
     )
@@ -365,6 +366,21 @@ def test_parses_tag_handling_version(mocked, translation, expected):
     result = make_translator().translate_text("hello", target_lang="DE")
 
     assert result.tag_handling_version == expected
+
+
+@pytest.mark.parametrize(
+    "text, response",
+    [
+        ("hello", {"translations": []}),
+        ("hello", {}),
+        (["x", "y"], {"translations": [{"text": "a"}]}),
+    ],
+)
+def test_raises_when_response_has_too_few_translations(mocked, text, response):
+    mocked.post(url("v2/translate"), json=response)
+
+    with pytest.raises(deepl.DeepLException, match="translations"):
+        make_translator().translate_text(text, target_lang="DE")
 
 
 def test_parses_text_list_into_list_of_results(mocked):

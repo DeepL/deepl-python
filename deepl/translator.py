@@ -428,6 +428,7 @@ class Translator(BaseClient):
             raise TypeError(
                 "text parameter must be a string or an iterable of strings"
             )
+        text_count = len(text)
 
         request_data = self._check_language_and_formality(
             source_lang,
@@ -515,6 +516,12 @@ class Translator(BaseClient):
                     model_type_used,
                     translation.get("tag_handling_version"),
                 )
+            )
+
+        if len(output) < text_count:
+            raise DeepLException(
+                f"Expected {text_count} translations in the response, "
+                f"received {len(output)}"
             )
 
         return output if multi_input else output[0]

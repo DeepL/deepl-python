@@ -138,6 +138,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `translate_text()` raising `TypeError` when a translation in the
   response has no `billed_characters`. `TextResult.billed_characters` is now
   `None` in that case.
+- Fixed `translate_text()` raising `IndexError` when the response holds fewer
+  translations than texts sent. It now raises `DeepLException`.
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and
   `Usage.any_limit_exceeded`, which named the replacement instead of the
   deprecated property. They now read "limit_exceeded is deprecated, use
