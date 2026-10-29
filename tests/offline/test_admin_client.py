@@ -467,7 +467,9 @@ def test_set_developer_key_usage_limits_sends_only_given_limits(
         json=DEVELOPER_KEY_JSON,
     )
 
-    make_admin_client().set_developer_key_usage_limits(KEY_ID, **limits)
+    make_admin_client().set_developer_key_usage_limits(
+        KEY_ID, deepl.DeveloperKeyUsageLimitsUpdate(**limits)
+    )
 
 
 @pytest.mark.parametrize(
@@ -476,7 +478,9 @@ def test_set_developer_key_usage_limits_sends_only_given_limits(
         (lambda c: c.deactivate_developer_key(""), "key_id"),
         (lambda c: c.rename_developer_key("", "renamed"), "key_id"),
         (
-            lambda c: c.set_developer_key_usage_limits("", characters=1),
+            lambda c: c.set_developer_key_usage_limits(
+                "", deepl.DeveloperKeyUsageLimitsUpdate(characters=1)
+            ),
             "key_id",
         ),
     ],

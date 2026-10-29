@@ -1278,10 +1278,14 @@ for k in admin_client.list_developer_keys():
 
 key = admin_client.rename_developer_key(key, "Production Team Key")
 
-# Only the limits you pass are changed; the others keep their current value.
-# None removes a limit (unlimited usage) and 0 blocks that usage.
+# Only the limits set in the DeveloperKeyUsageLimitsUpdate are changed; the
+# others keep their current value. None removes a limit (unlimited usage) and 0
+# blocks that usage.
 key = admin_client.set_developer_key_usage_limits(
-    key, characters=500000, speech_to_speech_milliseconds=None
+    key,
+    deepl.DeveloperKeyUsageLimitsUpdate(
+        characters=500000, speech_to_speech_milliseconds=None
+    ),
 )
 
 # Deactivation is permanent.

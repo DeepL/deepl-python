@@ -19,6 +19,7 @@ from .api_data import (  # noqa
     CustomTagUsageReport,
     DeveloperKey,
     DeveloperKeyUsageLimits,
+    DeveloperKeyUsageLimitsUpdate,
     KeyUsage,
 )
 
@@ -83,6 +84,7 @@ __all__ = [
     "DeepLClient",
     "DeveloperKey",
     "DeveloperKeyUsageLimits",
+    "DeveloperKeyUsageLimitsUpdate",
     "KeyUsage",
     "DocumentHandle",
     "DocumentStatus",

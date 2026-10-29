@@ -67,7 +67,10 @@ def test_developer_key_lifecycle():
         assert client.rename_developer_key(key, new_label).label == new_label
 
         limits = client.set_developer_key_usage_limits(
-            key, characters=5000, speech_to_text_milliseconds=None
+            key,
+            deepl.DeveloperKeyUsageLimitsUpdate(
+                characters=5000, speech_to_text_milliseconds=None
+            ),
         ).usage_limits
         assert limits.characters == 5000
         assert limits.speech_to_text_milliseconds is None

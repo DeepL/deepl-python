@@ -10,23 +10,14 @@ from deepl.api_data import (
     CustomTagUsageAggregateBy,
     CustomTagUsageReport,
     DeveloperKey,
+    DeveloperKeyUsageLimitsUpdate,
 )
 from deepl._base_client import BaseClient
 import datetime
-import enum
 import re
 import urllib.parse
 from typing import Dict, List, Optional, Union
 
-
-class _Unset(enum.Enum):
-    UNSET = enum.auto()
-
-    def __repr__(self):
-        return "<unset>"
-
-
-_UNSET = _Unset.UNSET
 
 _DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
 
@@ -246,43 +237,22 @@ class DeepLAdminClient(BaseClient):
     def set_developer_key_usage_limits(
         self,
         key: Union[str, DeveloperKey],
-        *,
-        characters: Union[int, None, _Unset] = _UNSET,
-        speech_to_text_milliseconds: Union[int, None, _Unset] = _UNSET,
-        speech_to_speech_milliseconds: Union[int, None, _Unset] = _UNSET,
+        limits: DeveloperKeyUsageLimitsUpdate,
     ) -> DeveloperKey:
         """Changes the monthly usage limits of a developer key. Only the
-        limits you pass are changed; omitted limits keep their current value.
-        Pass None to remove a limit (unlimited usage) and 0 to block that
-        usage.
+        limits set in `limits` are changed; the others keep their current
+        value.
 
         :param key: Key ID or DeveloperKey to modify.
-        :param characters: (Optional) Maximum number of characters per usage
-            period across text translation, document translation and text
-            improvement, or None for unlimited.
-        :param speech_to_text_milliseconds: (Optional) Maximum number of
-            speech-to-text milliseconds per usage period, or None for
-            unlimited.
-        :param speech_to_speech_milliseconds: (Optional) Maximum number of
-            speech-to-speech milliseconds per usage period, or None for
-            unlimited.
+        :param limits: DeveloperKeyUsageLimitsUpdate with the limits to
+            change. None removes a limit (unlimited usage) and 0 blocks that
+            usage.
         :return: DeveloperKey describing the modified key.
         """
         key_id = _key_id(key)
-        limits = {
-            name: value
-            for name, value in (
-                ("characters", characters),
-                ("speech_to_text_milliseconds", speech_to_text_milliseconds),
-                (
-                    "speech_to_speech_milliseconds",
-                    speech_to_speech_milliseconds,
-                ),
-            )
-            if value is not _UNSET
-        }
         return self._put_developer_key(
-            "v2/admin/developer-keys/limits", {"key_id": key_id, **limits}
+            "v2/admin/developer-keys/limits",
+            {"key_id": key_id, **limits._to_request_dict()},
         )
 
     def _put_developer_key(self, url: str, request_data: dict) -> DeveloperKey:

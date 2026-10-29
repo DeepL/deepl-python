@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import datetime
-from enum import Enum
+from enum import Enum, auto
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from deepl.util import get_float_safe, get_int_safe, parse_timestamp
@@ -2450,6 +2450,61 @@ class DeveloperKeyUsageLimits:
         """Returns the speech-to-speech limit in milliseconds, or None if
         unlimited."""
         return self._speech_to_speech_milliseconds
+
+
+class _Unset(Enum):
+    UNSET = auto()
+
+    def __repr__(self):
+        return "<unset>"
+
+
+_UNSET = _Unset.UNSET
+
+
+class DeveloperKeyUsageLimitsUpdate:
+    """Changes to the usage limits of a developer key, for
+    DeepLAdminClient.set_developer_key_usage_limits(). Each limit is sent only
+    if you pass it; omitted limits keep their current value. Pass None to
+    remove a limit (unlimited usage) and 0 to block that usage.
+
+    :param characters: (Optional) Maximum number of characters per usage
+        period across text translation, document translation and text
+        improvement, or None for unlimited.
+    :param speech_to_text_milliseconds: (Optional) Maximum number of
+        speech-to-text milliseconds per usage period, or None for unlimited.
+    :param speech_to_speech_milliseconds: (Optional) Maximum number of
+        speech-to-speech milliseconds per usage period, or None for
+        unlimited.
+    """
+
+    def __init__(
+        self,
+        *,
+        characters: Union[int, None, _Unset] = _UNSET,
+        speech_to_text_milliseconds: Union[int, None, _Unset] = _UNSET,
+        speech_to_speech_milliseconds: Union[int, None, _Unset] = _UNSET,
+    ):
+        self._limits = {
+            name: value
+            for name, value in (
+                ("characters", characters),
+                ("speech_to_text_milliseconds", speech_to_text_milliseconds),
+                (
+                    "speech_to_speech_milliseconds",
+                    speech_to_speech_milliseconds,
+                ),
+            )
+            if value is not _UNSET
+        }
+
+    def __repr__(self) -> str:
+        args = ", ".join(f"{k}={v!r}" for k, v in self._limits.items())
+        return f"DeveloperKeyUsageLimitsUpdate({args})"
+
+    def _to_request_dict(self) -> Dict[str, Optional[int]]:
+        """Returns the limits that were set, keyed by their API names."""
+        return dict(self._limits)
 
 
 class DeveloperKey:
