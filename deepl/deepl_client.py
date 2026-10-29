@@ -13,7 +13,7 @@ from deepl.api_data import (
     Language,
     LanguageInclude,
     LanguageResource,
-    LanguageResourceInfo,
+    LanguageResourceName,
     LanguageSupport,
     SpokenTerms,
     SpokenTermsEntries,
@@ -974,7 +974,7 @@ class DeepLClient(Translator):
 
     def get_languages_for_resource(
         self,
-        resource: Union[str, LanguageResource],
+        resource: Union[str, LanguageResourceName],
         *,
         include: Optional[Iterable[Union[str, LanguageInclude]]] = None,
     ) -> List[LanguageSupport]:
@@ -982,7 +982,7 @@ class DeepLClient(Translator):
         with its per-feature support information.
 
         :param resource: Resource to query, for example
-            LanguageResource.TRANSLATE_TEXT or "translate_text".
+            LanguageResourceName.TRANSLATE_TEXT or "translate_text".
         :param include: (Optional) Values to also include beta languages and
             features (LanguageInclude.BETA) or third-party-backed features
             (LanguageInclude.EXTERNAL). By default only stable languages and
@@ -1002,21 +1002,21 @@ class DeepLClient(Translator):
         self._raise_for_status(status, content, json)
 
         languages = json if (json and isinstance(json, list)) else []
-        return [LanguageSupport.from_json(language) for language in languages]
+        return [LanguageSupport.from_json(lang) for lang in languages]
 
-    def get_language_resources(self) -> List[LanguageResourceInfo]:
+    def get_language_resources(self) -> List[LanguageResource]:
         """Retrieves the resources supported by the DeepL API, along with
         their features and whether each feature requires support from the
         source and/or target language.
 
-        :return: List of LanguageResourceInfo objects, one per resource.
+        :return: List of LanguageResource objects, one per resource.
         """
         status, content, json = self._api_call(
             "v3/languages/resources", method="GET"
         )
         self._raise_for_status(status, content, json)
         resources = json if (json and isinstance(json, list)) else []
-        return [LanguageResourceInfo.from_json(r) for r in resources]
+        return [LanguageResource.from_json(r) for r in resources]
 
     def get_all_style_rules(
         self,

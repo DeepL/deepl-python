@@ -39,11 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `extra_body_parameters`.
 - Added `get_languages_for_resource()` method to the `DeepLClient` class to
   retrieve the languages supported by a resource, with per-feature support
-  information, via the `/v3/languages` endpoint.
+  information, via the `/v3/languages` endpoint. Resources are given as
+  `LanguageResourceName` values or strings.
 - Added `get_language_resources()` method to the `DeepLClient` class to
   retrieve the API resources and their features via the
   `/v3/languages/resources` endpoint. Results are returned as
-  `LanguageResourceInfo` and `ResourceFeature` objects.
+  `LanguageResource` and `ResourceFeature` objects.
 - Added `Language` constants for the target variants `de-CH`, `de-DE`,
   `es-ES`, `fr-CA`, and `fr-FR`.
 - Added the `enable_watermark` option to `translate_document()`,

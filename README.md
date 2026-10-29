@@ -795,18 +795,18 @@ for language in deepl_client.get_target_languages():
 #### Listing languages per resource
 
 `get_languages_for_resource()` uses the `/v3/languages` endpoint and returns
-the languages supported by one resource (`LanguageResource.TRANSLATE_TEXT`,
-`LanguageResource.WRITE`, etc.) as a list of `LanguageSupport` objects. Each
+the languages supported by one resource (`LanguageResourceName.TRANSLATE_TEXT`,
+`LanguageResourceName.WRITE`, etc.) as a list of `LanguageSupport` objects. Each
 has `code`, `name`, `status`, `usable_as_source`, `usable_as_target` and a
 `features` map from feature name to its support status. By default only stable
 languages and features are returned; pass `include=[LanguageInclude.BETA]` to
 also get beta ones.
 
 ```python
-from deepl.api_data import LanguageResource
+from deepl.api_data import LanguageResourceName
 
 for language in deepl_client.get_languages_for_resource(
-    LanguageResource.TRANSLATE_TEXT
+    LanguageResourceName.TRANSLATE_TEXT
 ):
     if language.usable_as_target and language.supports("formality"):
         print(f"{language.name} ({language.code}) supports formality")
@@ -817,7 +817,7 @@ for language in deepl_client.get_languages_for_resource(
 
 `get_language_resources()` uses the `/v3/languages/resources` endpoint and
 returns the resources the API offers (translate_text, glossary, write, etc.) as
-a list of `LanguageResourceInfo` objects. Each has `resource` (the name),
+a list of `LanguageResource` objects. Each has `name` (the resource name),
 `features` (a map from feature name to `ResourceFeature`) and
 `supports(feature)`. A `ResourceFeature` has `name`, `needs_source_support` and
 `needs_target_support`: `True` means the source (or target) language must
@@ -828,7 +828,7 @@ specify it.
 for resource in deepl_client.get_language_resources():
     for feature in resource.features.values():
         if feature.needs_target_support:
-            print(f"{resource.resource}: {feature.name} needs target support")
+            print(f"{resource.name}: {feature.name} needs target support")
             # Example: "translate_text: formality needs target support"
 ```
 

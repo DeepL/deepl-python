@@ -4,7 +4,7 @@
 
 import deepl
 import pytest
-from deepl.api_data import LanguageInclude, LanguageResource
+from deepl.api_data import LanguageInclude, LanguageResourceName
 
 from .client import make_deepl_client, url
 from .matchers import bodyless_request
@@ -139,7 +139,7 @@ def test_derives_glossary_pairs_from_usable_languages(mocked):
             {"resource": "write"},
         ),
         (
-            LanguageResource.GLOSSARY,
+            LanguageResourceName.GLOSSARY,
             [LanguageInclude.BETA, "external"],
             {"resource": "glossary", "include": ["beta", "external"]},
         ),
@@ -197,7 +197,7 @@ def test_parses_language_resources(mocked):
 
     translate_text, voice = make_deepl_client().get_language_resources()
 
-    assert translate_text.resource == "translate_text"
+    assert translate_text.name == "translate_text"
     assert translate_text.supports("glossary")
     assert not translate_text.supports("nonexistent")
     glossary = translate_text.features["glossary"]

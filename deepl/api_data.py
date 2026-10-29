@@ -620,42 +620,42 @@ class ResourceFeature:
         return self._needs_target_support
 
 
-class LanguageResourceInfo:
+class LanguageResource:
     """A DeepL API resource and the features it supports, as returned by
     DeepLClient.get_language_resources().
 
-    :param resource: The resource name, for example "translate_text".
+    :param name: The resource name, for example "translate_text".
     :param features: Dictionary mapping feature names to ResourceFeature
         objects.
     """
 
-    def __init__(self, resource: str, features: Dict[str, ResourceFeature]):
-        self._resource = resource
+    def __init__(self, name: str, features: Dict[str, ResourceFeature]):
+        self._name = name
         self._features = features
 
     @staticmethod
-    def from_json(json) -> "LanguageResourceInfo":
-        """Create LanguageResourceInfo from the given API JSON object."""
+    def from_json(json) -> "LanguageResource":
+        """Create LanguageResource from the given API JSON object."""
         features = [
             ResourceFeature.from_json(feature)
             for feature in json.get("features") or []
         ]
-        return LanguageResourceInfo(
-            resource=json["name"],
+        return LanguageResource(
+            name=json["name"],
             features={feature.name: feature for feature in features},
         )
 
     def __str__(self) -> str:
-        return self.resource
+        return self.name
 
     def supports(self, feature: str) -> bool:
         """Returns True if this resource exposes the given feature."""
         return feature in self._features
 
     @property
-    def resource(self) -> str:
+    def name(self) -> str:
         """Returns the resource name."""
-        return self._resource
+        return self._name
 
     @property
     def features(self) -> Dict[str, ResourceFeature]:
@@ -2227,7 +2227,7 @@ class TranslationMemoryJob:
         return self._source_content_length
 
 
-class LanguageResource(Enum):
+class LanguageResourceName(Enum):
     """Resources that can be passed to
     `DeepLClient.get_languages_for_resource()`."""
 

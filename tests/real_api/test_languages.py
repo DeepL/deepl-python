@@ -20,7 +20,7 @@ def test_parses_language_resources():
 
     assert resources
     for resource in resources:
-        assert resource.resource
+        assert resource.name
         assert all(
             name == feature.name for name, feature in resource.features.items()
         )
