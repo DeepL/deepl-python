@@ -65,3 +65,9 @@ def test_rejects_a_term_with_a_newline_without_sending_a_request(mocked):
         make_deepl_client().create_spoken_terms(
             "terms", [deepl.SpokenTermsEntries("en", ["a\nb"])]
         )
+
+
+def test_url_encodes_the_id_in_the_path(mocked):
+    mocked.delete(url("v3/spoken-terms/a%2Fb%3Fc"), status=204)
+
+    make_deepl_client().delete_spoken_terms("a/b?c")

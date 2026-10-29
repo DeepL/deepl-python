@@ -899,8 +899,8 @@ class DeepLClient(Translator):
     @staticmethod
     def _spoken_terms_id(spoken_terms: Union[str, SpokenTerms]) -> str:
         if isinstance(spoken_terms, SpokenTerms):
-            return spoken_terms.spoken_terms_id
-        return spoken_terms
+            spoken_terms = spoken_terms.spoken_terms_id
+        return urllib.parse.quote(spoken_terms, safe="")
 
     def get_languages_for_resource(
         self,
