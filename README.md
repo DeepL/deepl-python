@@ -1296,6 +1296,12 @@ admin_client.deactivate_developer_key(key)
 `deactivate_developer_key()` accept either a key ID or a `DeveloperKey` object
 and return the updated `DeveloperKey`.
 
+`create_developer_key()`, `rename_developer_key()`,
+`set_developer_key_usage_limits()` and `deactivate_developer_key()` also accept
+`extra_body_parameters`, a dict of additional key/value pairs to include in the
+JSON request body. They are added last and replace keys of the same name that
+the client sets.
+
 #### Retrieving usage analytics
 
 `get_usage_analytics()` returns an `AdminUsageReport` for a date range. Dates

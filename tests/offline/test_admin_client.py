@@ -505,3 +505,57 @@ def test_admin_client_applies_retry_and_timeout_options(mocked, no_retries):
 
     assert len(mocked.calls) == 2
     assert mocked.calls[1].request.req_kwargs["timeout"] == 42.0
+
+
+@pytest.mark.parametrize(
+    "method, path, call, body",
+    [
+        (
+            "POST",
+            "v2/admin/developer-keys",
+            lambda c, extra: c.create_developer_key(
+                label="a", extra_body_parameters=extra
+            ),
+            {"label": "replaced", "flag": True},
+        ),
+        (
+            "PUT",
+            "v2/admin/developer-keys/deactivate",
+            lambda c, extra: c.deactivate_developer_key(
+                KEY_ID, extra_body_parameters=extra
+            ),
+            {"key_id": KEY_ID, "label": "replaced", "flag": True},
+        ),
+        (
+            "PUT",
+            "v2/admin/developer-keys/label",
+            lambda c, extra: c.rename_developer_key(
+                KEY_ID, "a", extra_body_parameters=extra
+            ),
+            {"key_id": KEY_ID, "label": "replaced", "flag": True},
+        ),
+        (
+            "PUT",
+            "v2/admin/developer-keys/limits",
+            lambda c, extra: c.set_developer_key_usage_limits(
+                KEY_ID,
+                deepl.DeveloperKeyUsageLimitsUpdate(characters=1),
+                extra_body_parameters=extra,
+            ),
+            {
+                "key_id": KEY_ID,
+                "characters": 1,
+                "label": "replaced",
+                "flag": True,
+            },
+        ),
+    ],
+)
+def test_developer_key_methods_send_extra_body_parameters(
+    mocked, method, path, call, body
+):
+    mocked.add(
+        method, url(path), match=json_request(body), json=DEVELOPER_KEY_JSON
+    )
+
+    call(make_admin_client(), {"label": "replaced", "flag": True})

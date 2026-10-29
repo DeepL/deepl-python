@@ -166,7 +166,10 @@ class DeepLAdminClient(BaseClient):
         return CustomTagUsageReport.from_json(json)
 
     def create_developer_key(
-        self, *, label: Optional[str] = None
+        self,
+        *,
+        label: Optional[str] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> DeveloperKey:
         """Creates a developer key in the organization. The request is only
         retried if it cannot have been processed (HTTP 429 or a DNS
@@ -175,11 +178,15 @@ class DeepLAdminClient(BaseClient):
 
         :param label: (Optional) Label for the new key. The API uses
             "DeepL API Key" if no label is given.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace keys of the same name that the client sets.
         :return: DeveloperKey describing the created key.
         """
         request_data = {}
         if label is not None:
             request_data["label"] = label
+        _add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v2/admin/developer-keys",
@@ -208,36 +215,54 @@ class DeepLAdminClient(BaseClient):
         ]
 
     def deactivate_developer_key(
-        self, key: Union[str, DeveloperKey]
+        self,
+        key: Union[str, DeveloperKey],
+        *,
+        extra_body_parameters: Optional[dict] = None,
     ) -> DeveloperKey:
         """Deactivates a developer key. Deactivation is permanent.
 
         :param key: Key ID or DeveloperKey to deactivate.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace keys of the same name that the client sets.
         :return: DeveloperKey describing the deactivated key.
         """
         return self._put_developer_key(
-            "v2/admin/developer-keys/deactivate", {"key_id": _key_id(key)}
+            "v2/admin/developer-keys/deactivate",
+            {"key_id": _key_id(key)},
+            extra_body_parameters,
         )
 
     def rename_developer_key(
-        self, key: Union[str, DeveloperKey], label: str
+        self,
+        key: Union[str, DeveloperKey],
+        label: str,
+        *,
+        extra_body_parameters: Optional[dict] = None,
     ) -> DeveloperKey:
         """Changes the label of a developer key.
 
         :param key: Key ID or DeveloperKey to rename.
         :param label: New label for the key.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace keys of the same name that the client sets.
         :return: DeveloperKey describing the renamed key.
         """
         key_id = _key_id(key)
         return self._put_developer_key(
             "v2/admin/developer-keys/label",
             {"key_id": key_id, "label": label},
+            extra_body_parameters,
         )
 
     def set_developer_key_usage_limits(
         self,
         key: Union[str, DeveloperKey],
         limits: DeveloperKeyUsageLimitsUpdate,
+        *,
+        extra_body_parameters: Optional[dict] = None,
     ) -> DeveloperKey:
         """Changes the monthly usage limits of a developer key. Only the
         limits set in `limits` are changed; the others keep their current
@@ -247,20 +272,38 @@ class DeepLAdminClient(BaseClient):
         :param limits: DeveloperKeyUsageLimitsUpdate with the limits to
             change. None removes a limit (unlimited usage) and 0 blocks that
             usage.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace keys of the same name that the client sets.
         :return: DeveloperKey describing the modified key.
         """
         key_id = _key_id(key)
         return self._put_developer_key(
             "v2/admin/developer-keys/limits",
             {"key_id": key_id, **limits._to_request_dict()},
+            extra_body_parameters,
         )
 
-    def _put_developer_key(self, url: str, request_data: dict) -> DeveloperKey:
+    def _put_developer_key(
+        self,
+        url: str,
+        request_data: dict,
+        extra_body_parameters: Optional[dict],
+    ) -> DeveloperKey:
+        _add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             url, method="PUT", json=request_data
         )
         self._raise_for_status(status, content, json)
         return _parse_key(json)
+
+
+def _add_extra_body_parameters(
+    request_data: dict, extra_body_parameters: Optional[dict]
+) -> None:
+    # Entries replace keys of the same name set by the client.
+    if extra_body_parameters:
+        request_data.update(extra_body_parameters)
 
 
 def _date_range_params(
