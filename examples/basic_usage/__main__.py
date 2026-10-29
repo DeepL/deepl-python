@@ -2,7 +2,6 @@
 # Use of this source code is governed by an MIT
 # license that can be found in the LICENSE file.
 
-import io
 import deepl
 import os
 
@@ -37,19 +36,20 @@ def main() -> None:
     ginfo: deepl.GlossaryInfo = translator.create_glossary(
         "Test Glossary", "DE", "FR", {"Hallo": "Bonjour"}
     )
-    with io.BytesIO() as output_file:
-        doc_status: deepl.DocumentStatus = translator.translate_document(
-            "My example document",
-            output_file,
-            source_lang="DE",
-            target_lang="FR",
-            filename="example.txt",
-            glossary=ginfo,
-        )
-        doc_status.done
-    _ = translator.translate_text_with_glossary(
-        ["Ich bin ein Beispielsatz.", "Ich bin noch ein Satz."], glossary=ginfo
-    )
+    # Translation from non-English sources is temporarily disabled.
+    # with io.BytesIO() as output_file:
+    #     doc_status: deepl.DocumentStatus = translator.translate_document(
+    #         "My example document",
+    #         output_file,
+    #         source_lang="DE",
+    #         target_lang="FR",
+    #         filename="example.txt",
+    #         glossary=ginfo,
+    #     )
+    #     doc_status.done
+    # _ = translator.translate_text_with_glossary(
+    #     ["Ich bin ein Beispielsatz.", "Ich bin noch ein Satz."], glossary=ginfo
+    # )
 
     print("Success")
 
