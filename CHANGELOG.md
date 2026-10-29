@@ -62,10 +62,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it to `True` to add a "Translated by DeepL" watermark to `docx` and `pdf`
   output.
 - Added the API Pro usage fields to `Usage`: `api_key_character`,
-  `speech_to_text_minutes` and `speech_to_speech_minutes` (as `Usage.Detail`),
-  `start_time` and `end_time` (the billing period), and `products`, a list of
-  `Usage.Product` objects with per-product usage. They are invalid or `None`
-  when the response does not contain them.
+  `speech_to_text_minutes` and `speech_to_speech_minutes` (as
+  `Optional[Usage.Detail]`), `start_time` and `end_time` (the billing period),
+  and `products`, a list of `Usage.Product` objects with per-product usage.
+  They are `None` when the response does not contain them; `products` entries
+  that are not JSON objects are skipped.
 - Added the Spoken Terms API (`/v3/spoken-terms`) to the `DeepLClient` class:
   `create_spoken_terms()`, `list_spoken_terms()`, `get_spoken_terms()`,
   `update_spoken_terms()`, `get_spoken_terms_entries()`,

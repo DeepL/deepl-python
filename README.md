@@ -781,8 +781,8 @@ if usage.document.valid:
     print(f"Document usage: {usage.document.count} of {usage.document.limit}")
 ```
 
-API Pro accounts also receive the following; for other accounts these usage
-subtypes are invalid and the other properties are `None`:
+API Pro accounts also receive the following; for other accounts, and whenever
+the response does not contain them, these properties are `None`:
 
 - `api_key_character`: character usage of the API key making the request, as
   opposed to `character`, which covers the whole account,
@@ -800,7 +800,7 @@ usage = deepl_client.get_usage()
 if usage.start_time and usage.end_time:
     print(f"Billing period: {usage.start_time} to {usage.end_time}")
 print(f"Account characters: {usage.character.count} of {usage.character.limit}")
-if usage.api_key_character.valid:
+if usage.api_key_character and usage.api_key_character.valid:
     print(
         f"API key characters: {usage.api_key_character.count} of "
         f"{usage.api_key_character.limit}"

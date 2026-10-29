@@ -161,14 +161,33 @@ def test_parses_free_usage_without_api_pro_fields(mocked):
 
     assert usage.character.count == 20
     assert usage.character.limit == 500000
-    assert not usage.api_key_character.valid
-    assert usage.api_key_character.count is None
-    assert not usage.speech_to_text_minutes.valid
-    assert not usage.speech_to_speech_minutes.valid
+    assert usage.api_key_character is None
+    assert usage.speech_to_text_minutes is None
+    assert usage.speech_to_speech_minutes is None
     assert usage.products is None
     assert usage.start_time is None
     assert usage.end_time is None
     assert str(usage) == "Usage this billing period:\nCharacters: 20 of 500000"
+
+
+def test_skips_non_object_product_entries(mocked):
+    mocked.get(
+        url("v2/usage"),
+        json={
+            "products": [
+                "translate",
+                None,
+                {"product_type": "write", "api_key_unit_count": 3},
+            ]
+        },
+    )
+
+    usage = make_translator().get_usage()
+
+    assert usage.products is not None
+    assert [
+        (p.product_type, p.api_key_unit_count) for p in usage.products
+    ] == [("write", 3)]
 
 
 def test_ignores_unparseable_billing_period(mocked):

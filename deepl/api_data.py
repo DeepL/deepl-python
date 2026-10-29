@@ -169,7 +169,7 @@ class Usage:
     checked individually.
     For API Pro accounts, api_key_character, speech_to_text_minutes,
     speech_to_speech_minutes, products, start_time and end_time provide
-    further details; for other accounts they are invalid or None.
+    further details; for other accounts they are None.
     The any_limit_reached property checks if for any usage type the amount used
     has reached the allowed amount.
     """
@@ -279,16 +279,22 @@ class Usage:
         self._character = self.Detail(json, "character")
         self._document = self.Detail(json, "document")
         self._team_document = self.Detail(json, "team_document")
-        self._api_key_character = self.Detail(json, "api_key_character")
-        self._speech_to_text_minutes = self.Detail(
+        self._api_key_character = self._optional_detail(
+            json, "api_key_character"
+        )
+        self._speech_to_text_minutes = self._optional_detail(
             json, "speech_to_text_minutes"
         )
-        self._speech_to_speech_minutes = self.Detail(
+        self._speech_to_speech_minutes = self._optional_detail(
             json, "speech_to_speech_minutes"
         )
         products = json.get("products") if json else None
         self._products: Optional[List[Usage.Product]] = (
-            [Usage.Product.from_json(p) for p in products]
+            [
+                Usage.Product.from_json(p)
+                for p in products
+                if isinstance(p, dict)
+            ]
             if isinstance(products, list)
             else None
         )
@@ -298,6 +304,18 @@ class Usage:
         self._end_time = parse_optional_timestamp(
             json.get("end_time") if json else None
         )
+
+    @staticmethod
+    def _optional_detail(
+        json: Optional[dict], prefix: str
+    ) -> Optional["Usage.Detail"]:
+        """Returns the Detail for prefix, or None if the response contains
+        neither its count nor its limit."""
+        if not json or (
+            f"{prefix}_count" not in json and f"{prefix}_limit" not in json
+        ):
+            return None
+        return Usage.Detail(json, prefix)
 
     @property
     def any_limit_reached(self) -> bool:
@@ -340,22 +358,24 @@ class Usage:
         return self._team_document
 
     @property
-    def api_key_character(self) -> Detail:
+    def api_key_character(self) -> Optional[Detail]:
         """Returns character usage details for this API key, as opposed to
-        character, which covers the whole account. Only valid for API Pro
-        accounts."""
+        character, which covers the whole account, or None if the response
+        does not contain them (only present for API Pro accounts)."""
         return self._api_key_character
 
     @property
-    def speech_to_text_minutes(self) -> Detail:
-        """Returns speech-to-text usage details in minutes. Only valid for API
-        Pro accounts."""
+    def speech_to_text_minutes(self) -> Optional[Detail]:
+        """Returns speech-to-text usage details in minutes, or None if the
+        response does not contain them (only present for API Pro
+        accounts)."""
         return self._speech_to_text_minutes
 
     @property
-    def speech_to_speech_minutes(self) -> Detail:
-        """Returns speech-to-speech usage details in minutes. Only valid for
-        API Pro accounts."""
+    def speech_to_speech_minutes(self) -> Optional[Detail]:
+        """Returns speech-to-speech usage details in minutes, or None if the
+        response does not contain them (only present for API Pro
+        accounts)."""
         return self._speech_to_speech_minutes
 
     @property
