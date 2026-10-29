@@ -58,6 +58,31 @@ from typing import (
 _T = TypeVar("_T")
 
 
+def _parse_improvements(json: Any, text_count: int) -> List[WriteResult]:
+    improvements = json.get("improvements") if isinstance(json, dict) else None
+    if not isinstance(improvements, list) or len(improvements) < text_count:
+        raise DeepLException(
+            "Unexpected response: expected an improvements list with "
+            f"{text_count} entries"
+        )
+    output = []
+    for improvement in improvements:
+        if not isinstance(improvement, dict) or not isinstance(
+            improvement.get("text"), str
+        ):
+            raise DeepLException(
+                "Unexpected response: improvement without text"
+            )
+        output.append(
+            WriteResult(
+                improvement["text"],
+                improvement.get("detected_source_language", ""),
+                improvement.get("target_language", ""),
+            )
+        )
+    return output
+
+
 class DeepLClient(Translator):
     def __init__(
         self,
@@ -139,26 +164,7 @@ class DeepLClient(Translator):
 
         self._raise_for_status(status, content, json)
 
-        improvements = (
-            json.get("improvements", [])
-            if (json and isinstance(json, dict))
-            else []
-        )
-        output = []
-        for improvement in improvements:
-            text = improvement.get("text", "") if improvement else ""
-            detected_source_language = (
-                improvement.get("detected_source_language", "")
-                if improvement
-                else ""
-            )
-            target_language = (
-                improvement.get("target_language", "") if improvement else ""
-            )
-            output.append(
-                WriteResult(text, detected_source_language, target_language)
-            )
-
+        output = _parse_improvements(json, len(text))
         return output if multi_input else output[0]
 
     def correct_text(
@@ -203,26 +209,7 @@ class DeepLClient(Translator):
 
         self._raise_for_status(status, content, json)
 
-        improvements = (
-            json.get("improvements", [])
-            if (json and isinstance(json, dict))
-            else []
-        )
-        output = []
-        for improvement in improvements:
-            text = improvement.get("text", "") if improvement else ""
-            detected_source_language = (
-                improvement.get("detected_source_language", "")
-                if improvement
-                else ""
-            )
-            target_language = (
-                improvement.get("target_language", "") if improvement else ""
-            )
-            output.append(
-                WriteResult(text, detected_source_language, target_language)
-            )
-
+        output = _parse_improvements(json, len(text))
         return output if multi_input else output[0]
 
     def create_multilingual_glossary(

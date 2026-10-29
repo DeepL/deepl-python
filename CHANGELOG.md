@@ -211,6 +211,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ... is not JSON serializable" when `target_lang` is a `Language` object or
   the style or tone is a `WritingStyle` or `WritingTone` member. The value is
   now sent as its string code.
+- `rephrase_text()` and `correct_text()` now raise `DeepLException` when the
+  response has no `improvements` list, fewer improvements than input texts, or
+  an improvement without `text`. Before, this raised `IndexError` or
+  `AttributeError`, or silently returned a shorter list.
 
 ## [1.32.0] - 2026-08-12
 ### Added

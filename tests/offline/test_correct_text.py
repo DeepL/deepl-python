@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import pytest
+from deepl import DeepLException
 from deepl.api_data import Language, WriteResult
 
 from .client import make_deepl_client, url
@@ -18,7 +19,7 @@ IMPROVEMENT = {
 def reply_with_improvement(mocked, body):
     mocked.post(
         url("v2/write/correct"),
-        json={"improvements": [IMPROVEMENT]},
+        json={"improvements": [IMPROVEMENT] * len(body["text"])},
         match=json_request(body),
     )
 
@@ -75,4 +76,21 @@ def test_parses_text_list_into_list_of_write_results(mocked):
 )
 def test_raises_for_invalid_text(text, error, match):
     with pytest.raises(error, match=match):
+        make_deepl_client().correct_text(text)
+
+
+@pytest.mark.parametrize(
+    "text, body",
+    [
+        ("helo", {}),
+        ("helo", {"improvements": []}),
+        ("helo", {"improvements": [None]}),
+        ("helo", {"improvements": [{"text": 5}]}),
+        (["a", "b"], {"improvements": [IMPROVEMENT]}),
+    ],
+)
+def test_raises_deepl_exception_for_malformed_improvements(mocked, text, body):
+    mocked.post(url("v2/write/correct"), json=body)
+
+    with pytest.raises(DeepLException, match="Unexpected response"):
         make_deepl_client().correct_text(text)
