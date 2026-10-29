@@ -2511,21 +2511,22 @@ class DeveloperKey:
     """Information about a developer API key, as returned by the Admin API.
 
     :param key_id: Unique ID of the key.
-    :param label: Label assigned to the key.
+    :param label: Label assigned to the key, or None if absent.
     :param creation_time: Timestamp when the key was created.
     :param deactivated_time: Timestamp when the key was deactivated, if it was.
     :param is_deactivated: True if the key is deactivated.
-    :param usage_limits: Usage limits configured for the key.
+    :param usage_limits: Usage limits configured for the key, or None if
+        absent.
     """
 
     def __init__(
         self,
         key_id: str,
-        label: str,
+        label: Optional[str],
         creation_time: Optional[datetime.datetime],
         deactivated_time: Optional[datetime.datetime],
         is_deactivated: bool,
-        usage_limits: DeveloperKeyUsageLimits,
+        usage_limits: Optional[DeveloperKeyUsageLimits],
     ):
         self._key_id = key_id
         self._label = label
@@ -2535,6 +2536,8 @@ class DeveloperKey:
         self._usage_limits = usage_limits
 
     def __str__(self) -> str:
+        if self.label is None:
+            return f"DeveloperKey ({self.key_id})"
         return f'DeveloperKey "{self.label}" ({self.key_id})'
 
     @staticmethod
@@ -2543,14 +2546,16 @@ class DeveloperKey:
         json = _as_dict(json)
         return DeveloperKey(
             key_id=_str_or_empty(json, "key_id"),
-            label=_str_or_empty(json, "label"),
+            label=_str_or_none(json.get("label")),
             creation_time=_parse_utc_timestamp(json.get("creation_time")),
             deactivated_time=_parse_utc_timestamp(
                 json.get("deactivated_time")
             ),
             is_deactivated=json.get("is_deactivated") is True,
-            usage_limits=DeveloperKeyUsageLimits.from_json(
-                json.get("usage_limits")
+            usage_limits=(
+                DeveloperKeyUsageLimits.from_json(json["usage_limits"])
+                if isinstance(json.get("usage_limits"), dict)
+                else None
             ),
         )
 
@@ -2560,8 +2565,8 @@ class DeveloperKey:
         return self._key_id
 
     @property
-    def label(self) -> str:
-        """Returns the label of the key."""
+    def label(self) -> Optional[str]:
+        """Returns the label of the key, or None if the API sent none."""
         return self._label
 
     @property
@@ -2580,8 +2585,9 @@ class DeveloperKey:
         return self._is_deactivated
 
     @property
-    def usage_limits(self) -> DeveloperKeyUsageLimits:
-        """Returns the usage limits of the key."""
+    def usage_limits(self) -> Optional[DeveloperKeyUsageLimits]:
+        """Returns the usage limits of the key, or None if the API sent
+        none."""
         return self._usage_limits
 
 
@@ -2686,7 +2692,7 @@ class KeyUsage:
     """Usage of a single API key in an admin usage analytics report.
 
     :param api_key: Masked API key.
-    :param api_key_label: Label of the API key.
+    :param api_key_label: Label of the API key, or None if absent.
     :param usage: Usage of the API key.
     :param usage_date: Day of the usage, present when grouped by key and day.
     """
@@ -2694,7 +2700,7 @@ class KeyUsage:
     def __init__(
         self,
         api_key: str,
-        api_key_label: str,
+        api_key_label: Optional[str],
         usage: AdminUsageBreakdown,
         usage_date: Optional[datetime.datetime] = None,
     ):
@@ -2709,7 +2715,7 @@ class KeyUsage:
         json = _as_dict(json)
         return KeyUsage(
             api_key=_str_or_empty(json, "api_key"),
-            api_key_label=_str_or_empty(json, "api_key_label"),
+            api_key_label=_str_or_none(json.get("api_key_label")),
             usage=AdminUsageBreakdown.from_json(json.get("usage")),
             usage_date=_parse_utc_timestamp(json.get("usage_date")),
         )
@@ -2720,8 +2726,8 @@ class KeyUsage:
         return self._api_key
 
     @property
-    def api_key_label(self) -> str:
-        """Returns the label of the API key."""
+    def api_key_label(self) -> Optional[str]:
+        """Returns the label of the API key, or None if the API sent none."""
         return self._api_key_label
 
     @property

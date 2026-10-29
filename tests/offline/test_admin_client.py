@@ -271,7 +271,7 @@ def test_response_with_malformed_values_is_parsed_tolerantly(mocked):
     assert report.start_date is None
     assert report.total_usage.total_characters == 0
     assert report.total_usage.speech_to_text_minutes == 1.5
-    assert [k.api_key_label for k in report.key_usages] == ["kept", ""]
+    assert [k.api_key_label for k in report.key_usages] == ["kept", None]
     assert report.key_and_day_usages == []
     assert tags.next_page is None
     assert [(u.custom_tag, u.usage_date) for u in tags.usage] == [
@@ -282,9 +282,25 @@ def test_response_with_malformed_values_is_parsed_tolerantly(mocked):
     assert keys[0].usage_limits.characters is None
     assert keys[1].creation_time is None
     assert keys[1].is_deactivated is False
-    assert keys[1].usage_limits.characters is None
+    assert keys[1].usage_limits is None
     assert keys[2].is_deactivated is False
     assert keys[2].usage_limits.characters is None
+
+
+def test_absent_optional_key_fields_are_none(mocked):
+    key_json = {
+        k: v
+        for k, v in DEVELOPER_KEY_JSON.items()
+        if k not in ("label", "usage_limits")
+    }
+    mocked.get(url("v2/admin/developer-keys"), json=[key_json])
+
+    key = make_admin_client().list_developer_keys()[0]
+
+    assert key.label is None
+    assert key.usage_limits is None
+    assert str(key) == f"DeveloperKey ({KEY_ID})"
+    assert "None" not in str(key)
 
 
 def test_create_developer_key(mocked):
