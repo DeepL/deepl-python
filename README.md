@@ -821,8 +821,8 @@ a list of `LanguageResource` objects. Each has `name` (the resource name),
 `features` (a map from feature name to `ResourceFeature`) and
 `supports(feature)`. A `ResourceFeature` has `name`, `needs_source_support` and
 `needs_target_support`: `True` means the source (or target) language must
-support the feature for it to be available, `None` means the API did not
-specify it.
+support the feature for it to be available; they are `False` when the API
+omits them.
 
 ```python
 for resource in deepl_client.get_language_resources():

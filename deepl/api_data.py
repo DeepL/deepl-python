@@ -569,22 +569,30 @@ class GlossaryLanguagePair:
         return self._target_lang
 
 
+def _required(json, key: str):
+    """Returns json[key]; raises KeyError if the field is missing or null."""
+    value = json[key]
+    if value is None:
+        raise KeyError(key)
+    return value
+
+
 class ResourceFeature:
     """A feature supported by a DeepL API resource, as returned by
     DeepLClient.get_language_resources().
 
     :param name: The feature name, for example "glossary" or "formality".
     :param needs_source_support: True if the source language must support
-        the feature for it to be available, None if not specified.
+        the feature for it to be available; False if the API omits it.
     :param needs_target_support: True if the target language must support
-        the feature for it to be available, None if not specified.
+        the feature for it to be available; False if the API omits it.
     """
 
     def __init__(
         self,
         name: str,
-        needs_source_support: Optional[bool] = None,
-        needs_target_support: Optional[bool] = None,
+        needs_source_support: bool = False,
+        needs_target_support: bool = False,
     ):
         self._name = name
         self._needs_source_support = needs_source_support
@@ -594,9 +602,9 @@ class ResourceFeature:
     def from_json(json) -> "ResourceFeature":
         """Create ResourceFeature from the given API JSON object."""
         return ResourceFeature(
-            name=json["name"],
-            needs_source_support=json.get("needs_source_support"),
-            needs_target_support=json.get("needs_target_support"),
+            name=_required(json, "name"),
+            needs_source_support=bool(json.get("needs_source_support")),
+            needs_target_support=bool(json.get("needs_target_support")),
         )
 
     def __str__(self) -> str:
@@ -608,15 +616,15 @@ class ResourceFeature:
         return self._name
 
     @property
-    def needs_source_support(self) -> Optional[bool]:
+    def needs_source_support(self) -> bool:
         """Returns True if the source language must support this feature,
-        or None if the API did not specify it."""
+        False otherwise (also when the API did not specify it)."""
         return self._needs_source_support
 
     @property
-    def needs_target_support(self) -> Optional[bool]:
+    def needs_target_support(self) -> bool:
         """Returns True if the target language must support this feature,
-        or None if the API did not specify it."""
+        False otherwise (also when the API did not specify it)."""
         return self._needs_target_support
 
 
@@ -641,7 +649,7 @@ class LanguageResource:
             for feature in json.get("features") or []
         ]
         return LanguageResource(
-            name=json["name"],
+            name=_required(json, "name"),
             features={feature.name: feature for feature in features},
         )
 
@@ -2271,7 +2279,7 @@ class LanguageFeature:
     @staticmethod
     def from_json(json) -> "LanguageFeature":
         """Create LanguageFeature from the given API JSON object."""
-        return LanguageFeature(status=json["status"])
+        return LanguageFeature(status=_required(json, "status"))
 
     @property
     def status(self) -> str:
@@ -2319,11 +2327,11 @@ class LanguageSupport:
         """Create LanguageSupport from the given API JSON object."""
         features = json.get("features") or {}
         return LanguageSupport(
-            code=json["lang"],
-            name=json["name"],
-            status=json["status"],
-            usable_as_source=bool(json["usable_as_source"]),
-            usable_as_target=bool(json["usable_as_target"]),
+            code=_required(json, "lang"),
+            name=_required(json, "name"),
+            status=_required(json, "status"),
+            usable_as_source=bool(_required(json, "usable_as_source")),
+            usable_as_target=bool(_required(json, "usable_as_target")),
             features={
                 name: LanguageFeature.from_json(feature)
                 for name, feature in features.items()

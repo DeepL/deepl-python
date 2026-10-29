@@ -1001,8 +1001,15 @@ class DeepLClient(Translator):
         status, content, json = self._api_call(endpoint, method="GET")
         self._raise_for_status(status, content, json)
 
-        languages = json if (json and isinstance(json, list)) else []
-        return [LanguageSupport.from_json(lang) for lang in languages]
+        if not isinstance(json, list):
+            raise DeepLException("Languages response is not a list")
+        languages = json
+        try:
+            return [LanguageSupport.from_json(lang) for lang in languages]
+        except (AttributeError, KeyError, TypeError, ValueError) as e:
+            raise DeepLException(
+                f"Malformed language in response: {e!r}"
+            ) from e
 
     def get_language_resources(self) -> List[LanguageResource]:
         """Retrieves the resources supported by the DeepL API, along with
@@ -1015,8 +1022,15 @@ class DeepLClient(Translator):
             "v3/languages/resources", method="GET"
         )
         self._raise_for_status(status, content, json)
-        resources = json if (json and isinstance(json, list)) else []
-        return [LanguageResource.from_json(r) for r in resources]
+        if not isinstance(json, list):
+            raise DeepLException("Language resources response is not a list")
+        resources = json
+        try:
+            return [LanguageResource.from_json(r) for r in resources]
+        except (AttributeError, KeyError, TypeError, ValueError) as e:
+            raise DeepLException(
+                f"Malformed language resource in response: {e!r}"
+            ) from e
 
     def get_all_style_rules(
         self,

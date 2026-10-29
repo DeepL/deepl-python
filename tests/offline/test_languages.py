@@ -212,7 +212,10 @@ def test_parses_language_resources(mocked):
     assert translate_text.supports("glossary")
     assert not translate_text.supports("nonexistent")
     glossary = translate_text.features["glossary"]
-    assert translate_text.features["formality"].needs_source_support is None
+    assert glossary.needs_source_support is True
+    formality = translate_text.features["formality"]
+    assert formality.needs_source_support is False
+    assert formality.needs_target_support is False
     assert str(glossary) == "glossary"
     assert voice.features == {}
 
@@ -268,3 +271,107 @@ def test_raises_deepl_exception_for_malformed_languages(
 
     with pytest.raises(deepl.DeepLException, match="Malformed language"):
         getattr(make_deepl_client(), method)()
+
+
+@pytest.mark.parametrize(
+    "language",
+    [
+        {
+            "name": "German",
+            "status": "stable",
+            "usable_as_source": True,
+            "usable_as_target": True,
+        },
+        {
+            "lang": "de",
+            "name": None,
+            "status": "stable",
+            "usable_as_source": True,
+            "usable_as_target": True,
+        },
+        {
+            "lang": "de",
+            "name": "German",
+            "status": "stable",
+            "usable_as_target": True,
+        },
+        {
+            "lang": "de",
+            "name": "German",
+            "status": "stable",
+            "usable_as_source": None,
+            "usable_as_target": True,
+        },
+        {
+            "lang": "de",
+            "name": "German",
+            "status": "stable",
+            "usable_as_source": True,
+            "usable_as_target": None,
+        },
+        {
+            "lang": "de",
+            "name": "German",
+            "status": "stable",
+            "usable_as_source": True,
+            "usable_as_target": True,
+            "features": {"formality": {}},
+        },
+        {
+            "lang": "de",
+            "name": "German",
+            "status": "stable",
+            "usable_as_source": True,
+            "usable_as_target": True,
+            "features": ["formality"],
+        },
+        "de",
+    ],
+)
+def test_raises_deepl_exception_for_malformed_languages_for_resource(
+    mocked, language
+):
+    mocked.get(url("v3/languages"), json=[language])
+
+    with pytest.raises(deepl.DeepLException, match="Malformed language"):
+        make_deepl_client().get_languages_for_resource("translate_text")
+
+
+@pytest.mark.parametrize(
+    "resource",
+    [
+        {"features": []},
+        {"name": None},
+        {"name": "translate_text", "features": [{"needs_source_support": 1}]},
+        {"name": "translate_text", "features": ["glossary"]},
+        "translate_text",
+    ],
+)
+def test_raises_deepl_exception_for_malformed_language_resources(
+    mocked, resource
+):
+    mocked.get(url("v3/languages/resources"), json=[resource])
+
+    with pytest.raises(
+        deepl.DeepLException, match="Malformed language resource"
+    ):
+        make_deepl_client().get_language_resources()
+
+
+@pytest.mark.parametrize("body", [{"message": "unexpected"}, "text"])
+@pytest.mark.parametrize(
+    "path, method",
+    [
+        ("v3/languages", "get_languages_for_resource"),
+        ("v3/languages/resources", "get_language_resources"),
+    ],
+)
+def test_raises_deepl_exception_for_non_list_language_reply(
+    mocked, path, method, body
+):
+    mocked.get(url(path), json=body)
+    client = make_deepl_client()
+    args = ["translate_text"] if method == "get_languages_for_resource" else []
+
+    with pytest.raises(deepl.DeepLException, match="not a list"):
+        getattr(client, method)(*args)
