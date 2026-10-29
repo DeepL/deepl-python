@@ -92,19 +92,20 @@ def test_warns_about_deprecated_user_agent_global(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "make_client, path, call",
+    "make_client, path, body, call",
     [
-        (make_translator, "v2/usage", lambda c: c.get_usage()),
-        (make_deepl_client, "v2/usage", lambda c: c.get_usage()),
+        (make_translator, "v2/usage", {}, lambda c: c.get_usage()),
+        (make_deepl_client, "v2/usage", {}, lambda c: c.get_usage()),
         (
             make_admin_client,
             "v2/admin/developer-keys",
+            [],
             lambda c: c.list_developer_keys(),
         ),
     ],
 )
-def test_sends_headers_option(mocked, make_client, path, call):
-    mocked.get(url(path), json=[])
+def test_sends_headers_option(mocked, make_client, path, body, call):
+    mocked.get(url(path), json=body)
     client = make_client(
         headers={
             "X-Custom": "value",
@@ -122,23 +123,24 @@ def test_sends_headers_option(mocked, make_client, path, call):
 
 
 @pytest.mark.parametrize(
-    "make_client, path, call",
+    "make_client, path, body, call",
     [
-        (make_translator, "v2/usage", lambda c: c.get_usage()),
-        (make_deepl_client, "v2/usage", lambda c: c.get_usage()),
+        (make_translator, "v2/usage", {}, lambda c: c.get_usage()),
+        (make_deepl_client, "v2/usage", {}, lambda c: c.get_usage()),
         (
             make_admin_client,
             "v2/admin/developer-keys",
+            [],
             lambda c: c.list_developer_keys(),
         ),
     ],
 )
 def test_appends_app_info_option_to_user_agent(
-    mocked, make_client, path, call
+    mocked, make_client, path, body, call
 ):
     mocked.get(
         url(path),
-        json=[],
+        json=body,
         match=[
             matchers.header_matcher(
                 {"User-Agent": f"{LIBRARY_USER_AGENT} my_plugin/1.0"}

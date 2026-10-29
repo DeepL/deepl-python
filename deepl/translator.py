@@ -1196,7 +1196,7 @@ class Translator(BaseClient):
         self._raise_for_status(status, content, json)
 
         if not isinstance(json, dict):
-            json = {}
+            raise DeepLException("Usage response is not a JSON object")
         return Usage(json)
 
     def create_glossary(

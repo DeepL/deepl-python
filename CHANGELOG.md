@@ -311,6 +311,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `TypeError` or `AttributeError` when the API returns a malformed response.
   They now raise `DeepLException`. `list_translation_memories()` also raises
   `DeepLException` for a non-JSON response instead of returning an empty list.
+- Fixed `get_usage()` returning a `Usage` with every value invalid when the
+  response body is not a JSON object. It now raises `DeepLException`.
 
 ## [1.32.0] - 2026-08-12
 ### Added

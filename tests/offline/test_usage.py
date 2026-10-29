@@ -6,6 +6,8 @@ import datetime
 
 import pytest
 
+import deepl
+
 from .client import make_translator, url
 from .matchers import bodyless_request
 
@@ -188,6 +190,16 @@ def test_skips_non_object_product_entries(mocked):
     assert [
         (p.product_type, p.api_key_unit_count) for p in usage.products
     ] == [("write", 3)]
+
+
+@pytest.mark.parametrize("body", [[], "usage", 5])
+def test_rejects_non_object_usage_response(mocked, body):
+    mocked.get(url("v2/usage"), json=body)
+
+    with pytest.raises(
+        deepl.DeepLException, match="^Usage response is not a JSON object$"
+    ):
+        make_translator().get_usage()
 
 
 def test_ignores_unparseable_billing_period(mocked):
