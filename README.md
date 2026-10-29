@@ -970,8 +970,12 @@ managed with `DeepLClient` and returned as `StyleProfile` objects.
 Use `create_style_profile()`. Only the name is required. You can optionally
 pass `description`, `industry`, `glossary_ids` (highest priority first),
 `style_rule_ids`, `translation_memory_ids` and
-`glossary_priority_order_enabled`. If any of the component IDs cannot be used,
-the request fails and no style profile is created.
+`glossary_priority_order_enabled`. The component lists take IDs or the
+objects themselves (`GlossaryInfo`, `MultilingualGlossaryInfo`,
+`StyleRuleInfo`, `TranslationMemoryInfo`). If any of the component IDs cannot
+be used, the request fails and no style profile is created.
+`extra_body_parameters` is a dictionary of extra parameters for the JSON
+request body; its keys replace parameters of the same name set by the client.
 
 ```python
 # Without components
@@ -983,7 +987,7 @@ profile = deepl_client.create_style_profile(
     description="Contract wording for the German market.",
     industry="Legal",
     glossary_ids=["YOUR_GLOSSARY_ID"],
-    style_rule_ids=["YOUR_STYLE_ID"],
+    style_rule_ids=[style_rule],  # a StyleRuleInfo object
     translation_memory_ids=["YOUR_TRANSLATION_MEMORY_ID"],
     glossary_priority_order_enabled=True,
 )
@@ -1014,7 +1018,7 @@ while True:
 #### Updating a style profile
 
 Use `update_style_profile()` with the same options as `create_style_profile()`
-plus `name`. Options you leave out (`None`) are not changed. An empty string
+(including `extra_body_parameters`) plus `name`. Options you leave out (`None`) are not changed. An empty string
 clears `description` or `industry`. A component list replaces the linked list
 in full, so an empty list unlinks all components of that kind.
 

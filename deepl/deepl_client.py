@@ -5,6 +5,7 @@
 from deepl.api_data import (
     AppInfo,
     CustomInstruction,
+    GlossaryInfo,
     MultilingualGlossaryDictionaryEntries,
     MultilingualGlossaryDictionaryEntriesResponse,
     MultilingualGlossaryDictionaryInfo,
@@ -1318,10 +1319,15 @@ class DeepLClient(Translator):
         *,
         description: Optional[str] = None,
         industry: Optional[str] = None,
-        glossary_ids: Optional[List[str]] = None,
-        style_rule_ids: Optional[List[str]] = None,
-        translation_memory_ids: Optional[List[str]] = None,
+        glossary_ids: Optional[
+            List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
+        ] = None,
+        style_rule_ids: Optional[List[Union[str, StyleRuleInfo]]] = None,
+        translation_memory_ids: Optional[
+            List[Union[str, TranslationMemoryInfo]]
+        ] = None,
         glossary_priority_order_enabled: Optional[bool] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> StyleProfile:
         """Creates a style profile. Only the name is required; if any of the
         component IDs cannot be used, the request fails and no style profile
@@ -1330,14 +1336,19 @@ class DeepLClient(Translator):
         :param name: Name for the style profile.
         :param description: (Optional) Free-text description.
         :param industry: (Optional) Industry the style profile is written for.
-        :param glossary_ids: (Optional) IDs of the glossaries to link, highest
-            priority first.
-        :param style_rule_ids: (Optional) IDs of the style rule lists to link.
-        :param translation_memory_ids: (Optional) IDs of the translation
-            memories to link.
+        :param glossary_ids: (Optional) Glossaries to link, highest priority
+            first, as IDs or GlossaryInfo / MultilingualGlossaryInfo objects.
+        :param style_rule_ids: (Optional) Style rule lists to link, as IDs or
+            StyleRuleInfo objects.
+        :param translation_memory_ids: (Optional) Translation memories to
+            link, as IDs or TranslationMemoryInfo objects.
         :param glossary_priority_order_enabled: (Optional) Whether the order
             of glossary_ids decides which glossary wins when glossaries
             overlap.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: StyleProfile for the created style profile.
         """
         request_data = self._style_profile_json(
@@ -1348,6 +1359,7 @@ class DeepLClient(Translator):
             style_rule_ids=style_rule_ids,
             translation_memory_ids=translation_memory_ids,
             glossary_priority_order_enabled=glossary_priority_order_enabled,
+            extra_body_parameters=extra_body_parameters,
         )
         status, content, json = self._api_call(
             "v3/style_profiles", json=request_data
@@ -1380,10 +1392,15 @@ class DeepLClient(Translator):
         name: Optional[str] = None,
         description: Optional[str] = None,
         industry: Optional[str] = None,
-        glossary_ids: Optional[List[str]] = None,
-        style_rule_ids: Optional[List[str]] = None,
-        translation_memory_ids: Optional[List[str]] = None,
+        glossary_ids: Optional[
+            List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
+        ] = None,
+        style_rule_ids: Optional[List[Union[str, StyleRuleInfo]]] = None,
+        translation_memory_ids: Optional[
+            List[Union[str, TranslationMemoryInfo]]
+        ] = None,
         glossary_priority_order_enabled: Optional[bool] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> StyleProfile:
         """Updates a style profile. Options left as None are not sent and not
         changed. An empty string clears description or industry; a component
@@ -1394,15 +1411,21 @@ class DeepLClient(Translator):
         :param name: (Optional) New name for the style profile.
         :param description: (Optional) New description; "" clears it.
         :param industry: (Optional) New industry; "" clears it.
-        :param glossary_ids: (Optional) IDs of the glossaries to link, highest
-            priority first; [] unlinks all glossaries.
-        :param style_rule_ids: (Optional) IDs of the style rule lists to link;
-            [] unlinks all style rule lists.
-        :param translation_memory_ids: (Optional) IDs of the translation
-            memories to link; [] unlinks all translation memories.
+        :param glossary_ids: (Optional) Glossaries to link, highest priority
+            first, as IDs or GlossaryInfo / MultilingualGlossaryInfo objects;
+            [] unlinks all glossaries.
+        :param style_rule_ids: (Optional) Style rule lists to link, as IDs or
+            StyleRuleInfo objects; [] unlinks all style rule lists.
+        :param translation_memory_ids: (Optional) Translation memories to
+            link, as IDs or TranslationMemoryInfo objects; [] unlinks all
+            translation memories.
         :param glossary_priority_order_enabled: (Optional) Whether the order
             of glossary_ids decides which glossary wins when glossaries
             overlap.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: StyleProfile for the updated style profile.
         """
         style_profile_id = self._style_profile_id(style_profile)
@@ -1414,6 +1437,7 @@ class DeepLClient(Translator):
             style_rule_ids=style_rule_ids,
             translation_memory_ids=translation_memory_ids,
             glossary_priority_order_enabled=glossary_priority_order_enabled,
+            extra_body_parameters=extra_body_parameters,
         )
         status, content, json = self._api_call(
             f"v3/style_profiles/{style_profile_id}",
@@ -1440,9 +1464,47 @@ class DeepLClient(Translator):
         self._raise_for_status(status, content, json)
 
     @staticmethod
-    def _style_profile_json(**fields: Any) -> Dict[str, Any]:
+    def _style_profile_json(
+        *,
+        glossary_ids: Optional[
+            List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
+        ],
+        style_rule_ids: Optional[List[Union[str, StyleRuleInfo]]],
+        translation_memory_ids: Optional[
+            List[Union[str, TranslationMemoryInfo]]
+        ],
+        extra_body_parameters: Optional[dict],
+        **fields: Any,
+    ) -> Dict[str, Any]:
+        if glossary_ids is not None:
+            fields["glossary_ids"] = [
+                (
+                    g.glossary_id
+                    if isinstance(g, (GlossaryInfo, MultilingualGlossaryInfo))
+                    else g
+                )
+                for g in glossary_ids
+            ]
+        if style_rule_ids is not None:
+            fields["style_rule_ids"] = [
+                s.style_id if isinstance(s, StyleRuleInfo) else s
+                for s in style_rule_ids
+            ]
+        if translation_memory_ids is not None:
+            fields["translation_memory_ids"] = [
+                (
+                    t.translation_memory_id
+                    if isinstance(t, TranslationMemoryInfo)
+                    else t
+                )
+                for t in translation_memory_ids
+            ]
         # Unset (None) fields are not sent; "" and [] are sent as given.
-        return {k: v for k, v in fields.items() if v is not None}
+        request_data = {k: v for k, v in fields.items() if v is not None}
+        # Entries replace keys of the same name set above.
+        if extra_body_parameters:
+            request_data.update(extra_body_parameters)
+        return request_data
 
     @staticmethod
     def _style_profile_id(style_profile: Union[str, StyleProfile]) -> str:

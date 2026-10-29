@@ -6,6 +6,11 @@ import datetime
 
 import deepl
 import pytest
+from deepl.api_data import (
+    MultilingualGlossaryInfo,
+    StyleRuleInfo,
+    TranslationMemoryInfo,
+)
 
 from .client import make_deepl_client, url
 from .matchers import bodyless_request, json_request
@@ -244,3 +249,76 @@ def test_maps_404_to_not_found(mocked):
 
     assert error.value.http_status_code == 404
     assert "Style profile not found" in str(error.value)
+
+
+GLOSSARY = deepl.GlossaryInfo("g1", "v2", True, "EN", "DE", utc(2026, 1, 1), 1)
+MULTILINGUAL_GLOSSARY = MultilingualGlossaryInfo(
+    "g2", "v3", utc(2026, 1, 1), []
+)
+STYLE_RULE = StyleRuleInfo(
+    "s1", "rules", utc(2026, 1, 1), utc(2026, 1, 1), "de", 1
+)
+TRANSLATION_MEMORY = TranslationMemoryInfo("t1", "tm", "en", ["de"], 0)
+
+RESOURCE_REFS = {
+    "glossary_ids": [MULTILINGUAL_GLOSSARY, "g3", GLOSSARY],
+    "style_rule_ids": [STYLE_RULE, "s2"],
+    "translation_memory_ids": ["t2", TRANSLATION_MEMORY],
+}
+RESOURCE_IDS = {
+    "glossary_ids": ["g2", "g3", "g1"],
+    "style_rule_ids": ["s1", "s2"],
+    "translation_memory_ids": ["t2", "t1"],
+}
+
+
+def test_creates_with_resource_objects_as_ids(mocked):
+    mocked.post(
+        url("v3/style_profiles"),
+        json=STYLE_PROFILE_JSON,
+        status=201,
+        match=json_request(dict(RESOURCE_IDS, name="n")),
+    )
+
+    make_deepl_client().create_style_profile("n", **RESOURCE_REFS)
+
+
+def test_updates_with_resource_objects_as_ids(mocked):
+    mocked.patch(
+        url(f"v3/style_profiles/{PROFILE_ID}"),
+        json=STYLE_PROFILE_JSON,
+        match=json_request(RESOURCE_IDS),
+    )
+
+    make_deepl_client().update_style_profile(PROFILE_ID, **RESOURCE_REFS)
+
+
+def test_create_merges_extra_body_parameters_last(mocked):
+    mocked.post(
+        url("v3/style_profiles"),
+        json=STYLE_PROFILE_JSON,
+        status=201,
+        match=json_request(
+            {"name": "replaced", "industry": "Legal", "extra": {"a": [1]}}
+        ),
+    )
+
+    make_deepl_client().create_style_profile(
+        "n",
+        industry="Legal",
+        extra_body_parameters={"name": "replaced", "extra": {"a": [1]}},
+    )
+
+
+def test_update_merges_extra_body_parameters_last(mocked):
+    mocked.patch(
+        url(f"v3/style_profiles/{PROFILE_ID}"),
+        json=STYLE_PROFILE_JSON,
+        match=json_request({"glossary_ids": ["x"], "extra": True}),
+    )
+
+    make_deepl_client().update_style_profile(
+        PROFILE_ID,
+        glossary_ids=[GLOSSARY],
+        extra_body_parameters={"glossary_ids": ["x"], "extra": True},
+    )

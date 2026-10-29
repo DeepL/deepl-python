@@ -65,7 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the style profile API (`/v3/style_profiles`) to the `DeepLClient`
   class: `list_style_profiles()`, `create_style_profile()`,
   `get_style_profile()`, `update_style_profile()` and
-  `delete_style_profile()`, with the `StyleProfile` type.
+  `delete_style_profile()`, with the `StyleProfile` type. The `glossary_ids`,
+  `style_rule_ids` and `translation_memory_ids` options of
+  `create_style_profile()` and `update_style_profile()` accept IDs or
+  `GlossaryInfo`, `MultilingualGlossaryInfo`, `StyleRuleInfo` and
+  `TranslationMemoryInfo` objects, and both functions accept
+  `extra_body_parameters`.
 - Added the `TagHandlingMode` (`HTML`, `XML`) and `TagHandlingVersion` (`V1`,
   `V2`) enums. The `tag_handling` and `tag_handling_version` options of
   `translate_text()` accept them as well as strings.
