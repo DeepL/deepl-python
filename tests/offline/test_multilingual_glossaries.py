@@ -419,3 +419,122 @@ def test_raises_deepl_exception_when_glossary_response_is_malformed(mocked):
 
     with pytest.raises(deepl.DeepLException, match="MultilingualGlossaryInfo"):
         make_deepl_client().get_multilingual_glossary("g-1")
+
+
+ODD_ID = "a/b?c#d"
+ODD_PATH = "v3/glossaries/a%2Fb%3Fc%23d"
+ENTRIES_JSON = {
+    "dictionaries": [{"source_lang": "en", "target_lang": "de", "entries": ""}]
+}
+
+
+@pytest.mark.parametrize(
+    "method, path, response, call",
+    [
+        (
+            "GET",
+            ODD_PATH,
+            GLOSSARY_JSON,
+            lambda c: c.get_multilingual_glossary(ODD_ID),
+        ),  # noqa: E501
+        (
+            "DELETE",
+            ODD_PATH,
+            None,
+            lambda c: c.delete_multilingual_glossary(ODD_ID),
+        ),  # noqa: E501
+        (
+            "PATCH",
+            ODD_PATH,
+            GLOSSARY_JSON,
+            lambda c: c.update_multilingual_glossary_name(ODD_ID, "n"),
+        ),  # noqa: E501
+        (
+            "PATCH",
+            ODD_PATH,
+            GLOSSARY_JSON,
+            lambda c: c.update_multilingual_glossary_dictionary(
+                ODD_ID, ENTRIES
+            ),
+        ),  # noqa: E501
+        (
+            "PATCH",
+            ODD_PATH,
+            GLOSSARY_JSON,
+            lambda c: c.update_multilingual_glossary_dictionary_from_csv(
+                ODD_ID, "EN", "DE", CSV_DATA
+            ),
+        ),  # noqa: E501
+        (
+            "PUT",
+            ODD_PATH + "/dictionaries",
+            DICTIONARY_JSON,
+            lambda c: c.replace_multilingual_glossary_dictionary(
+                ODD_ID, ENTRIES
+            ),
+        ),  # noqa: E501
+        (
+            "PUT",
+            ODD_PATH + "/dictionaries",
+            DICTIONARY_JSON,
+            lambda c: c.replace_multilingual_glossary_dictionary_from_csv(
+                ODD_ID, "EN", "DE", CSV_DATA
+            ),
+        ),  # noqa: E501
+        (
+            "GET",
+            ODD_PATH + "/entries",
+            ENTRIES_JSON,
+            lambda c: c.get_multilingual_glossary_entries(ODD_ID, "EN", "DE"),
+        ),  # noqa: E501
+        (
+            "DELETE",
+            ODD_PATH + "/dictionaries",
+            None,
+            lambda c: c.delete_multilingual_glossary_dictionary(
+                ODD_ID, source_lang="EN", target_lang="DE"
+            ),
+        ),  # noqa: E501
+    ],
+)
+def test_encodes_glossary_id_in_path(mocked, method, path, response, call):
+    mocked.add(
+        method,
+        url(path),
+        json=response,
+        status=200 if response is not None else 204,
+    )
+
+    call(make_deepl_client())
+
+    assert mocked.calls[0].request.path_url.split("?")[0] == "/" + path
+
+
+@pytest.mark.parametrize(
+    "method, path, call",
+    [
+        (
+            "GET",
+            "v3/glossaries/g-1/entries",
+            lambda c: c.get_multilingual_glossary_entries(
+                "g-1", "a&b=c", "DE-DE"
+            ),
+        ),
+        (
+            "DELETE",
+            "v3/glossaries/g-1/dictionaries",
+            lambda c: c.delete_multilingual_glossary_dictionary(
+                "g-1", source_lang="a&b=c", target_lang="DE-DE"
+            ),
+        ),
+    ],
+)
+def test_encodes_language_pair_in_query(mocked, method, path, call):
+    mocked.add(
+        method,
+        url(path),
+        json=ENTRIES_JSON,
+        match=bodyless_request({"source_lang": "A&B=C", "target_lang": "DE"}),
+    )
+
+    call(make_deepl_client())

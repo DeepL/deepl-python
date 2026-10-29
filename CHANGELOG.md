@@ -233,6 +233,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multilingual glossary entries returned by the API are parsed into a
   dictionary of source-target terms; `MultilingualGlossaryDictionaryEntries.entries`
   previously held the raw TSV string.
+- Glossary IDs are URL-encoded in `/v3/glossaries` request paths, and the
+  language pair in the query of `get_multilingual_glossary_entries()` and
+  `delete_multilingual_glossary_dictionary()` is URL-encoded.
+  `delete_multilingual_glossary_dictionary()` now also strips regional variants
+  (`EN-GB` becomes `EN`), like the other multilingual glossary functions.
 - A malformed multilingual glossary response raises `DeepLException` instead of
   a raw `KeyError`, `TypeError` or `ValueError`.
 - `MultilingualGlossaryInfo.to_json()` returns a JSON-serialisable dictionary:

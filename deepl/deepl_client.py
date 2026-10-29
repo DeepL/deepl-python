@@ -93,6 +93,20 @@ def _parse_improvements(json: Any, text_count: int) -> List[WriteResult]:
     return output
 
 
+def _quote_id(resource_id: str) -> str:
+    return urllib.parse.quote(resource_id, safe="")
+
+
+def _language_pair_query(source_lang: str, target_lang: str) -> str:
+    # glossaries are only supported for base language types
+    return urllib.parse.urlencode(
+        {
+            "source_lang": Language.remove_regional_variant(source_lang),
+            "target_lang": Language.remove_regional_variant(target_lang),
+        }
+    )
+
+
 class DeepLClient(Translator):
     def __init__(
         self,
@@ -384,7 +398,9 @@ class DeepLClient(Translator):
         request_data = {"name": name}
 
         status, content, json = self._api_call(
-            f"v3/glossaries/{glossary}", method="PATCH", json=request_data
+            f"v3/glossaries/{_quote_id(glossary)}",
+            method="PATCH",
+            json=request_data,
         )
         self._raise_for_status(status, content, json, glossary=True)
         return MultilingualGlossaryInfo.from_json(json)
@@ -503,7 +519,9 @@ class DeepLClient(Translator):
             request_data["dictionaries"] = req_glossary_dicts
 
         status, content, json = self._api_call(
-            f"v3/glossaries/{glossary_id}", method="PATCH", json=request_data
+            f"v3/glossaries/{_quote_id(glossary_id)}",
+            method="PATCH",
+            json=request_data,
         )
         self._raise_for_status(status, content, json, glossary=True)
 
@@ -614,7 +632,7 @@ class DeepLClient(Translator):
         }
 
         status, content, json = self._api_call(
-            f"v3/glossaries/{glossary_id}/dictionaries",
+            f"v3/glossaries/{_quote_id(glossary_id)}/dictionaries",
             method="PUT",
             json=request_data,
         )
@@ -634,7 +652,7 @@ class DeepLClient(Translator):
             found.
         """
         status, content, json = self._api_call(
-            f"v3/glossaries/{glossary_id}", method="GET"
+            f"v3/glossaries/{_quote_id(glossary_id)}", method="GET"
         )
         self._raise_for_status(status, content, json, glossary=True)
         return MultilingualGlossaryInfo.from_json(json)
@@ -680,11 +698,10 @@ class DeepLClient(Translator):
         """
         if isinstance(glossary, MultilingualGlossaryInfo):
             glossary = glossary.glossary_id
-        source_lang = Language.remove_regional_variant(source_lang)
-        target_lang = Language.remove_regional_variant(target_lang)
+        query = _language_pair_query(source_lang, target_lang)
 
         status, content, json = self._api_call(
-            f"v3/glossaries/{glossary}/entries?source_lang={source_lang}&target_lang={target_lang}",  # noqa: E501
+            f"v3/glossaries/{_quote_id(glossary)}/entries?{query}",
             method="GET",
         )
         self._raise_for_status(status, content, json, glossary=True)
@@ -703,7 +720,7 @@ class DeepLClient(Translator):
             glossary = glossary.glossary_id
 
         status, content, json = self._api_call(
-            f"v3/glossaries/{glossary}",
+            f"v3/glossaries/{_quote_id(glossary)}",
             method="DELETE",
         )
         self._raise_for_status(status, content, json, glossary=True)
@@ -745,7 +762,10 @@ class DeepLClient(Translator):
             source_lang = dictionary.source_lang
             target_lang = dictionary.target_lang
 
-        req_url = f"v3/glossaries/{glossary}/dictionaries?source_lang={source_lang}&target_lang={target_lang}"  # noqa: E501
+        query = _language_pair_query(
+            source_lang, target_lang  # type: ignore[arg-type]
+        )
+        req_url = f"v3/glossaries/{_quote_id(glossary)}/dictionaries?{query}"
         status, content, json = self._api_call(
             req_url,
             method="DELETE",
