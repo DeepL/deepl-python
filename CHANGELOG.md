@@ -285,6 +285,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a raw `KeyError`, `TypeError` or `ValueError`.
 - `MultilingualGlossaryInfo.to_json()` returns a JSON-serialisable dictionary:
   `creation_time` as an ISO 8601 string and `dictionaries` as dictionaries.
+- Fixed the translation memory functions sending translation memory and job
+  IDs unencoded in the request path. IDs are now URL-encoded, so characters
+  such as `/`, `?` or spaces no longer change the requested URL.
 
 ## [1.32.0] - 2026-08-12
 ### Added

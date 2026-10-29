@@ -124,6 +124,26 @@ def test_sends_delete_when_deleting_translation_memory(mocked, memory):
     assert make_deepl_client().delete_translation_memory(memory) is None
 
 
+def test_escapes_translation_memory_id_in_path(mocked):
+    mocked.get(
+        url("v3/translation_memories/a%2Fb%3Fc%20d/segments"),
+        json={"segments": [], "segment_count": 0},
+        match=bodyless_request(),
+    )
+
+    make_deepl_client().list_translation_memory_segments("a/b?c d")
+
+
+def test_escapes_job_id_in_path_once_when_waiting(mocked):
+    mocked.get(
+        url("v3/translation_memories/jobs/a%2Fb%3Fc%20d"),
+        json=job_json("completed"),
+        match=bodyless_request(),
+    )
+
+    make_deepl_client().wait_until_translation_memory_job_done("a/b?c d")
+
+
 def test_raises_for_empty_translation_memory_and_job_ids():
     client = make_deepl_client()
 

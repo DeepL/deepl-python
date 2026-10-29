@@ -1892,7 +1892,7 @@ class DeepLClient(Translator):
             translation_memory = translation_memory.translation_memory_id
         if not translation_memory:
             raise ValueError("translation_memory must not be empty")
-        return translation_memory
+        return urllib.parse.quote(translation_memory, safe="")
 
     @staticmethod
     def _job_id(job: Union[str, TranslationMemoryJob]) -> str:
@@ -1900,7 +1900,7 @@ class DeepLClient(Translator):
             job = job.job_id
         if not job:
             raise ValueError("job must not be empty")
-        return job
+        return urllib.parse.quote(job, safe="")
 
     def get_translation_memory(
         self,
@@ -2136,8 +2136,9 @@ class DeepLClient(Translator):
             polls every 5 seconds.
         :return: TranslationMemoryJob containing the status when finished.
         """
-        job_id = self._job_id(job)
-        status = self.get_translation_memory_job(job_id)
+        # Validates the reference; get_translation_memory_job() encodes it.
+        self._job_id(job)
+        status = self.get_translation_memory_job(job)
         start_time_s = time.time()
         while not status.done:
             if (
@@ -2155,7 +2156,7 @@ class DeepLClient(Translator):
                 f"for {secs:.3f} seconds."
             )
             time.sleep(secs)
-            status = self.get_translation_memory_job(job_id)
+            status = self.get_translation_memory_job(job)
         return status
 
     def download_translation_memory_export(
