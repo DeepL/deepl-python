@@ -1875,14 +1875,28 @@ class DeepLClient(Translator):
         status, content, json = self._api_call(endpoint, method="GET")
         self._raise_for_status(status, content, json)
 
-        translation_memories = (
-            json.get("translation_memories", [])
-            if (json and isinstance(json, dict))
-            else []
+        return self._parse_translation_memory_response(
+            lambda body: [
+                TranslationMemoryInfo.from_json(tm)
+                for tm in body.get("translation_memories", [])
+            ],
+            json,
         )
-        return [
-            TranslationMemoryInfo.from_json(tm) for tm in translation_memories
-        ]
+
+    @staticmethod
+    def _parse_translation_memory_response(
+        parse: Callable[[Any], _T], json: Any
+    ) -> _T:
+        # A malformed body (missing keys, wrong types, not JSON at all) must
+        # surface as DeepLException, not as a raw KeyError or TypeError.
+        try:
+            return parse(json)
+        except (KeyError, TypeError, AttributeError, ValueError) as error:
+            raise DeepLException(
+                "Unexpected response from translation memory API: "
+                f"{type(error).__name__}: {error}",
+                should_retry=False,
+            ) from error
 
     @staticmethod
     def _translation_memory_id(
@@ -1917,7 +1931,9 @@ class DeepLClient(Translator):
             f"v3/translation_memories/{tm_id}", method="GET"
         )
         self._raise_for_status(status, content, json)
-        return TranslationMemoryInfo.from_json(json)
+        return self._parse_translation_memory_response(
+            TranslationMemoryInfo.from_json, json
+        )
 
     def list_translation_memory_segments(
         self,
@@ -1972,7 +1988,9 @@ class DeepLClient(Translator):
 
         status, content, json = self._api_call(endpoint, method="GET")
         self._raise_for_status(status, content, json)
-        return TranslationMemorySegments.from_json(json)
+        return self._parse_translation_memory_response(
+            TranslationMemorySegments.from_json, json
+        )
 
     def delete_translation_memory(
         self,
@@ -2034,7 +2052,9 @@ class DeepLClient(Translator):
             "v3/translation_memories/import", json=request_data
         )
         self._raise_for_status(status, content, json)
-        return TranslationMemoryImport.from_json(json)
+        return self._parse_translation_memory_response(
+            TranslationMemoryImport.from_json, json
+        )
 
     def upload_translation_memory_file(
         self,
@@ -2096,8 +2116,11 @@ class DeepLClient(Translator):
         self._raise_for_status(status, content, json)
         # 200 means the API reused a previously completed export, 202 that it
         # started a new one.
-        return TranslationMemoryExport.from_json(
-            json, reused_existing=(status == 200)
+        return self._parse_translation_memory_response(
+            lambda body: TranslationMemoryExport.from_json(
+                body, reused_existing=(status == 200)
+            ),
+            json,
         )
 
     def get_translation_memory_job(
@@ -2114,7 +2137,9 @@ class DeepLClient(Translator):
             f"v3/translation_memories/jobs/{job_id}", method="GET"
         )
         self._raise_for_status(status, content, json)
-        return TranslationMemoryJob.from_json(json)
+        return self._parse_translation_memory_response(
+            TranslationMemoryJob.from_json, json
+        )
 
     def wait_until_translation_memory_job_done(
         self,

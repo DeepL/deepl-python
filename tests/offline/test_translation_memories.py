@@ -594,3 +594,63 @@ def test_raises_when_storage_rejects_download(mocked):
         make_deepl_client().download_translation_memory_export(
             job, io.BytesIO()
         )
+
+
+@pytest.mark.parametrize(
+    "method, path, call",
+    [
+        (
+            "GET",
+            "v3/translation_memories",
+            lambda client: client.list_translation_memories(),
+        ),
+        (
+            "GET",
+            "v3/translation_memories/tm-1",
+            lambda client: client.get_translation_memory("tm-1"),
+        ),
+        (
+            "GET",
+            "v3/translation_memories/tm-1/segments",
+            lambda client: client.list_translation_memory_segments("tm-1"),
+        ),
+        (
+            "POST",
+            "v3/translation_memories/import",
+            lambda client: client.create_translation_memory_import(
+                "a.tmx", 10
+            ),
+        ),
+        (
+            "POST",
+            "v3/translation_memories/tm-1/export",
+            lambda client: client.create_translation_memory_export("tm-1"),
+        ),
+        (
+            "GET",
+            "v3/translation_memories/jobs/job-1",
+            lambda client: client.get_translation_memory_job("job-1"),
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"body": "not json"},
+        {"json": {"translation_memories": [{}], "segments": [{}]}},
+        {
+            "json": {
+                "translation_memories": [1],
+                "segments": [1],
+                "results": [1],
+            }
+        },
+    ],
+)
+def test_raises_deepl_exception_for_malformed_response(
+    mocked, method, path, call, body
+):
+    mocked.add(method, url(path), status=200, **body)
+
+    with pytest.raises(deepl.DeepLException, match="Unexpected response"):
+        call(make_deepl_client())
