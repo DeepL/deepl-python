@@ -205,6 +205,21 @@ def test_sends_glossary_ids_in_order(mocked):
     )
 
 
+@pytest.mark.parametrize(
+    "kwargs, body",
+    [
+        ({"glossary": "g"}, {"glossary_id": "g"}),
+        ({"glossary": glossary_info("EN", "DE")}, {"glossary_id": "g-v2"}),
+        ({"glossary": multilingual_glossary_info()}, {"glossary_id": "g-v3"}),
+        ({"glossary_ids": ["g"]}, {"glossary_ids": ["g"]}),
+    ],
+)
+def test_sends_glossary_without_source_lang(mocked, kwargs, body):
+    reply_with_translation(mocked, {**BASE_BODY, **body})
+
+    make_translator().translate_text("hello", target_lang="DE", **kwargs)
+
+
 @pytest.mark.parametrize("style_rule", ["style-1", style_rule_info()])
 def test_sends_style_rule_id(mocked, style_rule):
     reply_with_translation(
@@ -474,11 +489,6 @@ def test_raises_for_invalid_text(text, error, match):
 @pytest.mark.parametrize(
     "kwargs, match",
     [
-        ({"glossary": "g"}, "source_lang is required if using a glossary"),
-        (
-            {"glossary_ids": ["g"]},
-            "source_lang is required if using glossary_ids",
-        ),
         (
             {"glossary": "g", "glossary_ids": ["h"], "source_lang": "EN"},
             "cannot be used together",

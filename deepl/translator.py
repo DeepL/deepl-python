@@ -198,13 +198,18 @@ class Translator(BaseClient):
             List[Union[str, GlossaryInfo, MultilingualGlossaryInfo]]
         ] = None,
         style_profile: Union[str, StyleProfile, None] = None,
+        glossary_requires_source_lang: bool = False,
     ) -> dict:
         # target_lang and source_lang are case insensitive
         target_lang = str(target_lang).upper()
         if source_lang is not None:
             source_lang = str(source_lang).upper()
 
-        if glossary is not None and source_lang is None:
+        if (
+            glossary_requires_source_lang
+            and glossary is not None
+            and source_lang is None
+        ):
             raise ValueError("source_lang is required if using a glossary")
 
         if glossary_ids is not None:
@@ -213,7 +218,7 @@ class Translator(BaseClient):
                     "glossary_ids cannot be used together with the glossary "
                     "parameter"
                 )
-            if source_lang is None:
+            if glossary_requires_source_lang and source_lang is None:
                 raise ValueError(
                     "source_lang is required if using glossary_ids"
                 )
@@ -223,10 +228,10 @@ class Translator(BaseClient):
                 )
 
         if isinstance(glossary, GlossaryInfo):
+            target_lang_code = Language.remove_regional_variant(target_lang)
             if (
-                Language.remove_regional_variant(target_lang)
-                != glossary.target_lang
-                or source_lang != glossary.source_lang
+                target_lang_code != glossary.target_lang
+                or source_lang not in (None, glossary.source_lang)
             ):
                 raise ValueError(
                     "source_lang and target_lang must match glossary"
@@ -236,7 +241,7 @@ class Translator(BaseClient):
             target_lang_code = Language.remove_regional_variant(target_lang)
             if not any(
                 glossary_dict.target_lang == target_lang_code
-                and glossary_dict.source_lang == source_lang
+                and source_lang in (None, glossary_dict.source_lang)
                 for glossary_dict in glossary.dictionaries
             ):
                 raise ValueError(
@@ -373,8 +378,7 @@ class Translator(BaseClient):
             generator)
         :param source_lang: (Optional) Language code of input text, for example
             "DE", "EN", "FR". If omitted or None, DeepL will auto-detect the
-            input language. If a glossary is used, source_lang must be
-            specified. May be passed positionally after text.
+            input language. May be passed positionally after text.
         :param target_lang: Required. Language code to translate text into,
             for example "DE", "EN-US", "FR". May be passed positionally after
             source_lang.
@@ -392,10 +396,12 @@ class Translator(BaseClient):
             Formality enum, "less", "more", "prefer_less", "prefer_more", or
             "default".
         :param glossary: (Optional) glossary or glossary ID to use for
-            translation. Must match specified source_lang and target_lang.
+            translation. Must match target_lang, and source_lang if specified.
+            If source_lang is omitted, DeepL uses the glossary dictionary for
+            the detected source language.
         :param glossary_ids: (Optional) list of up to 5 glossaries or glossary
-            IDs to use for translation, applied in order. Requires source_lang
-            to be set and cannot be combined with the glossary parameter.
+            IDs to use for translation, applied in order. Cannot be combined
+            with the glossary parameter.
         :param style_rule: (Optional) style rule or style rule ID to use for
             translation.
         :param style_profile: (Optional) style profile or style profile ID to
@@ -874,6 +880,7 @@ class Translator(BaseClient):
             translation_memory_threshold,
             glossary_ids=glossary_ids,
             style_profile=style_profile,
+            glossary_requires_source_lang=True,
         )
         if output_format:
             request_data["output_format"] = output_format

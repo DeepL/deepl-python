@@ -467,9 +467,9 @@ def get_parser(prog_name):
             "--from",
             "--source-lang",
             dest="source_lang",
-            help="language of the text to be translated; unless using a "
-            "glossary, this argument is optional and if it is omitted DeepL "
-            "will auto-detect the source language.",
+            help="language of the text to be translated; this argument is "
+            "optional and if it is omitted DeepL will auto-detect the source "
+            "language. Document translation with a glossary requires it.",
         )
         subparser.add_argument(
             "--formality",
@@ -491,8 +491,8 @@ def get_parser(prog_name):
             type=str,
             metavar="id",
             help="ID of a glossary to use for translation; may be repeated to "
-            "use up to 5 glossaries, applied in order. Requires --from and "
-            "cannot be combined with --glossary-id",
+            "use up to 5 glossaries, applied in order. Cannot be combined "
+            "with --glossary-id; document translation also requires --from",
         )
         subparser.add_argument(
             "--extra-body-parameters",

@@ -181,8 +181,8 @@ arguments are:
   `get_glossary()`.
 - `glossary_ids`: specifies a list of up to 5 glossaries to use with
   translation, applied in order. Each entry may be a string containing the
-  glossary ID or a `GlossaryInfo` object. Requires `source_lang` to be set and
-  cannot be combined with the `glossary` parameter. On the command line, use the
+  glossary ID or a `GlossaryInfo` object. Cannot be combined with the
+  `glossary` parameter. On the command line, use the
   repeatable `--glossary-ids` argument (available on both the `text` and
   `document` commands), for example:
   `--from=EN --to=DE --glossary-ids=ID1 --glossary-ids=ID2`.
@@ -672,8 +672,8 @@ updated_glossary = deepl_client.update_multilingual_glossary(
 
 You can use a stored glossary for text translation by setting the `glossary`
 argument to either the glossary ID or `GlossaryInfo`/`MultilingualGlossaryInfo` object.
-You must also specify the `source_lang` argument (it is required when using a
-glossary):
+The `source_lang` argument is optional: if you omit it, DeepL detects the
+source language and uses the glossary dictionary for the detected language pair:
 
 ```python
 text = "The artist was awarded a prize."
@@ -687,8 +687,8 @@ without_glossary = deepl_client.translate_text(text, target_lang="DE")
 print(without_glossary)  # "Der Künstler wurde mit einem Preis ausgezeichnet."
 ```
 
-Using a stored glossary for document translation is the same: set the `glossary`
-argument and specify the `source_lang` argument:
+Using a stored glossary for document translation is the same, except that the
+`source_lang` argument is required:
 
 ```python
 deepl_client.translate_document(

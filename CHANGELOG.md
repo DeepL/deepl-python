@@ -149,6 +149,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unaffected.
 
 ### Changed
+- `translate_text()` accepts `glossary` and `glossary_ids` without
+  `source_lang`; DeepL detects the source language and uses the glossary
+  dictionary for the detected language pair. Document translation with a
+  glossary still requires `source_lang`.
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`
   (glossary functions keep raising `GlossaryNotFoundException`, now a
   subclass of `NotFoundException`).
