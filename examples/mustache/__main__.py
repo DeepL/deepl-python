@@ -72,15 +72,15 @@ def main():
             "environment variable or --auth_key argument"
         )
 
-    # Create a Translator object, and call get_usage() to validate connection
-    translator = deepl.Translator(auth_key, server_url=server_url)
-    translator.get_usage()
+    # Create a DeepLClient object, and call get_usage() to validate connection
+    deepl_client = deepl.DeepLClient(auth_key, server_url=server_url)
+    deepl_client.get_usage()
 
     for template in args.template:
         # Call translate_mustache() to translate the Mustache template
         output = translate_mustache(
             template,
-            translator=translator,
+            translator=deepl_client,
             source_lang=args.source_lang,
             target_lang=args.target_lang,
         )

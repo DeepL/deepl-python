@@ -78,13 +78,13 @@ def convert_mustache_to_xml(
 def translate_mustache(
     template: str,
     target_lang: str,
-    translator: deepl.Translator,
+    translator: deepl.DeepLClient,
     delimiters: Optional[List[Tuple[str, str]]] = None,
     placeholder_tag: str = "m",
     **kwargs,
 ) -> str:
     """
-    Translates given Mustache template text using DeepL Translator, by
+    Translates given Mustache template text using the DeepL API, by
     converting the template to XML.
 
     Most of the arguments of the translate_text function are supported,
@@ -95,7 +95,7 @@ def translate_mustache(
     :param template: Mustache template to be translated.
     :param target_lang: language code to translate template into, for example
         "DE", "EN-US", "FR".
-    :param translator: deepl.Translator to use for translation.
+    :param translator: deepl.DeepLClient to use for translation.
     :param delimiters: Optional. Tuples of left- and right-delimiters
         identifying Mustache tags. Delimiter tuples must be specified in
         order-of-precedence, for example {{{ must be before {{.

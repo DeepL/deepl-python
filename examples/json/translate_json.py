@@ -14,7 +14,7 @@ from deepl.translator import TextResult
 def batch_translate(
     input_handler_pairs: List[Tuple[str, Callable[[deepl.TextResult], None]]],
     target_lang: str,
-    translator: deepl.Translator,
+    translator: deepl.DeepLClient,
     **kwargs,
 ) -> None:
     """
@@ -63,11 +63,11 @@ def parse_json_for_translation(
 def translate_json(
     json_input: str,
     target_lang: str,
-    translator: deepl.Translator,
+    translator: deepl.DeepLClient,
     **kwargs,
 ) -> str:
     """
-    Translates given JSON input using DeepL Translator.
+    Translates given JSON input using the DeepL API.
 
     Most of the arguments of the translate_text function are supported,
     source_lang, target_lang, glossary_id, formality, etc.
@@ -75,7 +75,7 @@ def translate_json(
     :param json_input: JSON input to be translated.
     :param target_lang: language code to translate template into, for example
         "DE", "EN-US", "FR".
-    :param translator: deepl.Translator to use for translation.
+    :param translator: deepl.DeepLClient to use for translation.
     :return: Translated JSON.
     """
 
