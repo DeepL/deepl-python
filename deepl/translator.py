@@ -946,8 +946,15 @@ class Translator(BaseClient):
             if (json and isinstance(json, dict))
             else None
         )
+        document_id = json.get("document_id")
+        if not isinstance(document_id, str) or not document_id:
+            document_id = handle.document_id
         return DocumentStatus(
-            status, seconds_remaining, billed_characters, error_message
+            status,
+            seconds_remaining,
+            billed_characters,
+            error_message,
+            document_id=document_id,
         )
 
     def translate_document_wait_until_done(

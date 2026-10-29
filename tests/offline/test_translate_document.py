@@ -264,6 +264,32 @@ def test_parses_document_status(mocked, fields, status):
     assert str(result) == status.value
 
 
+def test_parses_document_id_from_status_response(mocked):
+    mocked.post(
+        url("v2/document/doc-1"),
+        json={"document_id": "doc-from-api", "status": "queued"},
+        match=json_request(KEY_BODY),
+    )
+
+    result = make_translator().translate_document_get_status(HANDLE)
+
+    assert result.document_id == "doc-from-api"
+
+
+@pytest.mark.parametrize("document_id", [None, 5])
+def test_falls_back_to_handle_document_id(mocked, document_id):
+    mocked.post(
+        url("v2/document/doc-1"),
+        json={"document_id": document_id, "status": "queued"},
+        match=json_request(KEY_BODY),
+    )
+
+    result = make_translator().translate_document_get_status(HANDLE)
+
+    assert result.document_id == "doc-1"
+    assert result.status == deepl.DocumentStatus.Status.QUEUED
+
+
 def test_keeps_unknown_document_status_as_string(mocked):
     reply_with_status(mocked, "postprocessing")
 

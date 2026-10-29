@@ -90,6 +90,7 @@ class DocumentStatus:
         None if unknown or before translation is complete.
     :param error_message: A short description of the error, or None if no error
         has occurred.
+    :param document_id: ID of the document this status belongs to.
     """
 
     class Status(Enum):
@@ -105,7 +106,9 @@ class DocumentStatus:
         seconds_remaining=None,
         billed_characters=None,
         error_message=None,
+        document_id: str = "",
     ):
+        self._document_id = document_id
         try:
             self._status: Union[DocumentStatus.Status, str] = self.Status(
                 status
@@ -129,6 +132,10 @@ class DocumentStatus:
     @property
     def done(self) -> bool:
         return self._status == self.Status.DONE
+
+    @property
+    def document_id(self) -> str:
+        return self._document_id
 
     @property
     def status(self) -> Union[Status, str]:
