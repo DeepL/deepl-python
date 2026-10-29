@@ -1363,12 +1363,9 @@ class DeepLClient(Translator):
         :param style_rule: Style rule ID string or StyleRuleInfo object.
         :return: StyleRuleInfo for the requested style rule.
         """
-        if isinstance(style_rule, StyleRuleInfo):
-            style_rule = style_rule.style_id
-        if not style_rule:
-            raise ValueError("style_rule must not be empty")
+        style_id = self._style_rule_id(style_rule)
         status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}", method="GET"
+            f"v3/style_rules/{style_id}", method="GET"
         )
         self._raise_for_status(status, content, json)
         return StyleRuleInfo.from_json(json)
@@ -1384,15 +1381,12 @@ class DeepLClient(Translator):
         :param name: New name for the style rule.
         :return: Updated StyleRuleInfo.
         """
-        if isinstance(style_rule, StyleRuleInfo):
-            style_rule = style_rule.style_id
-        if not style_rule:
-            raise ValueError("style_rule must not be empty")
+        style_id = self._style_rule_id(style_rule)
         if not name:
             raise ValueError("name must not be empty")
         request_data = {"name": name}
         status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}", method="PATCH", json=request_data
+            f"v3/style_rules/{style_id}", method="PATCH", json=request_data
         )
         self._raise_for_status(status, content, json)
         return StyleRuleInfo.from_json(json)
@@ -1405,12 +1399,9 @@ class DeepLClient(Translator):
 
         :param style_rule: Style rule ID string or StyleRuleInfo object.
         """
-        if isinstance(style_rule, StyleRuleInfo):
-            style_rule = style_rule.style_id
-        if not style_rule:
-            raise ValueError("style_rule must not be empty")
+        style_id = self._style_rule_id(style_rule)
         status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}", method="DELETE"
+            f"v3/style_rules/{style_id}", method="DELETE"
         )
         self._raise_for_status(status, content, json)
 
@@ -1425,12 +1416,9 @@ class DeepLClient(Translator):
         :param configured_rules: Dict of configured rules to set.
         :return: Updated StyleRuleInfo.
         """
-        if isinstance(style_rule, StyleRuleInfo):
-            style_rule = style_rule.style_id
-        if not style_rule:
-            raise ValueError("style_rule must not be empty")
+        style_id = self._style_rule_id(style_rule)
         status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}/configured_rules",
+            f"v3/style_rules/{style_id}/configured_rules",
             method="PUT",
             json=configured_rules,
         )
@@ -1452,10 +1440,7 @@ class DeepLClient(Translator):
         :param source_language: Optional source language code.
         :return: Created CustomInstruction.
         """
-        if isinstance(style_rule, StyleRuleInfo):
-            style_rule = style_rule.style_id
-        if not style_rule:
-            raise ValueError("style_rule must not be empty")
+        style_id = self._style_rule_id(style_rule)
         if not label:
             raise ValueError("label must not be empty")
         if not prompt:
@@ -1464,7 +1449,7 @@ class DeepLClient(Translator):
         if source_language is not None:
             request_data["source_language"] = source_language
         status, content, json = self._api_call(
-            f"v3/style_rules/{style_rule}/custom_instructions",
+            f"v3/style_rules/{style_id}/custom_instructions",
             json=request_data,
         )
         self._raise_for_status(status, content, json)
@@ -1481,15 +1466,10 @@ class DeepLClient(Translator):
         :param instruction_id: ID of the custom instruction.
         :return: CustomInstruction.
         """
-        if isinstance(style_rule, StyleRuleInfo):
-            style_rule = style_rule.style_id
-        if not style_rule:
-            raise ValueError("style_rule must not be empty")
-        if not instruction_id:
-            raise ValueError("instruction_id must not be empty")
+        style_id = self._style_rule_id(style_rule)
+        instruction = self._custom_instruction_id(instruction_id)
         url = (
-            f"v3/style_rules/{style_rule}"
-            f"/custom_instructions/{instruction_id}"
+            f"v3/style_rules/{style_id}" f"/custom_instructions/{instruction}"
         )
         status, content, json = self._api_call(
             url,
@@ -1515,12 +1495,8 @@ class DeepLClient(Translator):
         :param source_language: Optional source language code.
         :return: Updated CustomInstruction.
         """
-        if isinstance(style_rule, StyleRuleInfo):
-            style_rule = style_rule.style_id
-        if not style_rule:
-            raise ValueError("style_rule must not be empty")
-        if not instruction_id:
-            raise ValueError("instruction_id must not be empty")
+        style_id = self._style_rule_id(style_rule)
+        instruction = self._custom_instruction_id(instruction_id)
         if not label:
             raise ValueError("label must not be empty")
         if not prompt:
@@ -1529,8 +1505,7 @@ class DeepLClient(Translator):
         if source_language is not None:
             request_data["source_language"] = source_language
         url = (
-            f"v3/style_rules/{style_rule}"
-            f"/custom_instructions/{instruction_id}"
+            f"v3/style_rules/{style_id}" f"/custom_instructions/{instruction}"
         )
         status, content, json = self._api_call(
             url,
@@ -1550,15 +1525,10 @@ class DeepLClient(Translator):
         :param style_rule: Style rule ID string or StyleRuleInfo object.
         :param instruction_id: ID of the custom instruction to delete.
         """
-        if isinstance(style_rule, StyleRuleInfo):
-            style_rule = style_rule.style_id
-        if not style_rule:
-            raise ValueError("style_rule must not be empty")
-        if not instruction_id:
-            raise ValueError("instruction_id must not be empty")
+        style_id = self._style_rule_id(style_rule)
+        instruction = self._custom_instruction_id(instruction_id)
         url = (
-            f"v3/style_rules/{style_rule}"
-            f"/custom_instructions/{instruction_id}"
+            f"v3/style_rules/{style_id}" f"/custom_instructions/{instruction}"
         )
         status, content, json = self._api_call(
             url,
@@ -1796,6 +1766,20 @@ class DeepLClient(Translator):
         if extra_body_parameters:
             request_data.update(extra_body_parameters)
         return request_data
+
+    @staticmethod
+    def _style_rule_id(style_rule: Union[str, StyleRuleInfo]) -> str:
+        if isinstance(style_rule, StyleRuleInfo):
+            style_rule = style_rule.style_id
+        if not style_rule:
+            raise ValueError("style_rule must not be empty")
+        return urllib.parse.quote(style_rule, safe="")
+
+    @staticmethod
+    def _custom_instruction_id(instruction_id: str) -> str:
+        if not instruction_id:
+            raise ValueError("instruction_id must not be empty")
+        return urllib.parse.quote(instruction_id, safe="")
 
     @staticmethod
     def _style_profile_id(style_profile: Union[str, StyleProfile]) -> str:

@@ -330,3 +330,50 @@ def test_sends_delete_when_deleting_instruction(mocked, style_rule):
 def test_raises_for_empty_arguments(call, match):
     with pytest.raises(ValueError, match=match):
         call(make_deepl_client())
+
+
+ESCAPED = "v3/style_rules/a%2Fb%3Fc%20d"
+
+
+@pytest.mark.parametrize(
+    "method, path, call",
+    [
+        ("GET", ESCAPED, lambda c: c.get_style_rule("a/b?c d")),
+        ("PATCH", ESCAPED, lambda c: c.update_style_rule_name("a/b?c d", "n")),
+        ("DELETE", ESCAPED, lambda c: c.delete_style_rule("a/b?c d")),
+        (
+            "PUT",
+            f"{ESCAPED}/configured_rules",
+            lambda c: c.update_style_rule_configured_rules("a/b?c d", {}),
+        ),
+        (
+            "POST",
+            f"{ESCAPED}/custom_instructions",
+            lambda c: c.create_style_rule_custom_instruction(
+                "a/b?c d", "L", "P"
+            ),
+        ),
+        (
+            "GET",
+            f"{ESCAPED}/custom_instructions/i%2Fj",
+            lambda c: c.get_style_rule_custom_instruction("a/b?c d", "i/j"),
+        ),
+        (
+            "PUT",
+            f"{ESCAPED}/custom_instructions/i%2Fj",
+            lambda c: c.update_style_rule_custom_instruction(
+                "a/b?c d", "i/j", "L", "P"
+            ),
+        ),
+        (
+            "DELETE",
+            f"{ESCAPED}/custom_instructions/i%2Fj",
+            lambda c: c.delete_style_rule_custom_instruction("a/b?c d", "i/j"),
+        ),
+    ],
+)
+def test_escapes_ids_in_the_path(mocked, method, path, call):
+    body = INSTRUCTION_JSON if "custom_instructions" in path else None
+    mocked.add(method, url(path), json=body or STYLE_RULE_JSON)
+
+    call(make_deepl_client())
