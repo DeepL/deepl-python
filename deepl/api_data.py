@@ -2027,11 +2027,47 @@ class TranslationMemoryExport:
         return self._reused_existing
 
 
+class TranslationMemoryJobStatus(str, Enum):
+    """Status of a translation memory import or export job.
+
+    Members are strings and compare equal to the status string the API
+    returns, for example ``TranslationMemoryJobStatus.COMPLETED ==
+    "completed"``.
+    """
+
+    AWAITING_INPUT = "awaiting_input"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    EXPIRED = "expired"
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __format__(self, format_spec: str) -> str:
+        return format(self.value, format_spec)
+
+    # Hash like the plain status string, so members and strings are
+    # interchangeable as dict keys and set members.
+    __hash__ = str.__hash__
+
+
+def _parse_translation_memory_job_status(
+    status: Any,
+) -> Union[TranslationMemoryJobStatus, str]:
+    try:
+        return TranslationMemoryJobStatus(status)
+    except ValueError:
+        # Unknown statuses are kept as given.
+        return status
+
+
 class TranslationMemoryJobResult:
     """The outcome of a translation memory import or export job.
 
-    :param status: Job status, one of "awaiting_input", "processing",
-        "completed", "downloaded", "failed" or "expired".
+    :param status: Job status. A known status is returned as a
+        TranslationMemoryJobStatus member, any other value as the plain
+        string.
     :param required_action: Human-readable action the caller must take, set
         while the job is waiting on the caller.
     :param download_url: Download URL of the exported TMX file, set once an
@@ -2061,7 +2097,7 @@ class TranslationMemoryJobResult:
         translation_memory_id: Optional[str] = None,
         skipped_segment_count: Optional[int] = None,
     ):
-        self._status = status
+        self._status = _parse_translation_memory_job_status(status)
         self._required_action = required_action
         self._download_url = download_url
         self._expires_at = expires_at
@@ -2089,8 +2125,9 @@ class TranslationMemoryJobResult:
         )
 
     @property
-    def status(self) -> str:
-        """Returns the job status."""
+    def status(self) -> Union[TranslationMemoryJobStatus, str]:
+        """Returns the job status: a TranslationMemoryJobStatus member, or the
+        plain string for a status this library does not know."""
         return self._status
 
     @property
@@ -2238,8 +2275,9 @@ class TranslationMemoryJob:
         return self._results[0] if self._results else None
 
     @property
-    def status(self) -> Optional[str]:
-        """Returns the status of the job result."""
+    def status(self) -> Optional[Union[TranslationMemoryJobStatus, str]]:
+        """Returns the status of the job result, see
+        TranslationMemoryJobResult.status."""
         return self.result.status if self.result else None
 
     @property

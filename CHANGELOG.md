@@ -137,6 +137,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when creating the import job and sent with the upload; extra body parameters
   are added to the request that creates the import job and replace keys of
   the same name.
+- Added the `TranslationMemoryJobStatus` enum. `TranslationMemoryJob.status`
+  and `TranslationMemoryJobResult.status` now return its members for the
+  statuses `awaiting_input`, `processing`, `completed`, `failed` and
+  `expired`, and the plain string for any other value. Members are strings
+  that compare equal to the API value, so existing comparisons with strings
+  and the `TranslationMemoryJobResult.STATUS_*` constants keep working.
 
 ### Changed
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`

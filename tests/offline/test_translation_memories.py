@@ -431,6 +431,35 @@ def test_derives_job_progress_from_status(mocked, status, done, ok):
     assert job.result.error_message == "bad"
 
 
+@pytest.mark.parametrize(
+    "wire, status",
+    [
+        ("awaiting_input", deepl.TranslationMemoryJobStatus.AWAITING_INPUT),
+        ("processing", deepl.TranslationMemoryJobStatus.PROCESSING),
+        ("completed", deepl.TranslationMemoryJobStatus.COMPLETED),
+        ("failed", deepl.TranslationMemoryJobStatus.FAILED),
+        ("expired", deepl.TranslationMemoryJobStatus.EXPIRED),
+    ],
+)
+def test_parses_job_status_as_enum_member(mocked, wire, status):
+    reply_with_job(mocked, wire)
+
+    job = make_deepl_client().get_translation_memory_job("job-1")
+
+    assert job.status is status
+    assert job.result.status is status
+    assert job.status == wire
+
+
+def test_keeps_unknown_job_status_as_string(mocked):
+    reply_with_job(mocked, "paused")
+
+    job = make_deepl_client().get_translation_memory_job("job-1")
+
+    assert type(job.status) is str
+    assert job.status == "paused"
+
+
 def test_parses_required_action_of_awaiting_job(mocked):
     reply_with_job(
         mocked, "awaiting_input", status_metadata={"required_action": "upload"}

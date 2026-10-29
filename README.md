@@ -1252,6 +1252,16 @@ job = deepl_client.wait_until_translation_memory_job_done(
 )
 ```
 
+`TranslationMemoryJob.status` returns a `TranslationMemoryJobStatus` member
+(`AWAITING_INPUT`, `PROCESSING`, `COMPLETED`, `FAILED` or `EXPIRED`), or the
+plain string for a status the library does not know. Members are strings and
+compare equal to the API value, so `job.status == "completed"` keeps working.
+
+```python
+if job.status == deepl.TranslationMemoryJobStatus.FAILED:
+    print(f"Import failed: {job.result.error_message}")
+```
+
 #### Exporting a translation memory
 
 `export_translation_memory_to_filepath()` exports a translation memory to a TMX

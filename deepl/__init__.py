@@ -47,6 +47,7 @@ from .api_data import (  # noqa
     SpokenTermsEntries,
     SpokenTermsList,
     StyleProfile,
+    TranslationMemoryJobStatus,
 )
 
 from .translator import (  # noqa
@@ -105,6 +106,7 @@ __all__ = [
     "TagHandlingMode",
     "TagHandlingVersion",
     "TextResult",
+    "TranslationMemoryJobStatus",
     "Translator",
     "Usage",
     "http_client",
