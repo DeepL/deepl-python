@@ -646,7 +646,10 @@ term, then checks it like a glossary term (`validate_glossary_term()`): an
 empty term or one with a control character, such as a newline, raises
 `ValueError`. The API validates the rest (at most 300 characters per list, no
 duplicates). Methods that take a collection accept either its ID or a
-`SpokenTerms` object.
+`SpokenTerms` object. `create_spoken_terms()`, `update_spoken_terms()` and
+`replace_spoken_terms_list()` accept the keyword argument
+`extra_body_parameters`: a dictionary of extra fields to send in the JSON
+request body, replacing fields the library sets with the same key.
 
 ```python
 # Create a collection with an English term list

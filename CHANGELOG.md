@@ -57,7 +57,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `update_spoken_terms()`, `get_spoken_terms_entries()`,
   `replace_spoken_terms_list()`, `delete_spoken_terms()` and
   `delete_spoken_terms_list()`, with the `SpokenTerms`, `SpokenTermsList` and
-  `SpokenTermsEntries` types.
+  `SpokenTermsEntries` types. `create_spoken_terms()`, `update_spoken_terms()`
+  and `replace_spoken_terms_list()` accept `extra_body_parameters`. Collection
+  IDs are URL-encoded in the request path, terms are stripped of leading and
+  trailing whitespace before they are validated and sent, and a malformed
+  response raises `DeepLException`.
 - Added the style profile API (`/v3/style_profiles`) to the `DeepLClient`
   class: `list_style_profiles()`, `create_style_profile()`,
   `get_style_profile()`, `update_style_profile()` and

@@ -145,3 +145,35 @@ def test_raises_deepl_exception_on_a_malformed_response(
 
     with pytest.raises(deepl.DeepLException, match="Malformed"):
         call(make_deepl_client())
+
+
+def test_sends_extra_body_parameters_last(mocked):
+    mocked.post(
+        url("v3/spoken-terms"),
+        json=SPOKEN_TERMS_JSON,
+        status=201,
+        match=json_request({"name": "override", "term_lists": [], "x": 1}),
+    )
+    mocked.patch(
+        url("v3/spoken-terms/st-1"),
+        json=SPOKEN_TERMS_JSON,
+        match=json_request({"name": "renamed", "x": True}),
+    )
+    mocked.put(
+        url("v3/spoken-terms/st-1/term-lists"),
+        json={"lang": "de", "entry_count": 1},
+        match=json_request({"lang": "de", "entries": "a", "x": None}),
+    )
+    client = make_deepl_client()
+
+    client.create_spoken_terms(
+        "terms", [], extra_body_parameters={"name": "override", "x": 1}
+    )
+    client.update_spoken_terms(
+        "st-1", name="renamed", extra_body_parameters={"x": True}
+    )
+    client.replace_spoken_terms_list(
+        "st-1",
+        deepl.SpokenTermsEntries("en", ["a"]),
+        extra_body_parameters={"lang": "de", "x": None},
+    )

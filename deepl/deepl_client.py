@@ -730,6 +730,8 @@ class DeepLClient(Translator):
         self,
         name: str,
         term_lists: List[SpokenTermsEntries],
+        *,
+        extra_body_parameters: Optional[Dict[str, Any]] = None,
     ) -> SpokenTerms:
         """Creates a spoken-terms collection with the given name and term
         lists, one per language. Spoken terms improve the transcription of
@@ -738,18 +740,22 @@ class DeepLClient(Translator):
         :param name: User-defined name to attach to the collection.
         :param term_lists: List of SpokenTermsEntries, each containing the
             terms of one language.
+        :param extra_body_parameters: (Optional) Additional key/value pairs
+            to send in the JSON request body; they replace fields the library
+            sets with the same key.
         :return: SpokenTerms containing information about the created
             collection.
         :raises ValueError: If a term, after stripping leading and trailing
             whitespace, is empty or contains a control character, as
             validate_glossary_term() checks.
         """
-        request_data = {
+        request_data: Dict[str, Any] = {
             "name": name,
             "term_lists": [
                 self._spoken_terms_json(entries) for entries in term_lists
             ],
         }
+        request_data.update(extra_body_parameters or {})
         status, content, json = self._api_call(
             "v3/spoken-terms", json=request_data
         )
@@ -795,6 +801,7 @@ class DeepLClient(Translator):
         *,
         name: Optional[str] = None,
         term_lists: Optional[List[SpokenTermsEntries]] = None,
+        extra_body_parameters: Optional[Dict[str, Any]] = None,
     ) -> SpokenTerms:
         """Updates a spoken-terms collection: renames it and/or merges the
         given terms into the existing term list of each given language.
@@ -803,6 +810,9 @@ class DeepLClient(Translator):
         :param name: (Optional) New name of the collection.
         :param term_lists: (Optional) List of SpokenTermsEntries whose terms
             are merged into the term list of the same language.
+        :param extra_body_parameters: (Optional) Additional key/value pairs
+            to send in the JSON request body; they replace fields the library
+            sets with the same key.
         :return: SpokenTerms containing information about the updated
             collection.
         :raises ValueError: If a term, after stripping leading and trailing
@@ -817,6 +827,7 @@ class DeepLClient(Translator):
             request_data["term_lists"] = [
                 self._spoken_terms_json(entries) for entries in term_lists
             ]
+        request_data.update(extra_body_parameters or {})
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}",
             method="PATCH",
@@ -849,6 +860,8 @@ class DeepLClient(Translator):
         self,
         spoken_terms: Union[str, SpokenTerms],
         entries: SpokenTermsEntries,
+        *,
+        extra_body_parameters: Optional[Dict[str, Any]] = None,
     ) -> SpokenTermsList:
         """Replaces the term list of one language in a spoken-terms
         collection, or adds it if the collection has no list for the
@@ -856,16 +869,21 @@ class DeepLClient(Translator):
 
         :param spoken_terms: SpokenTerms or ID of the collection.
         :param entries: SpokenTermsEntries with the language and its terms.
+        :param extra_body_parameters: (Optional) Additional key/value pairs
+            to send in the JSON request body; they replace fields the library
+            sets with the same key.
         :return: SpokenTermsList containing information about the term list.
         :raises ValueError: If a term, after stripping leading and trailing
             whitespace, is empty or contains a control character, as
             validate_glossary_term() checks.
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
+        request_data = self._spoken_terms_json(entries)
+        request_data.update(extra_body_parameters or {})
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}/term-lists",
             method="PUT",
-            json=self._spoken_terms_json(entries),
+            json=request_data,
         )
         self._raise_for_status(status, content, json)
         return self._parse_spoken_terms_response(
