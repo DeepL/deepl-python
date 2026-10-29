@@ -76,14 +76,19 @@ class DocumentTranslationException(DeepLException):
     """Error occurred while translating document.
 
     :param message: Message describing the error that occurred.
-    :param document_handle: The document handle of the associated document.
+    :param document_handle: The document handle of the associated document,
+        or None if the error occurred before the document was uploaded.
     """
 
-    def __init__(self, message: str, document_handle: DocumentHandle):
+    def __init__(
+        self, message: str, document_handle: Optional[DocumentHandle]
+    ):
         super().__init__(message)
         self.document_handle = document_handle
 
     def __str__(self):
+        if self.document_handle is None:
+            return super().__str__()
         return f"{super().__str__()}, document handle: {self.document_handle}"
 
     @property

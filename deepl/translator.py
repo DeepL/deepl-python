@@ -649,8 +649,8 @@ class Translator(BaseClient):
             allows the number of billed characters to be queried.
 
         :raises DocumentTranslationException: If an error occurs during
-            translation. The exception includes information about the document
-            request.
+            upload or translation. The exception includes the document handle
+            if the document was already uploaded, otherwise the handle is None.
         """
         _check_target_lang_given(
             "translate_document_from_filepath", target_lang
@@ -757,26 +757,33 @@ class Translator(BaseClient):
             allows the number of billed characters to be queried.
 
         :raises DocumentTranslationException: If an error occurs during
-            translation, the exception includes the document handle.
+            upload or translation. The exception includes the document handle
+            if the document was already uploaded, otherwise the handle is None.
         """
         _check_target_lang_given("translate_document", target_lang)
 
-        handle = self.translate_document_upload(
-            input_document,
-            target_lang=target_lang,
-            source_lang=source_lang,
-            formality=formality,
-            glossary=glossary,
-            glossary_ids=glossary_ids,
-            style_rule=style_rule,
-            style_profile=style_profile,
-            translation_memory=translation_memory,
-            translation_memory_threshold=translation_memory_threshold,
-            filename=filename,
-            output_format=output_format,
-            enable_watermark=enable_watermark,
-            extra_body_parameters=extra_body_parameters,
-        )
+        try:
+            handle = self.translate_document_upload(
+                input_document,
+                target_lang=target_lang,
+                source_lang=source_lang,
+                formality=formality,
+                glossary=glossary,
+                glossary_ids=glossary_ids,
+                style_rule=style_rule,
+                style_profile=style_profile,
+                translation_memory=translation_memory,
+                translation_memory_threshold=translation_memory_threshold,
+                filename=filename,
+                output_format=output_format,
+                enable_watermark=enable_watermark,
+                extra_body_parameters=extra_body_parameters,
+            )
+        except (TypeError, ValueError):
+            # Invalid arguments, rejected before anything is sent.
+            raise
+        except Exception as e:
+            raise DocumentTranslationException(str(e), None) from e
 
         try:
             status = self.translate_document_wait_until_done(handle, timeout_s)
