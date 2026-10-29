@@ -13,6 +13,7 @@ from deepl.api_data import (
     DeveloperKeyUsageLimitsUpdate,
 )
 from deepl._base_client import BaseClient
+from deepl import util
 import datetime
 import re
 import urllib.parse
@@ -186,7 +187,7 @@ class DeepLAdminClient(BaseClient):
         request_data = {}
         if label is not None:
             request_data["label"] = label
-        _add_extra_body_parameters(request_data, extra_body_parameters)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v2/admin/developer-keys",
@@ -290,20 +291,12 @@ class DeepLAdminClient(BaseClient):
         request_data: dict,
         extra_body_parameters: Optional[dict],
     ) -> DeveloperKey:
-        _add_extra_body_parameters(request_data, extra_body_parameters)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             url, method="PUT", json=request_data
         )
         self._raise_for_status(status, content, json)
         return _parse_key(json)
-
-
-def _add_extra_body_parameters(
-    request_data: dict, extra_body_parameters: Optional[dict]
-) -> None:
-    # Entries replace keys of the same name set by the client.
-    if extra_body_parameters:
-        request_data.update(extra_body_parameters)
 
 
 def _date_range_params(

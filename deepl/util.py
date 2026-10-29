@@ -44,6 +44,16 @@ def _get_log_text(message, **kwargs):
     )
 
 
+def _add_extra_body_parameters(
+    request_data: Dict[str, Any], extra_body_parameters: Optional[dict]
+) -> None:
+    """Merges extra_body_parameters into request_data in place. Entries
+    replace keys of the same name set by the library; None or {} adds
+    nothing."""
+    if extra_body_parameters:
+        request_data.update(extra_body_parameters)
+
+
 def log_debug(message, **kwargs):
     text = _get_log_text(message, **kwargs)
     logger.debug(text)

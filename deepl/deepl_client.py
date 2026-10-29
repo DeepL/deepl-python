@@ -59,15 +59,6 @@ from typing import (
 _T = TypeVar("_T")
 
 
-def _apply_extra_body_parameters(
-    request_data: dict, extra_body_parameters: Optional[dict]
-) -> None:
-    # Entries replace keys of the same name set by the client.
-    if extra_body_parameters:
-        for k, v in extra_body_parameters.items():
-            request_data[k] = v
-
-
 def _parse_improvements(json: Any, text_count: int) -> List[WriteResult]:
     improvements = json.get("improvements") if isinstance(json, dict) else None
     if not isinstance(improvements, list) or len(improvements) < text_count:
@@ -113,14 +104,6 @@ def _renamed_argument(
     if value is None:
         raise TypeError(f"{method}() missing required argument: {name}")
     return value
-
-
-def _add_extra_body_parameters(
-    request_data: Dict[str, Any], extra_body_parameters: Optional[dict]
-) -> None:
-    # Entries replace keys of the same name set by the SDK.
-    if extra_body_parameters:
-        request_data.update(extra_body_parameters)
 
 
 class DeepLClient(Translator):
@@ -216,7 +199,7 @@ class DeepLClient(Translator):
             request_data["writing_style"] = str(writing_style)
         if tone:
             request_data["tone"] = str(tone)
-        _apply_extra_body_parameters(request_data, extra_body_parameters)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v2/write/rephrase", json=request_data
@@ -267,7 +250,7 @@ class DeepLClient(Translator):
         request_data: dict = {"text": text}
         if target_lang:
             request_data["target_lang"] = str(target_lang)
-        _apply_extra_body_parameters(request_data, extra_body_parameters)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v2/write/correct", json=request_data
@@ -414,7 +397,7 @@ class DeepLClient(Translator):
             "name": name,
             "dictionaries": self._dictionaries_json(dictionaries),
         }
-        _add_extra_body_parameters(request_data, extra_body_parameters)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v3/glossaries", json=request_data
@@ -625,7 +608,7 @@ class DeepLClient(Translator):
             request_data["dictionaries"] = self._dictionaries_json(
                 dictionaries
             )
-        _add_extra_body_parameters(request_data, extra_body_parameters)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             f"v3/glossaries/{glossary_id}", method="PATCH", json=request_data
@@ -761,7 +744,7 @@ class DeepLClient(Translator):
                 source_lang, target_lang, entries
             )
         )
-        _add_extra_body_parameters(request_data, extra_body_parameters)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             f"v3/glossaries/{glossary_id}/dictionaries",
@@ -1032,7 +1015,7 @@ class DeepLClient(Translator):
                 self._spoken_terms_json(entries) for entries in term_lists
             ],
         }
-        request_data.update(extra_body_parameters or {})
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             "v3/spoken-terms", json=request_data
         )
@@ -1104,7 +1087,7 @@ class DeepLClient(Translator):
             request_data["term_lists"] = [
                 self._spoken_terms_json(entries) for entries in term_lists
             ]
-        request_data.update(extra_body_parameters or {})
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}",
             method="PATCH",
@@ -1156,7 +1139,7 @@ class DeepLClient(Translator):
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
         request_data = self._spoken_terms_json(entries)
-        request_data.update(extra_body_parameters or {})
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}/term-lists",
             method="PUT",
@@ -1355,9 +1338,10 @@ class DeepLClient(Translator):
         if custom_instructions is not None:
             request_data["custom_instructions"] = custom_instructions
 
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             "v3/style_rules",
-            json=self._with_extra_body(request_data, extra_body_parameters),
+            json=request_data,
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
@@ -1399,10 +1383,11 @@ class DeepLClient(Translator):
         if not name:
             raise ValueError("name must not be empty")
         request_data = {"name": name}
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             f"v3/style_rules/{style_id}",
             method="PATCH",
-            json=self._with_extra_body(request_data, extra_body_parameters),
+            json=request_data,
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
@@ -1439,12 +1424,13 @@ class DeepLClient(Translator):
         :return: Updated StyleRuleInfo.
         """
         style_id = self._style_rule_id(style_rule)
+        # Copy so the caller's configured_rules dict is not modified.
+        request_data = dict(configured_rules)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             f"v3/style_rules/{style_id}/configured_rules",
             method="PUT",
-            json=self._with_extra_body(
-                configured_rules, extra_body_parameters
-            ),
+            json=request_data,
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
@@ -1478,9 +1464,10 @@ class DeepLClient(Translator):
         request_data = {"label": label, "prompt": prompt}
         if source_language is not None:
             request_data["source_language"] = source_language
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             f"v3/style_rules/{style_id}/custom_instructions",
-            json=self._with_extra_body(request_data, extra_body_parameters),
+            json=request_data,
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(
@@ -1545,10 +1532,11 @@ class DeepLClient(Translator):
         if source_language is not None:
             request_data["source_language"] = source_language
         url = f"v3/style_rules/{style_id}/custom_instructions/{instruction}"
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
             url,
             method="PUT",
-            json=self._with_extra_body(request_data, extra_body_parameters),
+            json=request_data,
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(
@@ -1801,15 +1789,8 @@ class DeepLClient(Translator):
             ]
         # Unset (None) fields are not sent; "" and [] are sent as given.
         request_data = {k: v for k, v in fields.items() if v is not None}
-        # Entries replace keys of the same name set above.
-        if extra_body_parameters:
-            request_data.update(extra_body_parameters)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
         return request_data
-
-    @staticmethod
-    def _with_extra_body(body: dict, extra: Optional[dict]) -> dict:
-        # Entries replace keys of the same name set by the client.
-        return {**body, **extra} if extra else body
 
     @staticmethod
     def _parse_style_rule_response(
@@ -2053,9 +2034,7 @@ class DeepLClient(Translator):
         if display_name is not None:
             request_data["parameters"] = {"display_name": display_name}
 
-        # Entries replace keys of the same name set above.
-        if extra_body_parameters:
-            request_data.update(extra_body_parameters)
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v3/translation_memories/import", json=request_data

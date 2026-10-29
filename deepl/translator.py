@@ -501,10 +501,7 @@ class Translator(BaseClient):
         if custom_instructions is not None:
             request_data["custom_instructions"] = custom_instructions
 
-        # Entries replace keys of the same name set above.
-        if extra_body_parameters:
-            for k, v in extra_body_parameters.items():
-                request_data[k] = v
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v2/translate", json=request_data
@@ -904,9 +901,7 @@ class Translator(BaseClient):
             files = {"file": (filename, input_document)}
         else:
             files = {"file": input_document}
-        if extra_body_parameters:
-            for k, v in extra_body_parameters.items():
-                request_data[k] = v
+        util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v2/document", data=request_data, files=files
