@@ -969,7 +969,10 @@ updated = deepl_client.update_style_rule_configured_rules(
 Custom instructions allow you to add free-text prompts to a style rule. Use
 `create_style_rule_custom_instruction()`, `get_style_rule_custom_instruction()`,
 `update_style_rule_custom_instruction()`, and
-`delete_style_rule_custom_instruction()` to manage them.
+`delete_style_rule_custom_instruction()` to manage them. The `style_rule`
+argument of every style rule function takes a style rule ID or a
+`StyleRuleInfo` object, and `instruction_id` takes a custom instruction ID or a
+`CustomInstruction` object.
 
 ```python
 # Create a custom instruction
@@ -993,9 +996,20 @@ updated = deepl_client.update_style_rule_custom_instruction(
     prompt="Use very formal language",
 )
 
-# Delete a custom instruction
-deepl_client.delete_style_rule_custom_instruction(
-    "YOUR_STYLE_ID", instruction.id
+# Delete a custom instruction (by ID or CustomInstruction object)
+deepl_client.delete_style_rule_custom_instruction("YOUR_STYLE_ID", instruction)
+```
+
+`create_style_rule()`, `update_style_rule_name()`,
+`update_style_rule_configured_rules()`, `create_style_rule_custom_instruction()`
+and `update_style_rule_custom_instruction()` also accept
+`extra_body_parameters`: a dictionary of extra parameters to pass in the JSON
+request body, which replace request fields of the same name. See the
+`extra_body_parameters` [text translation option](#text-translation-options).
+
+```python
+deepl_client.update_style_rule_name(
+    "YOUR_STYLE_ID", "New Name", extra_body_parameters={"beta_param": "value"}
 )
 ```
 

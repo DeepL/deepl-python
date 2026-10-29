@@ -1329,6 +1329,8 @@ class DeepLClient(Translator):
         language: str,
         configured_rules: Optional[dict] = None,
         custom_instructions: Optional[List[dict]] = None,
+        *,
+        extra_body_parameters: Optional[dict] = None,
     ) -> StyleRuleInfo:
         """Creates a new style rule.
 
@@ -1336,6 +1338,10 @@ class DeepLClient(Translator):
         :param language: Language code for the style rule.
         :param configured_rules: Optional dict of configured rules.
         :param custom_instructions: Optional list of custom instruction dicts.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: StyleRuleInfo for the created style rule.
         """
         if not name:
@@ -1350,7 +1356,8 @@ class DeepLClient(Translator):
             request_data["custom_instructions"] = custom_instructions
 
         status, content, json = self._api_call(
-            "v3/style_rules", json=request_data
+            "v3/style_rules",
+            json=self._with_extra_body(request_data, extra_body_parameters),
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
@@ -1375,11 +1382,17 @@ class DeepLClient(Translator):
         self,
         style_rule: Union[str, StyleRuleInfo],
         name: str,
+        *,
+        extra_body_parameters: Optional[dict] = None,
     ) -> StyleRuleInfo:
         """Updates the name of a style rule.
 
         :param style_rule: Style rule ID string or StyleRuleInfo object.
         :param name: New name for the style rule.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: Updated StyleRuleInfo.
         """
         style_id = self._style_rule_id(style_rule)
@@ -1387,7 +1400,9 @@ class DeepLClient(Translator):
             raise ValueError("name must not be empty")
         request_data = {"name": name}
         status, content, json = self._api_call(
-            f"v3/style_rules/{style_id}", method="PATCH", json=request_data
+            f"v3/style_rules/{style_id}",
+            method="PATCH",
+            json=self._with_extra_body(request_data, extra_body_parameters),
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
@@ -1410,18 +1425,26 @@ class DeepLClient(Translator):
         self,
         style_rule: Union[str, StyleRuleInfo],
         configured_rules: dict,
+        *,
+        extra_body_parameters: Optional[dict] = None,
     ) -> StyleRuleInfo:
         """Updates the configured rules of a style rule.
 
         :param style_rule: Style rule ID string or StyleRuleInfo object.
         :param configured_rules: Dict of configured rules to set.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: Updated StyleRuleInfo.
         """
         style_id = self._style_rule_id(style_rule)
         status, content, json = self._api_call(
             f"v3/style_rules/{style_id}/configured_rules",
             method="PUT",
-            json=configured_rules,
+            json=self._with_extra_body(
+                configured_rules, extra_body_parameters
+            ),
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
@@ -1432,6 +1455,8 @@ class DeepLClient(Translator):
         label: str,
         prompt: str,
         source_language: Optional[str] = None,
+        *,
+        extra_body_parameters: Optional[dict] = None,
     ) -> CustomInstruction:
         """Creates a custom instruction for a style rule.
 
@@ -1439,6 +1464,10 @@ class DeepLClient(Translator):
         :param label: Label for the custom instruction.
         :param prompt: Prompt text for the custom instruction.
         :param source_language: Optional source language code.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: Created CustomInstruction.
         """
         style_id = self._style_rule_id(style_rule)
@@ -1451,7 +1480,7 @@ class DeepLClient(Translator):
             request_data["source_language"] = source_language
         status, content, json = self._api_call(
             f"v3/style_rules/{style_id}/custom_instructions",
-            json=request_data,
+            json=self._with_extra_body(request_data, extra_body_parameters),
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(
@@ -1461,19 +1490,18 @@ class DeepLClient(Translator):
     def get_style_rule_custom_instruction(
         self,
         style_rule: Union[str, StyleRuleInfo],
-        instruction_id: str,
+        instruction_id: Union[str, CustomInstruction],
     ) -> CustomInstruction:
         """Retrieves a custom instruction by ID.
 
         :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :param instruction_id: ID of the custom instruction.
+        :param instruction_id: ID of the custom instruction, or a
+            CustomInstruction object.
         :return: CustomInstruction.
         """
         style_id = self._style_rule_id(style_rule)
         instruction = self._custom_instruction_id(instruction_id)
-        url = (
-            f"v3/style_rules/{style_id}" f"/custom_instructions/{instruction}"
-        )
+        url = f"v3/style_rules/{style_id}/custom_instructions/{instruction}"
         status, content, json = self._api_call(
             url,
             method="GET",
@@ -1486,18 +1514,25 @@ class DeepLClient(Translator):
     def update_style_rule_custom_instruction(
         self,
         style_rule: Union[str, StyleRuleInfo],
-        instruction_id: str,
+        instruction_id: Union[str, CustomInstruction],
         label: str,
         prompt: str,
         source_language: Optional[str] = None,
+        *,
+        extra_body_parameters: Optional[dict] = None,
     ) -> CustomInstruction:
         """Updates a custom instruction.
 
         :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :param instruction_id: ID of the custom instruction.
+        :param instruction_id: ID of the custom instruction, or a
+            CustomInstruction object.
         :param label: New label for the custom instruction.
         :param prompt: New prompt text for the custom instruction.
         :param source_language: Optional source language code.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. If provided,
+            keys in this dict will be added to the request body, and replace
+            keys of the same name that the client sets.
         :return: Updated CustomInstruction.
         """
         style_id = self._style_rule_id(style_rule)
@@ -1509,13 +1544,11 @@ class DeepLClient(Translator):
         request_data = {"label": label, "prompt": prompt}
         if source_language is not None:
             request_data["source_language"] = source_language
-        url = (
-            f"v3/style_rules/{style_id}" f"/custom_instructions/{instruction}"
-        )
+        url = f"v3/style_rules/{style_id}/custom_instructions/{instruction}"
         status, content, json = self._api_call(
             url,
             method="PUT",
-            json=request_data,
+            json=self._with_extra_body(request_data, extra_body_parameters),
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(
@@ -1525,18 +1558,17 @@ class DeepLClient(Translator):
     def delete_style_rule_custom_instruction(
         self,
         style_rule: Union[str, StyleRuleInfo],
-        instruction_id: str,
+        instruction_id: Union[str, CustomInstruction],
     ) -> None:
         """Deletes a custom instruction from a style rule.
 
         :param style_rule: Style rule ID string or StyleRuleInfo object.
-        :param instruction_id: ID of the custom instruction to delete.
+        :param instruction_id: ID of the custom instruction to delete, or a
+            CustomInstruction object.
         """
         style_id = self._style_rule_id(style_rule)
         instruction = self._custom_instruction_id(instruction_id)
-        url = (
-            f"v3/style_rules/{style_id}" f"/custom_instructions/{instruction}"
-        )
+        url = f"v3/style_rules/{style_id}/custom_instructions/{instruction}"
         status, content, json = self._api_call(
             url,
             method="DELETE",
@@ -1775,6 +1807,11 @@ class DeepLClient(Translator):
         return request_data
 
     @staticmethod
+    def _with_extra_body(body: dict, extra: Optional[dict]) -> dict:
+        # Entries replace keys of the same name set by the client.
+        return {**body, **extra} if extra else body
+
+    @staticmethod
     def _parse_style_rule_response(
         parse: Callable[[Any], _T], json: Any
     ) -> _T:
@@ -1794,7 +1831,11 @@ class DeepLClient(Translator):
         return urllib.parse.quote(style_rule, safe="")
 
     @staticmethod
-    def _custom_instruction_id(instruction_id: str) -> str:
+    def _custom_instruction_id(
+        instruction_id: Union[str, CustomInstruction, None],
+    ) -> str:
+        if isinstance(instruction_id, CustomInstruction):
+            instruction_id = instruction_id.id
         if not instruction_id:
             raise ValueError("instruction_id must not be empty")
         return urllib.parse.quote(instruction_id, safe="")

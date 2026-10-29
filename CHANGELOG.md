@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `NotFoundException`, raised for HTTP 404 on every endpoint.
   `GlossaryNotFoundException` is now its subclass.
 - Added `is_free_account_auth_key()`, which replaces `auth_key_is_free_account()`.
+- Added the `extra_body_parameters` option to `create_style_rule()`,
+  `update_style_rule_name()`, `update_style_rule_configured_rules()`,
+  `create_style_rule_custom_instruction()` and
+  `update_style_rule_custom_instruction()`.
+- `get_style_rule_custom_instruction()`,
+  `update_style_rule_custom_instruction()` and
+  `delete_style_rule_custom_instruction()` accept a `CustomInstruction` object
+  as `instruction_id`, as well as an ID string.
 - Added the `max_retries` and `timeout_s` options to the `Translator`,
   `DeepLClient` and `DeepLAdminClient` constructors, to set the maximum number
   of retries and the minimum per-attempt timeout in seconds for each client.

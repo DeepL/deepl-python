@@ -418,3 +418,96 @@ def test_raises_deepl_exception_for_malformed_response(
 
     with pytest.raises(DeepLException, match="Unexpected style rule response"):
         call(make_deepl_client())
+
+
+@pytest.mark.parametrize(
+    "instruction",
+    ["instruction-1", CustomInstruction.from_json(INSTRUCTION_JSON)],
+)
+def test_accepts_instruction_id_or_object(mocked, instruction):
+    path = url("v3/style_rules/style-1/custom_instructions/instruction-1")
+    mocked.get(path, json=INSTRUCTION_JSON, match=bodyless_request())
+    mocked.put(path, json=INSTRUCTION_JSON)
+    mocked.delete(path, status=204, match=bodyless_request())
+    client = make_deepl_client()
+
+    client.get_style_rule_custom_instruction("style-1", instruction)
+    client.update_style_rule_custom_instruction(
+        "style-1", instruction, "L", "P"
+    )
+    client.delete_style_rule_custom_instruction("style-1", instruction)
+
+
+def test_rejects_instruction_object_without_id():
+    with pytest.raises(ValueError, match="instruction_id must not be empty"):
+        make_deepl_client().get_style_rule_custom_instruction(
+            "style-1", CustomInstruction("L", "P")
+        )
+
+
+EXTRA = {"name": "replaced", "extra": True}
+
+
+@pytest.mark.parametrize(
+    "method, path, body, response, call",
+    [
+        (
+            "POST",
+            "v3/style_rules",
+            {"name": "replaced", "language": "en", "extra": True},
+            STYLE_RULE_JSON,
+            lambda c: c.create_style_rule(
+                "style", "en", extra_body_parameters=EXTRA
+            ),
+        ),
+        (
+            "PATCH",
+            "v3/style_rules/style-1",
+            {"name": "replaced", "extra": True},
+            STYLE_RULE_JSON,
+            lambda c: c.update_style_rule_name(
+                "style-1", "new", extra_body_parameters=EXTRA
+            ),
+        ),
+        (
+            "PUT",
+            "v3/style_rules/style-1/configured_rules",
+            {**CONFIGURED_RULES, "name": "replaced", "extra": True},
+            STYLE_RULE_JSON,
+            lambda c: c.update_style_rule_configured_rules(
+                "style-1", CONFIGURED_RULES, extra_body_parameters=EXTRA
+            ),
+        ),
+        (
+            "POST",
+            "v3/style_rules/style-1/custom_instructions",
+            {"label": "replaced", "prompt": "P", "extra": True},
+            INSTRUCTION_JSON,
+            lambda c: c.create_style_rule_custom_instruction(
+                "style-1",
+                "L",
+                "P",
+                extra_body_parameters={"label": "replaced", "extra": True},
+            ),
+        ),
+        (
+            "PUT",
+            "v3/style_rules/style-1/custom_instructions/instruction-1",
+            {"label": "replaced", "prompt": "P", "extra": True},
+            INSTRUCTION_JSON,
+            lambda c: c.update_style_rule_custom_instruction(
+                "style-1",
+                "instruction-1",
+                "L",
+                "P",
+                extra_body_parameters={"label": "replaced", "extra": True},
+            ),
+        ),
+    ],
+)
+def test_merges_extra_body_parameters_last(
+    mocked, method, path, body, response, call
+):
+    mocked.add(method, url(path), json=response, match=json_request(body))
+
+    call(make_deepl_client())
