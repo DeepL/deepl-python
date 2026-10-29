@@ -93,7 +93,7 @@ def test_get_usage_analytics(mocked):
 
     assert report.total_usage.speech_to_text_minutes == 107.46
     assert report.total_usage.speech_to_speech_minutes == 3.5
-    assert report.group_by == "keyAndDay"
+    assert report.group_by is deepl.AdminUsageGroupBy.KEY_AND_DAY
     assert report.start_date == datetime.datetime(2025, 9, 29, tzinfo=UTC)
     assert report.key_usages == []
     usage = report.key_and_day_usages[0]
@@ -144,13 +144,56 @@ def test_get_custom_tag_usage_analytics(mocked):
         page=2,
     )
 
-    assert report.aggregate_by == "day"
+    assert report.aggregate_by is deepl.CustomTagUsageAggregateBy.DAY
     assert report.next_page == 3
     assert report.usage[0].breakdown.speech_to_speech_minutes == 4.2
     assert report.usage[0].usage_date == datetime.datetime(
         2026, 5, 4, tzinfo=UTC
     )
     assert report.end_date == datetime.datetime(2026, 5, 15, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    "group_by, expected",
+    [
+        ("key", deepl.AdminUsageGroupBy.KEY),
+        ("key_and_day", deepl.AdminUsageGroupBy.KEY_AND_DAY),
+        ("by_team", "by_team"),
+    ],
+)
+def test_report_group_by_is_open_enum(mocked, group_by, expected):
+    mocked.get(
+        url("v2/admin/analytics"),
+        json={"usage_report": {"group_by": group_by}},
+    )
+
+    report = make_admin_client().get_usage_analytics(
+        "2026-05-03", "2026-05-04"
+    )
+
+    assert report.group_by == expected
+    assert type(report.group_by) is type(expected)
+
+
+@pytest.mark.parametrize(
+    "aggregate_by, expected",
+    [
+        ("period", deepl.CustomTagUsageAggregateBy.PERIOD),
+        ("week", "week"),
+    ],
+)
+def test_report_aggregate_by_is_open_enum(mocked, aggregate_by, expected):
+    mocked.get(
+        url("v2/admin/analytics/custom-tags"),
+        json={"custom_tag_usage_report": {"aggregate_by": aggregate_by}},
+    )
+
+    report = make_admin_client().get_custom_tag_usage_analytics(
+        "2026-05-03", "2026-05-04"
+    )
+
+    assert report.aggregate_by == expected
+    assert type(report.aggregate_by) is type(expected)
 
 
 def test_uses_utc_date_of_datetime(mocked):

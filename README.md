@@ -1315,8 +1315,10 @@ date raises a `ValueError` before any request is sent. Use
 `group_by` to break the usage down by key (`AdminUsageGroupBy.KEY`, see
 `key_usages`) or by key and day (`AdminUsageGroupBy.KEY_AND_DAY`, see
 `key_and_day_usages`). The lists are empty if the report is not grouped that
-way. The `group_by` and `aggregate_by` of a report are plain strings as the API
-names them, for example `"keyAndDay"`.
+way. The `group_by` of an `AdminUsageReport` and the `aggregate_by` of a
+`CustomTagUsageReport` are `AdminUsageGroupBy` and `CustomTagUsageAggregateBy`
+members for known values; a value this library does not know is returned as
+the string the API sent.
 
 ```python
 report = admin_client.get_usage_analytics(

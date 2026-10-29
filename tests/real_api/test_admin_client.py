@@ -27,7 +27,7 @@ def test_get_usage_analytics():
     assert report.start_date is not None
     assert report.start_date.tzinfo is not None
     assert report.end_date is not None
-    assert report.group_by == "keyAndDay"
+    assert report.group_by is deepl.AdminUsageGroupBy.KEY_AND_DAY
 
 
 def test_get_custom_tag_usage_analytics():
@@ -39,7 +39,7 @@ def test_get_custom_tag_usage_analytics():
 
     assert report.start_date is not None
     assert report.end_date is not None
-    assert report.aggregate_by == "day"
+    assert report.aggregate_by is deepl.CustomTagUsageAggregateBy.DAY
     assert isinstance(report.usage, list)
 
 

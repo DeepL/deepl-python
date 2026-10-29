@@ -2396,6 +2396,24 @@ def _str_or_none(value: Any) -> Optional[str]:
     return value if isinstance(value, str) else None
 
 
+def _group_by_or_none(value: Any) -> Union[AdminUsageGroupBy, str, None]:
+    # The live API answers group_by=key_and_day with "keyAndDay".
+    if value == "keyAndDay":
+        return AdminUsageGroupBy.KEY_AND_DAY
+    return _open_enum(AdminUsageGroupBy, value)
+
+
+def _open_enum(enum_type: Any, value: Any) -> Any:
+    """Returns the enum member for a known value, an unknown string as is,
+    and None for anything else."""
+    if not isinstance(value, str):
+        return None
+    try:
+        return enum_type(value)
+    except ValueError:
+        return value
+
+
 def _limit_or_none(json: dict, key: str) -> Optional[int]:
     return None if isinstance(json.get(key), bool) else get_int_safe(json, key)
 
@@ -2747,7 +2765,8 @@ class AdminUsageReport:
     :param total_usage: Usage totals over the whole date range.
     :param start_date: Start of the report period.
     :param end_date: End of the report period.
-    :param group_by: Grouping used for the report, if any.
+    :param group_by: Grouping used for the report: an AdminUsageGroupBy for a
+        known value, the string for an unknown one, or None.
     :param key_usages: Usage per key, present when grouped by key.
     :param key_and_day_usages: Usage per key and day, present when grouped by
         key and day.
@@ -2758,7 +2777,7 @@ class AdminUsageReport:
         total_usage: AdminUsageBreakdown,
         start_date: Optional[datetime.datetime],
         end_date: Optional[datetime.datetime],
-        group_by: Optional[str] = None,
+        group_by: Union[AdminUsageGroupBy, str, None] = None,
         key_usages: Optional[List[KeyUsage]] = None,
         key_and_day_usages: Optional[List[KeyUsage]] = None,
     ):
@@ -2779,7 +2798,7 @@ class AdminUsageReport:
             ),
             start_date=_parse_utc_timestamp(report.get("start_date")),
             end_date=_parse_utc_timestamp(report.get("end_date")),
-            group_by=_str_or_none(report.get("group_by")),
+            group_by=_group_by_or_none(report.get("group_by")),
             key_usages=[
                 KeyUsage.from_json(item)
                 for item in _dict_items(report.get("key_usages"))
@@ -2806,9 +2825,9 @@ class AdminUsageReport:
         return self._end_date
 
     @property
-    def group_by(self) -> Optional[str]:
-        """Returns the grouping used for the report as the API returns it
-        (currently "key" or "keyAndDay"), or None."""
+    def group_by(self) -> Union[AdminUsageGroupBy, str, None]:
+        """Returns the grouping used for the report as an AdminUsageGroupBy,
+        the string the API sent if it is not a known value, or None."""
         return self._group_by
 
     @property
@@ -2932,7 +2951,9 @@ class CustomTagUsage:
 class CustomTagUsageReport:
     """Admin custom tag usage analytics report for a date range.
 
-    :param aggregate_by: Aggregation used for the report.
+    :param aggregate_by: Aggregation used for the report: a
+        CustomTagUsageAggregateBy for a known value, the string for an
+        unknown one, or None.
     :param start_date: Start of the report period.
     :param end_date: End of the report period.
     :param next_page: Page number to request the next page, or None if this
@@ -2942,7 +2963,7 @@ class CustomTagUsageReport:
 
     def __init__(
         self,
-        aggregate_by: Optional[str],
+        aggregate_by: Union[CustomTagUsageAggregateBy, str, None],
         start_date: Optional[datetime.datetime],
         end_date: Optional[datetime.datetime],
         next_page: Optional[int],
@@ -2959,7 +2980,9 @@ class CustomTagUsageReport:
         """Create CustomTagUsageReport from the given API JSON object."""
         report = _as_dict(_as_dict(json).get("custom_tag_usage_report"))
         return CustomTagUsageReport(
-            aggregate_by=_str_or_none(report.get("aggregate_by")),
+            aggregate_by=_open_enum(
+                CustomTagUsageAggregateBy, report.get("aggregate_by")
+            ),
             start_date=_parse_utc_timestamp(report.get("start_date")),
             end_date=_parse_utc_timestamp(report.get("end_date")),
             next_page=get_int_safe(report, "next_page"),
@@ -2970,9 +2993,10 @@ class CustomTagUsageReport:
         )
 
     @property
-    def aggregate_by(self) -> Optional[str]:
-        """Returns the aggregation used for the report as the API returns it
-        (e.g. "period" or "day"), or None."""
+    def aggregate_by(self) -> Union[CustomTagUsageAggregateBy, str, None]:
+        """Returns the aggregation used for the report as a
+        CustomTagUsageAggregateBy, the string the API sent if it is not a
+        known value, or None."""
         return self._aggregate_by
 
     @property
