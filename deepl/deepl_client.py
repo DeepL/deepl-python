@@ -1318,9 +1318,10 @@ class DeepLClient(Translator):
             if (json and isinstance(json, dict))
             else []
         )
-        return [
-            StyleRuleInfo.from_json(style_rule) for style_rule in style_rules
-        ]
+        return self._parse_style_rule_response(
+            lambda rules: [StyleRuleInfo.from_json(rule) for rule in rules],
+            style_rules,
+        )
 
     def create_style_rule(
         self,
@@ -1352,7 +1353,7 @@ class DeepLClient(Translator):
             "v3/style_rules", json=request_data
         )
         self._raise_for_status(status, content, json)
-        return StyleRuleInfo.from_json(json)
+        return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
 
     def get_style_rule(
         self,
@@ -1368,7 +1369,7 @@ class DeepLClient(Translator):
             f"v3/style_rules/{style_id}", method="GET"
         )
         self._raise_for_status(status, content, json)
-        return StyleRuleInfo.from_json(json)
+        return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
 
     def update_style_rule_name(
         self,
@@ -1389,7 +1390,7 @@ class DeepLClient(Translator):
             f"v3/style_rules/{style_id}", method="PATCH", json=request_data
         )
         self._raise_for_status(status, content, json)
-        return StyleRuleInfo.from_json(json)
+        return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
 
     def delete_style_rule(
         self,
@@ -1423,7 +1424,7 @@ class DeepLClient(Translator):
             json=configured_rules,
         )
         self._raise_for_status(status, content, json)
-        return StyleRuleInfo.from_json(json)
+        return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
 
     def create_style_rule_custom_instruction(
         self,
@@ -1453,7 +1454,9 @@ class DeepLClient(Translator):
             json=request_data,
         )
         self._raise_for_status(status, content, json)
-        return CustomInstruction.from_json(json)
+        return self._parse_style_rule_response(
+            CustomInstruction.from_json, json
+        )
 
     def get_style_rule_custom_instruction(
         self,
@@ -1476,7 +1479,9 @@ class DeepLClient(Translator):
             method="GET",
         )
         self._raise_for_status(status, content, json)
-        return CustomInstruction.from_json(json)
+        return self._parse_style_rule_response(
+            CustomInstruction.from_json, json
+        )
 
     def update_style_rule_custom_instruction(
         self,
@@ -1513,7 +1518,9 @@ class DeepLClient(Translator):
             json=request_data,
         )
         self._raise_for_status(status, content, json)
-        return CustomInstruction.from_json(json)
+        return self._parse_style_rule_response(
+            CustomInstruction.from_json, json
+        )
 
     def delete_style_rule_custom_instruction(
         self,
@@ -1766,6 +1773,17 @@ class DeepLClient(Translator):
         if extra_body_parameters:
             request_data.update(extra_body_parameters)
         return request_data
+
+    @staticmethod
+    def _parse_style_rule_response(
+        parse: Callable[[Any], _T], json: Any
+    ) -> _T:
+        try:
+            return parse(json)
+        except (KeyError, ValueError, TypeError, AttributeError) as e:
+            raise DeepLException(
+                f"Unexpected style rule response from server: {e!r}"
+            ) from e
 
     @staticmethod
     def _style_rule_id(style_rule: Union[str, StyleRuleInfo]) -> str:

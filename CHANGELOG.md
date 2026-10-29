@@ -231,6 +231,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the style rule functions inserting the style rule ID and custom
   instruction ID into the request path without escaping them, so an ID
   containing `/`, `?` or `#` addressed a different resource.
+- Fixed the style rule functions raising a raw `KeyError`, `ValueError`,
+  `TypeError` or `AttributeError` on a malformed `StyleRuleInfo` or
+  `CustomInstruction` response. They now raise `DeepLException`.
 - Fixed the `DeprecationWarning` messages of `Usage.Detail.limit_exceeded` and
   `Usage.any_limit_exceeded`, which named the replacement instead of the
   deprecated property. They now read "limit_exceeded is deprecated, use

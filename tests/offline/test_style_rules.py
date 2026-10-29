@@ -5,6 +5,7 @@
 import datetime
 
 import pytest
+from deepl import DeepLException
 from deepl.api_data import ConfiguredRules, CustomInstruction, StyleRuleInfo
 
 from .client import make_deepl_client, url
@@ -377,3 +378,43 @@ def test_escapes_ids_in_the_path(mocked, method, path, call):
     mocked.add(method, url(path), json=body or STYLE_RULE_JSON)
 
     call(make_deepl_client())
+
+
+@pytest.mark.parametrize(
+    "path, body, call",
+    [
+        (
+            "v3/style_rules",
+            {"style_rules": [{"name": "style"}]},
+            lambda c: c.get_all_style_rules(),
+        ),
+        (
+            "v3/style_rules",
+            {"style_rules": 1},
+            lambda c: c.get_all_style_rules(),
+        ),
+        ("v3/style_rules/s", [], lambda c: c.get_style_rule("s")),
+        (
+            "v3/style_rules/s",
+            {**STYLE_RULE_JSON, "creation_time": "yesterday"},
+            lambda c: c.get_style_rule("s"),
+        ),
+        (
+            "v3/style_rules/s",
+            {**STYLE_RULE_JSON, "custom_instructions": [{"id": "i"}]},
+            lambda c: c.get_style_rule("s"),
+        ),
+        (
+            "v3/style_rules/s/custom_instructions/i",
+            {"id": "i"},
+            lambda c: c.get_style_rule_custom_instruction("s", "i"),
+        ),
+    ],
+)
+def test_raises_deepl_exception_for_malformed_response(
+    mocked, path, body, call
+):
+    mocked.get(url(path), json=body)
+
+    with pytest.raises(DeepLException, match="Unexpected style rule response"):
+        call(make_deepl_client())
