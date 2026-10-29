@@ -8,7 +8,7 @@ import json
 
 import deepl
 import pytest
-from deepl.api_data import (
+from deepl import (
     MultilingualGlossaryDictionaryEntries,
     MultilingualGlossaryDictionaryInfo,
     MultilingualGlossaryInfo,
@@ -294,9 +294,10 @@ def test_sends_base_languages_when_getting_dictionary_entries(
         match=bodyless_request({"source_lang": "EN", "target_lang": "DE"}),
     )
 
-    response = make_deepl_client().get_multilingual_glossary_entries(
-        glossary, "EN-US", "DE"
-    )
+    with pytest.warns(DeprecationWarning):
+        response = make_deepl_client().get_multilingual_glossary_entries(
+            glossary, "EN-US", "DE"
+        )
 
     assert [d.entries for d in response.dictionaries] == [{"Hello": "Hallo"}]
 
@@ -378,54 +379,290 @@ def test_raises_glossary_not_found_when_server_returns_404(
         call(make_deepl_client())
 
 
+def test_exports_glossary_types_from_package():
+    assert (
+        deepl.MultilingualGlossaryInfo
+        is deepl.api_data.MultilingualGlossaryInfo
+    )  # noqa: E501
+    assert (
+        deepl.MultilingualGlossaryDictionaryInfo
+        is deepl.api_data.MultilingualGlossaryDictionaryInfo
+    )
+    assert (
+        deepl.MultilingualGlossaryDictionaryEntries
+        is deepl.api_data.MultilingualGlossaryDictionaryEntries
+    )
+
+
 @pytest.mark.parametrize(
-    "parse, json_body",
+    "kwargs, body",
     [
+        ({}, {}),
+        ({"name": "new name"}, {"name": "new name"}),
+        ({"dictionaries": [ENTRIES]}, {"dictionaries": [ENTRIES_BODY]}),
         (
-            MultilingualGlossaryInfo.from_json,
-            {**GLOSSARY_JSON, "name": None, "creation_time": "yesterday"},
-        ),  # noqa: E501
-        (MultilingualGlossaryInfo.from_json, {"glossary_id": "g-1"}),
-        (
-            MultilingualGlossaryInfo.from_json,
-            {**GLOSSARY_JSON, "dictionaries": [{"source_lang": "en"}]},
-        ),  # noqa: E501
-        (MultilingualGlossaryInfo.from_json, None),
-        (
-            MultilingualGlossaryDictionaryInfo.from_json,
-            {**DICTIONARY_JSON, "entry_count": "many"},
-        ),  # noqa: E501
-        (
-            MultilingualGlossaryDictionaryEntries.from_json,
             {
-                "source_lang": "en",
-                "target_lang": "de",
-                "entries": "no separator",
+                "name": "new name",
+                "dictionaries": [ENTRIES],
+                "extra_body_parameters": {"name": "extra", "x": [1]},
             },
-        ),  # noqa: E501
-        (
-            MultilingualGlossaryDictionaryEntries.from_json,
-            {"source_lang": "en", "target_lang": "de", "entries": 3},
-        ),  # noqa: E501
+            {"name": "extra", "dictionaries": [ENTRIES_BODY], "x": [1]},
+        ),
     ],
 )
-def test_raises_deepl_exception_on_malformed_response(parse, json_body):
-    with pytest.raises(deepl.DeepLException, match="Unexpected response"):
-        parse(json_body)
+@pytest.mark.parametrize("glossary", ["g-1", glossary_info()])
+def test_sends_only_set_fields_when_updating_glossary(
+    mocked, glossary, kwargs, body
+):
+    mocked.patch(
+        url("v3/glossaries/g-1"),
+        json=GLOSSARY_JSON,
+        match=json_request(body),
+    )
+
+    result = make_deepl_client().update_multilingual_glossary(
+        glossary, **kwargs
+    )
+
+    assert result.glossary_id == "g-1"
 
 
-def test_raises_deepl_exception_when_glossary_response_is_malformed(mocked):
-    mocked.get(url("v3/glossaries/g-1"), json={"glossary_id": "g-1"})
+EXTRA = {"extra_body_parameters": {"entries_format": "csv", "x": True}}
+EXTRA_ENTRIES_BODY = {**ENTRIES_BODY, "entries_format": "csv", "x": True}
+EXTRA_CSV_BODY = {**CSV_ENTRIES_BODY, "entries_format": "csv", "x": True}
 
-    with pytest.raises(deepl.DeepLException, match="MultilingualGlossaryInfo"):
-        make_deepl_client().get_multilingual_glossary("g-1")
+
+@pytest.mark.parametrize(
+    "method, path, body, call",
+    [
+        (
+            "POST",
+            "v3/glossaries",
+            {
+                "name": "glossary",
+                "dictionaries": [ENTRIES_BODY],
+                "entries_format": "csv",
+                "x": True,
+            },
+            lambda c: c.create_multilingual_glossary(
+                "glossary", [ENTRIES], **EXTRA
+            ),
+        ),
+        (
+            "POST",
+            "v3/glossaries",
+            {
+                "name": "glossary",
+                "dictionaries": [CSV_ENTRIES_BODY],
+                "entries_format": "csv",
+                "x": True,
+            },
+            lambda c: c.create_multilingual_glossary_from_csv(
+                "glossary", "EN", "DE", CSV_DATA, **EXTRA
+            ),
+        ),
+        (
+            "PATCH",
+            "v3/glossaries/g-1",
+            {"name": "n", "entries_format": "csv", "x": True},
+            lambda c: c.update_multilingual_glossary_name("g-1", "n", **EXTRA),
+        ),
+        (
+            "PATCH",
+            "v3/glossaries/g-1",
+            {
+                "dictionaries": [ENTRIES_BODY],
+                "entries_format": "csv",
+                "x": True,
+            },
+            lambda c: c.update_multilingual_glossary_dictionary(
+                "g-1", ENTRIES, **EXTRA
+            ),
+        ),
+        (
+            "PATCH",
+            "v3/glossaries/g-1",
+            {
+                "dictionaries": [CSV_ENTRIES_BODY],
+                "entries_format": "csv",
+                "x": True,
+            },
+            lambda c: c.update_multilingual_glossary_dictionary_from_csv(
+                "g-1", "EN", "DE", CSV_DATA, **EXTRA
+            ),
+        ),
+        (
+            "PUT",
+            "v3/glossaries/g-1/dictionaries",
+            EXTRA_ENTRIES_BODY,
+            lambda c: c.replace_multilingual_glossary_dictionary(
+                "g-1", ENTRIES, **EXTRA
+            ),
+        ),
+        (
+            "PUT",
+            "v3/glossaries/g-1/dictionaries",
+            EXTRA_CSV_BODY,
+            lambda c: c.replace_multilingual_glossary_dictionary_from_csv(
+                "g-1", "EN", "DE", CSV_DATA, **EXTRA
+            ),
+        ),
+    ],
+)
+def test_adds_extra_body_parameters_last(mocked, method, path, body, call):
+    response = DICTIONARY_JSON if method == "PUT" else GLOSSARY_JSON
+    mocked.add(method, url(path), json=response, match=json_request(body))
+
+    call(make_deepl_client())
+
+
+def keyword_cases(dictionaries, dictionary, csv):
+    return [
+        (
+            "POST",
+            "v3/glossaries",
+            lambda c: c.create_multilingual_glossary(
+                "glossary", **{dictionaries: [ENTRIES]}
+            ),
+        ),
+        (
+            "POST",
+            "v3/glossaries",
+            lambda c: c.create_multilingual_glossary_from_csv(
+                "glossary", "EN", "DE", **{csv: CSV_DATA}
+            ),
+        ),
+        (
+            "PATCH",
+            "v3/glossaries/g-1",
+            lambda c: c.update_multilingual_glossary_dictionary(
+                "g-1", **{dictionary: ENTRIES}
+            ),
+        ),
+        (
+            "PATCH",
+            "v3/glossaries/g-1",
+            lambda c: c.update_multilingual_glossary_dictionary_from_csv(
+                "g-1", "EN", "DE", **{csv: CSV_DATA}
+            ),
+        ),
+        (
+            "PUT",
+            "v3/glossaries/g-1/dictionaries",
+            lambda c: c.replace_multilingual_glossary_dictionary(
+                "g-1", **{dictionary: ENTRIES}
+            ),
+        ),
+        (
+            "PUT",
+            "v3/glossaries/g-1/dictionaries",
+            lambda c: c.replace_multilingual_glossary_dictionary_from_csv(
+                "g-1", "EN", "DE", **{csv: CSV_DATA}
+            ),
+        ),
+    ]
+
+
+@pytest.mark.parametrize(
+    "method, path, call", keyword_cases("dictionaries", "dictionary", "csv")
+)
+def test_accepts_entries_by_keyword(mocked, method, path, call):
+    entries = (
+        CSV_ENTRIES_BODY
+        if "csv" in call.__code__.co_names[0]
+        else ENTRIES_BODY
+    )  # noqa: E501
+    body = {
+        "POST": {"name": "glossary", "dictionaries": [entries]},
+        "PATCH": {"dictionaries": [entries]},
+        "PUT": entries,
+    }[method]
+    response = DICTIONARY_JSON if method == "PUT" else GLOSSARY_JSON
+    mocked.add(method, url(path), json=response, match=json_request(body))
+
+    call(make_deepl_client())
+
+
+@pytest.mark.parametrize(
+    "method, path, call",
+    keyword_cases("glossary_dicts", "glossary_dict", "csv_data"),
+)
+def test_warns_on_deprecated_entries_keyword(mocked, method, path, call):
+    response = DICTIONARY_JSON if method == "PUT" else GLOSSARY_JSON
+    mocked.add(method, url(path), json=response)
+
+    with pytest.warns(DeprecationWarning, match="is deprecated"):
+        call(make_deepl_client())
+
+
+def test_raises_when_new_and_deprecated_keyword_are_both_given():
+    with pytest.raises(
+        TypeError, match="both dictionaries and glossary_dicts"
+    ):
+        make_deepl_client().create_multilingual_glossary(
+            "glossary", [ENTRIES], glossary_dicts=[ENTRIES]
+        )
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c: c.get_multilingual_glossary(glossary_info()),
+        lambda c: c.get_multilingual_glossary(glossary="g-1"),
+    ],
+)
+def test_accepts_glossary_info_when_getting_glossary(mocked, call):
+    mocked.get(
+        url("v3/glossaries/g-1"), json=GLOSSARY_JSON, match=bodyless_request()
+    )
+
+    assert call(make_deepl_client()).glossary_id == "g-1"
+
+
+def test_warns_on_deprecated_glossary_id_keyword(mocked):
+    mocked.get(url("v3/glossaries/g-1"), json=GLOSSARY_JSON)
+
+    with pytest.warns(DeprecationWarning, match="glossary_id"):
+        make_deepl_client().get_multilingual_glossary(glossary_id="g-1")
+
+
+@pytest.mark.parametrize("glossary", ["g-1", glossary_info()])
+def test_returns_parsed_entries_of_one_dictionary(mocked, glossary):
+    mocked.get(
+        url("v3/glossaries/g-1/entries"),
+        json={
+            "dictionaries": [
+                {
+                    "source_lang": "en",
+                    "target_lang": "de",
+                    "entries": "Hello\tHallo\nA\tB",
+                    "entries_format": "tsv",
+                }
+            ]
+        },
+        match=bodyless_request({"source_lang": "EN", "target_lang": "DE"}),
+    )
+
+    result = make_deepl_client().get_multilingual_glossary_dictionary_entries(
+        glossary, "EN-US", "DE"
+    )
+
+    assert isinstance(result, MultilingualGlossaryDictionaryEntries)
+    assert (result.source_lang, result.target_lang) == ("en", "de")
+    assert result.entries == {"Hello": "Hallo", "A": "B"}
+
+
+def test_raises_not_found_when_entries_response_has_no_dictionary(mocked):
+    mocked.get(url("v3/glossaries/g-1/entries"), json={"dictionaries": []})
+
+    with pytest.raises(deepl.GlossaryNotFoundException, match="EN->DE"):
+        make_deepl_client().get_multilingual_glossary_dictionary_entries(
+            "g-1", "EN", "DE"
+        )
 
 
 ODD_ID = "a/b?c#d"
 ODD_PATH = "v3/glossaries/a%2Fb%3Fc%23d"
-ENTRIES_JSON = {
-    "dictionaries": [{"source_lang": "en", "target_lang": "de", "entries": ""}]
-}
 
 
 @pytest.mark.parametrize(
@@ -442,6 +679,12 @@ ENTRIES_JSON = {
             ODD_PATH,
             None,
             lambda c: c.delete_multilingual_glossary(ODD_ID),
+        ),  # noqa: E501
+        (
+            "PATCH",
+            ODD_PATH,
+            GLOSSARY_JSON,
+            lambda c: c.update_multilingual_glossary(ODD_ID),
         ),  # noqa: E501
         (
             "PATCH",
@@ -484,8 +727,14 @@ ENTRIES_JSON = {
         (
             "GET",
             ODD_PATH + "/entries",
-            ENTRIES_JSON,
-            lambda c: c.get_multilingual_glossary_entries(ODD_ID, "EN", "DE"),
+            {
+                "dictionaries": [
+                    {"source_lang": "en", "target_lang": "de", "entries": ""}
+                ]
+            },
+            lambda c: c.get_multilingual_glossary_dictionary_entries(
+                ODD_ID, "EN", "DE"
+            ),
         ),  # noqa: E501
         (
             "DELETE",
@@ -516,7 +765,7 @@ def test_encodes_glossary_id_in_path(mocked, method, path, response, call):
         (
             "GET",
             "v3/glossaries/g-1/entries",
-            lambda c: c.get_multilingual_glossary_entries(
+            lambda c: c.get_multilingual_glossary_dictionary_entries(
                 "g-1", "a&b=c", "DE-DE"
             ),
         ),
@@ -533,8 +782,51 @@ def test_encodes_language_pair_in_query(mocked, method, path, call):
     mocked.add(
         method,
         url(path),
-        json=ENTRIES_JSON,
+        json={"dictionaries": [{**DICTIONARY_JSON, "entries": ""}]},
         match=bodyless_request({"source_lang": "A&B=C", "target_lang": "DE"}),
     )
 
     call(make_deepl_client())
+
+
+@pytest.mark.parametrize(
+    "parse, json_body",
+    [
+        (
+            MultilingualGlossaryInfo.from_json,
+            {**GLOSSARY_JSON, "name": None, "creation_time": "yesterday"},
+        ),  # noqa: E501
+        (MultilingualGlossaryInfo.from_json, {"glossary_id": "g-1"}),
+        (
+            MultilingualGlossaryInfo.from_json,
+            {**GLOSSARY_JSON, "dictionaries": [{"source_lang": "en"}]},
+        ),  # noqa: E501
+        (MultilingualGlossaryInfo.from_json, None),
+        (
+            MultilingualGlossaryDictionaryInfo.from_json,
+            {**DICTIONARY_JSON, "entry_count": "many"},
+        ),  # noqa: E501
+        (
+            MultilingualGlossaryDictionaryEntries.from_json,
+            {
+                "source_lang": "en",
+                "target_lang": "de",
+                "entries": "no separator",
+            },
+        ),  # noqa: E501
+        (
+            MultilingualGlossaryDictionaryEntries.from_json,
+            {"source_lang": "en", "target_lang": "de", "entries": 3},
+        ),  # noqa: E501
+    ],
+)
+def test_raises_deepl_exception_on_malformed_response(parse, json_body):
+    with pytest.raises(deepl.DeepLException, match="Unexpected response"):
+        parse(json_body)
+
+
+def test_raises_deepl_exception_when_glossary_response_is_malformed(mocked):
+    mocked.get(url("v3/glossaries/g-1"), json={"glossary_id": "g-1"})
+
+    with pytest.raises(deepl.DeepLException, match="MultilingualGlossaryInfo"):
+        make_deepl_client().get_multilingual_glossary("g-1")

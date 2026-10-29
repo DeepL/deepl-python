@@ -99,6 +99,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `rephrase_text()`, and the `extra_body_parameters` option to
   `correct_text()`. `writing_style` and `tone` accept a `WritingStyle` or
   `WritingTone` member or a string.
+- Added `update_multilingual_glossary()` to the `DeepLClient` class to rename a
+  multilingual glossary and/or merge dictionaries into it in one request,
+  sending only the options that are set.
+- Added `get_multilingual_glossary_dictionary_entries()` to the `DeepLClient`
+  class, returning the `MultilingualGlossaryDictionaryEntries` of one dictionary
+  and raising `GlossaryNotFoundException` if the glossary has none for the
+  language pair.
+- Added the `extra_body_parameters` option to `create_multilingual_glossary()`,
+  `create_multilingual_glossary_from_csv()`,
+  `update_multilingual_glossary_name()`,
+  `update_multilingual_glossary_dictionary()`,
+  `update_multilingual_glossary_dictionary_from_csv()`,
+  `replace_multilingual_glossary_dictionary()` and
+  `replace_multilingual_glossary_dictionary_from_csv()`.
+- `get_multilingual_glossary()` accepts a `MultilingualGlossaryInfo` object, as
+  `glossary`, besides a glossary ID.
+- Added the argument names `dictionaries` (`create_multilingual_glossary()`),
+  `dictionary` (`update_multilingual_glossary_dictionary()`,
+  `replace_multilingual_glossary_dictionary()`), `csv` (the
+  `*_multilingual_glossary*_from_csv()` functions) and `glossary`
+  (`get_multilingual_glossary()`).
+- `MultilingualGlossaryInfo`, `MultilingualGlossaryDictionaryInfo` and
+  `MultilingualGlossaryDictionaryEntries` are exported from the `deepl` package.
+- Added `MultilingualGlossaryDictionaryInfo.to_json()`.
 
 ### Changed
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`
@@ -165,6 +189,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `style` keyword of `rephrase_text()` is deprecated in favour of
   `writing_style` and emits a `DeprecationWarning`. It keeps working; if both
   are given, `writing_style` is used.
+- `get_multilingual_glossary_entries()` is deprecated, use
+  `get_multilingual_glossary_dictionary_entries()`.
+- The argument names `glossary_dicts`, `glossary_dict`, `csv_data` and
+  `glossary_id` of the multilingual glossary functions are deprecated, use
+  `dictionaries`, `dictionary`, `csv` and `glossary`.
 
 ### Fixed
 - HTTP 401 responses now raise `AuthorizationException`, like 403. Before they

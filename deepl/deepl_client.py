@@ -29,7 +29,7 @@ from deepl.api_data import (
     TranslationMemoryJob,
     TranslationMemorySegments,
 )
-from deepl.exceptions import DeepLException
+from deepl.exceptions import DeepLException, GlossaryNotFoundException
 from deepl.translator import (
     Translator,
     _DOWNLOAD_CHUNK_SIZE,
@@ -93,18 +93,34 @@ def _parse_improvements(json: Any, text_count: int) -> List[WriteResult]:
     return output
 
 
-def _quote_id(resource_id: str) -> str:
-    return urllib.parse.quote(resource_id, safe="")
+def _renamed_argument(
+    method: str, name: str, value: Any, old_name: str, old_value: Any
+) -> Any:
+    """Returns the value of a renamed parameter, accepting its deprecated
+    keyword with a DeprecationWarning."""
+    if old_value is not None:
+        if value is not None:
+            raise TypeError(
+                f"{method}() got values for both {name} and {old_name}"
+            )
+        warnings.warn(
+            f"the {old_name} argument of {method}() is deprecated, "
+            f"use {name}",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return old_value
+    if value is None:
+        raise TypeError(f"{method}() missing required argument: {name}")
+    return value
 
 
-def _language_pair_query(source_lang: str, target_lang: str) -> str:
-    # glossaries are only supported for base language types
-    return urllib.parse.urlencode(
-        {
-            "source_lang": Language.remove_regional_variant(source_lang),
-            "target_lang": Language.remove_regional_variant(target_lang),
-        }
-    )
+def _add_extra_body_parameters(
+    request_data: Dict[str, Any], extra_body_parameters: Optional[dict]
+) -> None:
+    # Entries replace keys of the same name set by the SDK.
+    if extra_body_parameters:
+        request_data.update(extra_body_parameters)
 
 
 class DeepLClient(Translator):
@@ -265,7 +281,14 @@ class DeepLClient(Translator):
     def create_multilingual_glossary(
         self,
         name: str,
-        glossary_dicts: List[MultilingualGlossaryDictionaryEntries],
+        dictionaries: Optional[
+            List[MultilingualGlossaryDictionaryEntries]
+        ] = None,
+        *,
+        glossary_dicts: Optional[
+            List[MultilingualGlossaryDictionaryEntries]
+        ] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
         """Creates a glossary with given name with all of the specified
         dictionaries, each with their own language pair and entries. The
@@ -280,29 +303,49 @@ class DeepLClient(Translator):
         This function requires the glossary entries for each dictionary to be
         provided as a dictionary of source-target terms. To create a glossary
         from a CSV file downloaded from the DeepL website, see
-        create_glossary_from_csv().
+        create_multilingual_glossary_from_csv().
 
         :param name: user-defined name to attach to glossary.
         :param dictionaries: a list of MultilingualGlossaryDictionaryEntries
             which each contains entries for a particular language pair
-        :return: GlossaryInfo containing information about created glossary.
+        :param glossary_dicts: Deprecated alias of dictionaries.
+
+            .. deprecated:: 1.33.0
+                Use ``dictionaries`` instead.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace fields with the same key.
+        :return: MultilingualGlossaryInfo containing information about the
+            created glossary.
 
         :raises ValueError: If the glossary name is empty, or entries are
             empty or invalid.
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        if any(map(lambda d: not d.entries, glossary_dicts)):
+        dictionaries = _renamed_argument(
+            "create_multilingual_glossary",
+            "dictionaries",
+            dictionaries,
+            "glossary_dicts",
+            glossary_dicts,
+        )
+        if any(map(lambda d: not d.entries, dictionaries)):
             raise ValueError("glossary entries must not be empty")
 
-        return self._create_multilingual_glossary(name, glossary_dicts)
+        return self._create_multilingual_glossary(
+            name, dictionaries, extra_body_parameters
+        )
 
     def create_multilingual_glossary_from_csv(
         self,
         name: str,
         source_lang: str,
         target_lang: str,
-        csv_data: Union[TextIO, BinaryIO, str, bytes, Any],
+        csv: Union[TextIO, BinaryIO, str, bytes, Any] = None,
+        *,
+        csv_data: Union[TextIO, BinaryIO, str, bytes, Any] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
         """Creates a glossary with given name for the source and target
         languages, containing the entries in the given CSV data.
@@ -323,51 +366,55 @@ class DeepLClient(Translator):
         :param name: user-defined name to attach to glossary.
         :param source_lang: Language of source entries.
         :param target_lang: Language of target entries.
-        :param csv_data: CSV data containing glossary entries, either as a
+        :param csv: CSV data containing glossary entries, either as a
             file-like object or string or bytes containing file content.
-        :return: GlossaryInfo containing information about created glossary.
+        :param csv_data: Deprecated alias of csv.
+
+            .. deprecated:: 1.33.0
+                Use ``csv`` instead.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace fields with the same key.
+        :return: MultilingualGlossaryInfo containing information about the
+            created glossary.
 
         :raises ValueError: If the glossary name is empty, or entries are
             empty or invalid.
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        entries = util.convert_csv_to_dict(csv_data)
+        csv = _renamed_argument(
+            "create_multilingual_glossary_from_csv",
+            "csv",
+            csv,
+            "csv_data",
+            csv_data,
+        )
+        entries = util.convert_csv_to_dict(csv)
 
         dictionaries = [
             MultilingualGlossaryDictionaryEntries(
                 source_lang, target_lang, entries
             )
         ]
-        return self._create_multilingual_glossary(name, dictionaries)
+        return self._create_multilingual_glossary(
+            name, dictionaries, extra_body_parameters
+        )
 
     def _create_multilingual_glossary(
         self,
         name: str,
-        glossary_dicts: List[MultilingualGlossaryDictionaryEntries],
+        dictionaries: List[MultilingualGlossaryDictionaryEntries],
+        extra_body_parameters: Optional[dict],
     ) -> MultilingualGlossaryInfo:
         if not name:
             raise ValueError("glossary name must not be empty")
 
-        req_glossary_dicts = []
-        # glossaries are only supported for base language types
-        for glossary_dict in glossary_dicts:
-            req_glossary_dict = {
-                "source_lang": Language.remove_regional_variant(
-                    glossary_dict.source_lang
-                ),
-                "target_lang": Language.remove_regional_variant(
-                    glossary_dict.target_lang
-                ),
-                "entries": util.convert_dict_to_tsv(glossary_dict.entries),
-                "entries_format": "tsv",
-            }
-            req_glossary_dicts.append(req_glossary_dict)
-
-        request_data = {
+        request_data: Dict[str, Any] = {
             "name": name,
-            "dictionaries": req_glossary_dicts,
+            "dictionaries": self._dictionaries_json(dictionaries),
         }
+        _add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
             "v3/glossaries", json=request_data
@@ -375,15 +422,56 @@ class DeepLClient(Translator):
         self._raise_for_status(status, content, json, glossary=True)
         return MultilingualGlossaryInfo.from_json(json)
 
+    def update_multilingual_glossary(
+        self,
+        glossary: Union[str, MultilingualGlossaryInfo],
+        *,
+        name: Optional[str] = None,
+        dictionaries: Optional[
+            List[MultilingualGlossaryDictionaryEntries]
+        ] = None,
+        extra_body_parameters: Optional[dict] = None,
+    ) -> MultilingualGlossaryInfo:
+        """Updates a glossary: renames it and/or merges the given
+        dictionaries into it. For each given dictionary, existing entries
+        for its language pair are updated and new entries added; a language
+        pair the glossary does not have yet is added as a new dictionary.
+
+        Only the options that are set are sent.
+
+        :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
+        :param name: (Optional) New name of the glossary.
+        :param dictionaries: (Optional) List of
+            MultilingualGlossaryDictionaryEntries to merge into the glossary.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace fields with the same key.
+        :return: MultilingualGlossaryInfo containing information about the
+            updated glossary.
+        :raises GlossaryNotFoundException: If no glossary with given ID is
+            found.
+        """
+        return self._update_multilingual_glossary(
+            glossary,
+            name=name,
+            dictionaries=dictionaries,
+            extra_body_parameters=extra_body_parameters,
+        )
+
     def update_multilingual_glossary_name(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
         name: str,
+        *,
+        extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
         """Updates the name of a glossary with the provided name.
 
-        :param glossary: GlossaryInfo or ID of glossary to update.
+        :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
         :param name: The new name of the glossary
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace fields with the same key.
         :return: MultilingualGlossaryInfo containing information about updated
             glossary.
 
@@ -393,22 +481,17 @@ class DeepLClient(Translator):
         if not name:
             raise ValueError("glossary name must not be empty")
 
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-        request_data = {"name": name}
-
-        status, content, json = self._api_call(
-            f"v3/glossaries/{_quote_id(glossary)}",
-            method="PATCH",
-            json=request_data,
+        return self._update_multilingual_glossary(
+            glossary, name=name, extra_body_parameters=extra_body_parameters
         )
-        self._raise_for_status(status, content, json, glossary=True)
-        return MultilingualGlossaryInfo.from_json(json)
 
     def update_multilingual_glossary_dictionary(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
-        glossary_dict: MultilingualGlossaryDictionaryEntries,
+        dictionary: Optional[MultilingualGlossaryDictionaryEntries] = None,
+        *,
+        glossary_dict: Optional[MultilingualGlossaryDictionaryEntries] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
         """Updates or creates a glossary dictionary with given glossary
         dictionary with its entries for the source and target languages.
@@ -422,11 +505,18 @@ class DeepLClient(Translator):
         translate texts into both EN-US and EN-GB.
 
         This function requires the glossary entries to be provided as a
-        dictionary of source-target terms. To create a glossary from a CSV file
-        downloaded from the DeepL website, see create_glossary_from_csv().
+        dictionary of source-target terms. To update a glossary from a CSV
+        file, see update_multilingual_glossary_dictionary_from_csv().
 
-        :param glossary: GlossaryInfo or ID of glossary to update.
-        :param glossary_dict: The new or updated glossary dictionary
+        :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
+        :param dictionary: The new or updated glossary dictionary
+        :param glossary_dict: Deprecated alias of dictionary.
+
+            .. deprecated:: 1.33.0
+                Use ``dictionary`` instead.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace fields with the same key.
         :return: MultilingualGlossaryInfo containing information about updated
             glossary.
 
@@ -434,20 +524,31 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        if not glossary_dict or not glossary_dict.entries:
+        dictionary = _renamed_argument(
+            "update_multilingual_glossary_dictionary",
+            "dictionary",
+            dictionary,
+            "glossary_dict",
+            glossary_dict,
+        )
+        if not dictionary or not dictionary.entries:
             raise ValueError("glossary entries must not be empty")
 
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-
-        return self._update_multilingual_glossary(glossary, [glossary_dict])
+        return self._update_multilingual_glossary(
+            glossary,
+            dictionaries=[dictionary],
+            extra_body_parameters=extra_body_parameters,
+        )
 
     def update_multilingual_glossary_dictionary_from_csv(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
         source_lang: str,
         target_lang: str,
-        csv_data: Union[TextIO, BinaryIO, str, bytes, Any],
+        csv: Union[TextIO, BinaryIO, str, bytes, Any] = None,
+        *,
+        csv_data: Union[TextIO, BinaryIO, str, bytes, Any] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
         """Updates or creates a glossary dictionary with given entries in
         CSV formatting for the source and target languages. Either updates
@@ -469,8 +570,15 @@ class DeepLClient(Translator):
         :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
         :param source_lang: Language of source entries.
         :param target_lang: Language of target entries.
-        :param csv_data: CSV data containing glossary entries, either as a
+        :param csv: CSV data containing glossary entries, either as a
             file-like object or string or bytes containing file content.
+        :param csv_data: Deprecated alias of csv.
+
+            .. deprecated:: 1.33.0
+                Use ``csv`` instead.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace fields with the same key.
         :return: MultilingualGlossaryInfo containing information about updated
             glossary.
 
@@ -478,50 +586,49 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        entries = util.convert_csv_to_dict(csv_data)
-
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
+        csv = _renamed_argument(
+            "update_multilingual_glossary_dictionary_from_csv",
+            "csv",
+            csv,
+            "csv_data",
+            csv_data,
+        )
+        entries = util.convert_csv_to_dict(csv)
 
         dictionaries = [
             MultilingualGlossaryDictionaryEntries(
                 source_lang, target_lang, entries
             )
         ]
-        return self._update_multilingual_glossary(glossary, dictionaries)
+        return self._update_multilingual_glossary(
+            glossary,
+            dictionaries=dictionaries,
+            extra_body_parameters=extra_body_parameters,
+        )
 
     def _update_multilingual_glossary(
         self,
-        glossary_id: str,
-        dictionaries: List[MultilingualGlossaryDictionaryEntries],
+        glossary: Union[str, MultilingualGlossaryInfo],
+        *,
+        name: Optional[str] = None,
+        dictionaries: Optional[
+            List[MultilingualGlossaryDictionaryEntries]
+        ] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
-        if not glossary_id:
-            raise ValueError("glossary id must not be empty")
+        glossary_id = self._multilingual_glossary_id(glossary)
 
-        req_glossary_dicts = []
-        # glossaries are only supported for base language types
-        for glossary_dict in dictionaries:
-            req_glossary_dict = {
-                "source_lang": Language.remove_regional_variant(
-                    glossary_dict.source_lang
-                ),
-                "target_lang": Language.remove_regional_variant(
-                    glossary_dict.target_lang
-                ),
-                "entries": util.convert_dict_to_tsv(glossary_dict.entries),
-                "entries_format": "tsv",
-            }
-            req_glossary_dicts.append(req_glossary_dict)
-
-        request_data = {}
-
-        if dictionaries:
-            request_data["dictionaries"] = req_glossary_dicts
+        request_data: Dict[str, Any] = {}
+        if name is not None:
+            request_data["name"] = name
+        if dictionaries is not None:
+            request_data["dictionaries"] = self._dictionaries_json(
+                dictionaries
+            )
+        _add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
-            f"v3/glossaries/{_quote_id(glossary_id)}",
-            method="PATCH",
-            json=request_data,
+            f"v3/glossaries/{glossary_id}", method="PATCH", json=request_data
         )
         self._raise_for_status(status, content, json, glossary=True)
 
@@ -530,7 +637,10 @@ class DeepLClient(Translator):
     def replace_multilingual_glossary_dictionary(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
-        glossary_dict: MultilingualGlossaryDictionaryEntries,
+        dictionary: Optional[MultilingualGlossaryDictionaryEntries] = None,
+        *,
+        glossary_dict: Optional[MultilingualGlossaryDictionaryEntries] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryDictionaryInfo:
         """Replaces a glossary dictionary with given entries for the
         source and target languages.
@@ -542,11 +652,18 @@ class DeepLClient(Translator):
         translate texts into both EN-US and EN-GB.
 
         This function requires the glossary entries to be provided as a
-        dictionary of source-target terms. To create a glossary from a CSV file
-        downloaded from the DeepL website, see create_glossary_from_csv().
+        dictionary of source-target terms. To replace a dictionary from a CSV
+        file, see replace_multilingual_glossary_dictionary_from_csv().
 
-        :param glossary: GlossaryInfo or ID of glossary to update.
-        :param glossary_dict: The new glossary dictionary
+        :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
+        :param dictionary: The new glossary dictionary
+        :param glossary_dict: Deprecated alias of dictionary.
+
+            .. deprecated:: 1.33.0
+                Use ``dictionary`` instead.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace fields with the same key.
         :return: MultilingualGlossaryDictionaryInfo containing information
             about the updated dictionary.
 
@@ -554,17 +671,22 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        if not glossary_dict or not glossary_dict.entries:
+        dictionary = _renamed_argument(
+            "replace_multilingual_glossary_dictionary",
+            "dictionary",
+            dictionary,
+            "glossary_dict",
+            glossary_dict,
+        )
+        if not dictionary or not dictionary.entries:
             raise ValueError("glossary entries must not be empty")
-
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
 
         return self._replace_multilingual_glossary_dictionary(
             glossary,
-            glossary_dict.source_lang,
-            glossary_dict.target_lang,
-            glossary_dict.entries,
+            dictionary.source_lang,
+            dictionary.target_lang,
+            dictionary.entries,
+            extra_body_parameters,
         )
 
     def replace_multilingual_glossary_dictionary_from_csv(
@@ -572,7 +694,10 @@ class DeepLClient(Translator):
         glossary: Union[str, MultilingualGlossaryInfo],
         source_lang: str,
         target_lang: str,
-        csv_data: Union[TextIO, BinaryIO, str, bytes, Any],
+        csv: Union[TextIO, BinaryIO, str, bytes, Any] = None,
+        *,
+        csv_data: Union[TextIO, BinaryIO, str, bytes, Any] = None,
+        extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryDictionaryInfo:
         """Replaces a glossary dictionary with given CSV formatted entries
         for the source and target languages.
@@ -592,8 +717,15 @@ class DeepLClient(Translator):
         :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
         :param source_lang: Language of source entries.
         :param target_lang: Language of target entries.
-        :param csv_data: CSV data containing glossary entries, either as a
+        :param csv: CSV data containing glossary entries, either as a
             file-like object or string or bytes containing file content.
+        :param csv_data: Deprecated alias of csv.
+
+            .. deprecated:: 1.33.0
+                Use ``csv`` instead.
+        :param extra_body_parameters: (Optional) Additional key/value pairs to
+            include in the JSON request body sent to the API. They are added
+            last and replace fields with the same key.
         :return: MultilingualGlossaryDictionaryInfo containing information
             about updated dictionary.
 
@@ -601,38 +733,38 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        entries = util.convert_csv_to_dict(csv_data)
-
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
+        csv = _renamed_argument(
+            "replace_multilingual_glossary_dictionary_from_csv",
+            "csv",
+            csv,
+            "csv_data",
+            csv_data,
+        )
+        entries = util.convert_csv_to_dict(csv)
 
         return self._replace_multilingual_glossary_dictionary(
-            glossary, source_lang, target_lang, entries
+            glossary, source_lang, target_lang, entries, extra_body_parameters
         )
 
     def _replace_multilingual_glossary_dictionary(
         self,
-        glossary_id: str,
+        glossary: Union[str, MultilingualGlossaryInfo],
         source_lang: str,
         target_lang: str,
         entries: Dict[str, str],
+        extra_body_parameters: Optional[dict],
     ) -> MultilingualGlossaryDictionaryInfo:
-        if not glossary_id:
-            raise ValueError("glossary id must not be empty")
+        glossary_id = self._multilingual_glossary_id(glossary)
 
-        # glossaries are only supported for base language types
-        source_lang = Language.remove_regional_variant(source_lang)
-        target_lang = Language.remove_regional_variant(target_lang)
-
-        request_data = {
-            "source_lang": source_lang,
-            "target_lang": target_lang,
-            "entries": util.convert_dict_to_tsv(entries),
-            "entries_format": "tsv",
-        }
+        request_data: Dict[str, Any] = self._dictionary_json(
+            MultilingualGlossaryDictionaryEntries(
+                source_lang, target_lang, entries
+            )
+        )
+        _add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
-            f"v3/glossaries/{_quote_id(glossary_id)}/dictionaries",
+            f"v3/glossaries/{glossary_id}/dictionaries",
             method="PUT",
             json=request_data,
         )
@@ -640,19 +772,34 @@ class DeepLClient(Translator):
         return MultilingualGlossaryDictionaryInfo.from_json(json)
 
     def get_multilingual_glossary(
-        self, glossary_id: str
+        self,
+        glossary: Union[str, MultilingualGlossaryInfo, None] = None,
+        *,
+        glossary_id: Optional[str] = None,
     ) -> MultilingualGlossaryInfo:
-        """Retrieves MultilingualGlossaryInfo for the glossary with specified
-        ID.
+        """Retrieves MultilingualGlossaryInfo for the specified glossary.
 
-        :param glossary_id: ID of glossary to retrieve.
+        :param glossary: MultilingualGlossaryInfo or ID of glossary to
+            retrieve.
+        :param glossary_id: Deprecated alias of glossary.
+
+            .. deprecated:: 1.33.0
+                Use ``glossary`` instead.
         :return: MultilingualGlossaryInfo with information about specified
             glossary.
         :raises GlossaryNotFoundException: If no glossary with given ID is
             found.
         """
+        glossary = _renamed_argument(
+            "get_multilingual_glossary",
+            "glossary",
+            glossary,
+            "glossary_id",
+            glossary_id,
+        )
         status, content, json = self._api_call(
-            f"v3/glossaries/{_quote_id(glossary_id)}", method="GET"
+            f"v3/glossaries/{self._multilingual_glossary_id(glossary)}",
+            method="GET",
         )
         self._raise_for_status(status, content, json, glossary=True)
         return MultilingualGlossaryInfo.from_json(json)
@@ -676,6 +823,34 @@ class DeepLClient(Translator):
             for glossary in glossaries
         ]
 
+    def get_multilingual_glossary_dictionary_entries(
+        self,
+        glossary: Union[str, MultilingualGlossaryInfo],
+        source_lang: str,
+        target_lang: str,
+    ) -> MultilingualGlossaryDictionaryEntries:
+        """Retrieves the entries of the dictionary for the given source and
+        target language in the specified glossary.
+
+        :param glossary: MultilingualGlossaryInfo or ID of glossary to
+            retrieve.
+        :param source_lang: Language of source terms.
+        :param target_lang: Language of target terms.
+        :return: MultilingualGlossaryDictionaryEntries containing the entries
+            as a dictionary of source-target terms.
+        :raises GlossaryNotFoundException: If the glossary or the dictionary
+            is not found.
+        """
+        dictionaries = self._get_multilingual_glossary_entries(
+            glossary, source_lang, target_lang
+        ).dictionaries
+        if not dictionaries:
+            raise GlossaryNotFoundException(
+                "Glossary not found, message: no dictionary for "
+                f"{source_lang}->{target_lang}"
+            )
+        return dictionaries[0]
+
     def get_multilingual_glossary_entries(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
@@ -684,6 +859,10 @@ class DeepLClient(Translator):
     ) -> MultilingualGlossaryDictionaryEntriesResponse:
         """Retrieves the entries for a given source and target language in the
         specified glossary.
+
+        .. deprecated:: 1.33.0
+            Use get_multilingual_glossary_dictionary_entries() instead, which
+            returns the dictionary entries directly.
 
         :param glossary: MultilingualGlossaryInfo or ID of glossary to
             retrieve.
@@ -696,12 +875,27 @@ class DeepLClient(Translator):
         :raises DeepLException: If the glossary could not be retrieved
             in the right format.
         """
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-        query = _language_pair_query(source_lang, target_lang)
+        warnings.warn(
+            "get_multilingual_glossary_entries() is deprecated, use "
+            "get_multilingual_glossary_dictionary_entries()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._get_multilingual_glossary_entries(
+            glossary, source_lang, target_lang
+        )
+
+    def _get_multilingual_glossary_entries(
+        self,
+        glossary: Union[str, MultilingualGlossaryInfo],
+        source_lang: str,
+        target_lang: str,
+    ) -> MultilingualGlossaryDictionaryEntriesResponse:
+        glossary_id = self._multilingual_glossary_id(glossary)
+        query = self._language_pair_query(source_lang, target_lang)
 
         status, content, json = self._api_call(
-            f"v3/glossaries/{_quote_id(glossary)}/entries?{query}",
+            f"v3/glossaries/{glossary_id}/entries?{query}",
             method="GET",
         )
         self._raise_for_status(status, content, json, glossary=True)
@@ -716,11 +910,8 @@ class DeepLClient(Translator):
         :raises GlossaryNotFoundException: If no glossary with given ID is
             found.
         """
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
-
         status, content, json = self._api_call(
-            f"v3/glossaries/{_quote_id(glossary)}",
+            f"v3/glossaries/{self._multilingual_glossary_id(glossary)}",
             method="DELETE",
         )
         self._raise_for_status(status, content, json, glossary=True)
@@ -734,8 +925,8 @@ class DeepLClient(Translator):
     ) -> None:
         """Deletes specified glossary dictionary.
 
-        :param glossary: GlossaryInfo or ID of glossary containing the
-            dictionary to delete
+        :param glossary: MultilingualGlossaryInfo or ID of glossary
+            containing the dictionary to delete
         :param dictionary: The dictionary to delete. Either the
             MultilingualGlossaryDictionaryInfo or both the source_lang and
             target_lang can be provided to identify the dictionary. However,
@@ -750,8 +941,7 @@ class DeepLClient(Translator):
         :raises ValueError: If the dictionary or both the source_lang and
             target_lang were not provided
         """
-        if isinstance(glossary, MultilingualGlossaryInfo):
-            glossary = glossary.glossary_id
+        glossary_id = self._multilingual_glossary_id(glossary)
 
         if not dictionary and not (source_lang and target_lang):
             raise ValueError(
@@ -762,15 +952,56 @@ class DeepLClient(Translator):
             source_lang = dictionary.source_lang
             target_lang = dictionary.target_lang
 
-        query = _language_pair_query(
+        query = self._language_pair_query(
             source_lang, target_lang  # type: ignore[arg-type]
         )
-        req_url = f"v3/glossaries/{_quote_id(glossary)}/dictionaries?{query}"
         status, content, json = self._api_call(
-            req_url,
+            f"v3/glossaries/{glossary_id}/dictionaries?{query}",
             method="DELETE",
         )
         self._raise_for_status(status, content, json, glossary=True)
+
+    @staticmethod
+    def _multilingual_glossary_id(
+        glossary: Union[str, MultilingualGlossaryInfo],
+    ) -> str:
+        if isinstance(glossary, MultilingualGlossaryInfo):
+            glossary = glossary.glossary_id
+        if not glossary:
+            raise ValueError("glossary id must not be empty")
+        return urllib.parse.quote(glossary, safe="")
+
+    @staticmethod
+    def _language_pair_query(source_lang: str, target_lang: str) -> str:
+        # glossaries are only supported for base language types
+        return urllib.parse.urlencode(
+            {
+                "source_lang": Language.remove_regional_variant(source_lang),
+                "target_lang": Language.remove_regional_variant(target_lang),
+            }
+        )
+
+    @staticmethod
+    def _dictionary_json(
+        dictionary: MultilingualGlossaryDictionaryEntries,
+    ) -> Dict[str, Any]:
+        # glossaries are only supported for base language types
+        return {
+            "source_lang": Language.remove_regional_variant(
+                dictionary.source_lang
+            ),
+            "target_lang": Language.remove_regional_variant(
+                dictionary.target_lang
+            ),
+            "entries": util.convert_dict_to_tsv(dictionary.entries),
+            "entries_format": "tsv",
+        }
+
+    @classmethod
+    def _dictionaries_json(
+        cls, dictionaries: List[MultilingualGlossaryDictionaryEntries]
+    ) -> List[Dict[str, Any]]:
+        return [cls._dictionary_json(d) for d in dictionaries]
 
     def create_spoken_terms(
         self,

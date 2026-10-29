@@ -2,7 +2,7 @@
 # Use of this source code is governed by an MIT
 # license that can be found in the LICENSE file.
 
-from deepl.api_data import MultilingualGlossaryDictionaryEntries
+from deepl import MultilingualGlossaryDictionaryEntries
 
 from .client import make_deepl_client
 from .helpers import get_unique_name, get_when_visible
@@ -40,11 +40,10 @@ def test_sends_multilingual_glossary_requests_from_create_to_delete():
         listed = client.list_multilingual_glossaries()
         assert created.glossary_id in [g.glossary_id for g in listed]
 
-        entries = client.get_multilingual_glossary_entries(created, "EN", "DE")
-        assert [
-            (d.source_lang.upper(), d.target_lang.upper())
-            for d in entries.dictionaries
-        ] == [("EN", "DE")]
+        entries = client.get_multilingual_glossary_dictionary_entries(
+            created, "EN", "DE"
+        )
+        assert entries.entries == {"Hello": "Hallo"}
 
         assert (
             client.update_multilingual_glossary_name(created, renamed).name

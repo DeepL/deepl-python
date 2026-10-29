@@ -450,7 +450,10 @@ You can create a multi-lingual glossary with your desired terms and name using
 support multiple source-target language pairs. Note: Glossaries are only 
 supported for some language pairs, see
 [Listing available glossary languages](#listing-available-glossary-languages)
-for more information. The entries should be specified as a dictionary.
+for more information. The entries should be specified as a dictionary, in
+`MultilingualGlossaryDictionaryEntries` objects passed as `dictionaries`.
+`MultilingualGlossaryDictionaryEntries`, `MultilingualGlossaryInfo` and
+`MultilingualGlossaryDictionaryInfo` can be imported from the `deepl` package.
 
 If successful, the glossary is created and stored with your DeepL account, and
 a `MultilingualGlossaryInfo` object is returned including the ID, name, and glossary
@@ -459,6 +462,8 @@ dictionaries. The glossary dictionaries would be an array of
 entry count.
 
 ```python
+from deepl import MultilingualGlossaryDictionaryEntries
+
 # Create a glossary with an English to German dictionary containing two terms:
 entries = {"artist": "Maler", "prize": "Gewinn"}
 dictionaries = [MultilingualGlossaryDictionaryEntries("EN", "DE", entries)]
@@ -481,8 +486,8 @@ print(
 You can also upload a glossary downloaded from the DeepL website using
 `create_multilingual_glossary_from_csv()`. Instead of supplying the entries as a 
 dictionary within a MultilingualGlossaryDictionaryEntries object, you can specify 
-the CSV data as `csv_data` either as a file-like object or string or bytes 
-containing file content:
+the CSV data as `csv` either as a file-like object or string or bytes 
+containing file content (`csv_data` is the deprecated name of this argument):
 
 ```python
 # Open the CSV file assuming UTF-8 encoding. If your file contains a BOM,
@@ -493,7 +498,7 @@ with open('/path/to/glossary_file.csv', 'r',  encoding='utf-8') as csv_file:
         "CSV glossary",
         source_lang="EN",
         target_lang="DE",
-        csv_data=csv_data,
+        csv=csv_data,
     )
 ```
 
@@ -504,7 +509,8 @@ detail.
 
 Functions to get, list, and delete stored glossaries are also provided:
 
-- `get_multilingual_glossary()` takes a glossary ID and returns a 
+- `get_multilingual_glossary()` takes a glossary ID or `MultilingualGlossaryInfo`
+  object and returns a 
   `MultilingualGlossaryInfo` object for a stored glossary, or raises an 
   exception if no such glossary is found.
 - `list_multilingual_glossaries()` returns a list of `MultilingualGlossaryInfo` objects 
@@ -537,31 +543,64 @@ for glossary in glossaries:
 The `MultilingualGlossaryInfo` object does not contain the glossary entries, but
 instead only the number of entries in the `entry_count` property.
 
-To list the entries contained within a stored glossary, use
-`get_multilingual_glossary_entries()` providing either the `MultilingualGlossaryInfo` object or glossary
-ID and either a `MultilingualGlossaryDictionaryInfo` or source and target language pair:
+To list the entries of one dictionary within a stored glossary, use
+`get_multilingual_glossary_dictionary_entries()` providing either the
+`MultilingualGlossaryInfo` object or glossary ID, and the source and target
+language. It returns a `MultilingualGlossaryDictionaryEntries` object whose
+`entries` is a dictionary of source-target terms, and raises a
+`GlossaryNotFoundException` if the glossary has no dictionary for that language
+pair:
 
 ```python
-entries = deepl_client.get_multilingual_glossary_entries(my_glossary, "EN", "DE")
-print(entries.dictionaries[0])  # "{'artist': 'Maler', 'prize': 'Gewinn'}"
+dictionary = deepl_client.get_multilingual_glossary_dictionary_entries(
+    my_glossary, "EN", "DE"
+)
+print(dictionary.entries)  # "{'artist': 'Maler', 'prize': 'Gewinn'}"
 ```
+
+`get_multilingual_glossary_entries()` is deprecated: it returns a
+`MultilingualGlossaryDictionaryEntriesResponse` wrapping a list of
+dictionaries. Use `get_multilingual_glossary_dictionary_entries()` instead.
 
 #### Editing a glossary
 
 Functions to edit stored glossaries are also provided:
 
+- `update_multilingual_glossary()` takes a glossary ID or `MultilingualGlossaryInfo`
+  object, plus the optional keyword arguments `name` (the new name) and
+  `dictionaries` (a list of `MultilingualGlossaryDictionaryEntries` to merge into
+  the glossary, as `update_multilingual_glossary_dictionary()` does for one).
+  Only the arguments that are set are sent.
 - `update_multilingual_glossary_dictionary()` takes a glossary ID or `MultilingualGlossaryInfo`
-  object, plus a source language, target language, and a dictionary of entries.
+  object, plus a `dictionary`: a `MultilingualGlossaryDictionaryEntries` with
+  a source language, target language, and a dictionary of entries.
   It will then either update the list of entries for that dictionary (either 
   inserting new entires or replacing the target phrase for any existing 
   entries) or will insert a new glossary dictionary if that language pair is 
   not currently in the stored glossary.
 - `replace_multilingual_glossary_dictionary()` takes a glossary ID or `MultilingualGlossaryInfo`
-  object, plus a source language, target language, and a dictionary of entries.
+  object, plus a `dictionary`: a `MultilingualGlossaryDictionaryEntries` with
+  a source language, target language, and a dictionary of entries.
   It will then either set the entries to the parameter value, completely 
   replacing any pre-existing entries for that language pair.
 - `update_multilingual_glossary_name()` takes a glossary ID or `MultilingualGlossaryInfo`
   object, plus the new name of the glossary. 
+
+The `*_from_csv()` variants take the entries as `csv` instead. The
+`glossary_dicts` (of `create_multilingual_glossary()`), `glossary_dict` and
+`csv_data` argument names are deprecated; use `dictionaries`, `dictionary` and
+`csv`. `get_multilingual_glossary()` likewise takes `glossary`; its
+`glossary_id` keyword is deprecated.
+
+The functions that create, update or replace glossaries and dictionaries
+(`create_multilingual_glossary()`, `create_multilingual_glossary_from_csv()`,
+`update_multilingual_glossary()`, `update_multilingual_glossary_name()`,
+`update_multilingual_glossary_dictionary()`,
+`update_multilingual_glossary_dictionary_from_csv()`,
+`replace_multilingual_glossary_dictionary()` and
+`replace_multilingual_glossary_dictionary_from_csv()`) also accept
+`extra_body_parameters`: a dictionary of additional fields for the JSON request
+body. They are added last and replace fields with the same key.
 
 ```python
 # Update glossary dictionary
@@ -578,8 +617,8 @@ updated_glossary = deepl_client.update_multilingual_glossary_dictionary(
     glossary_dict
 )
 
-entries_response = deepl_client.get_multilingual_glossary_entries(my_glossary, "EN", "DE")
-print(entries_response.dictionaries[0])  # "{'artist': 'Maler', 'hello': 'hallo', 'prize': 'Gewinn'}"
+dictionary = deepl_client.get_multilingual_glossary_dictionary_entries(my_glossary, "EN", "DE")
+print(dictionary.entries)  # "{'artist': 'Maler', 'hello': 'hallo', 'prize': 'Gewinn'}"
 
 # Update a glossary dictionary from CSV
 # Open the CSV file assuming UTF-8 encoding. If your file contains a BOM,
@@ -590,7 +629,7 @@ with open('/path/to/glossary_file.csv', 'r',  encoding='utf-8') as csv_file:
         glossary="4c81ffb4-2e...",
         source_lang="EN",
         target_lang="DE",
-        csv_data=csv_data,
+        csv=csv_data,
     )
 
 # Replace glossary dictionary
@@ -599,8 +638,8 @@ glossary_dict = MultilingualGlossaryDictionaryEntries("EN", "DE", replacement_en
 updated_glossary = deepl_client.replace_multilingual_glossary_dictionary(
   my_glossary,
   glossary_dict)
-entries_response = deepl_client.get_multilingual_glossary_entries(my_glossary, "EN", "DE")
-print(entries_response.dictionaries[0])  # "{'goodbye': 'Auf Wiedersehen'}"
+dictionary = deepl_client.get_multilingual_glossary_dictionary_entries(my_glossary, "EN", "DE")
+print(dictionary.entries)  # "{'goodbye': 'Auf Wiedersehen'}"
 
 # Replace a glossary dictionary from CSV
 # Open the CSV file assuming UTF-8 encoding. If your file contains a BOM,
@@ -611,7 +650,7 @@ with open('/path/to/glossary_file.csv', 'r',  encoding='utf-8') as csv_file:
         glossary="4c81ffb4-2e...",
         source_lang="EN",
         target_lang="DE",
-        csv_data=csv_data,
+        csv=csv_data,
     )
 
 # Update the glossary name
@@ -620,6 +659,13 @@ updated_glossary = deepl_client.update_multilingual_glossary_name(
   "My new glossary name"
 )
 print(updated_glossary.name) # 'My new glossary name'
+
+# Rename the glossary and merge entries in one request
+updated_glossary = deepl_client.update_multilingual_glossary(
+    my_glossary,
+    name="My renamed glossary",
+    dictionaries=[MultilingualGlossaryDictionaryEntries("EN", "DE", {"cat": "Katze"})],
+)
 ```
 
 #### Using a stored glossary

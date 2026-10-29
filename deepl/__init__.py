@@ -40,6 +40,9 @@ from .exceptions import (  # noqa
 from . import http_client  # noqa
 
 from .api_data import (  # noqa
+    MultilingualGlossaryDictionaryEntries,
+    MultilingualGlossaryDictionaryInfo,
+    MultilingualGlossaryInfo,
     SpokenTerms,
     SpokenTermsEntries,
     SpokenTermsList,
@@ -91,6 +94,9 @@ __all__ = [
     "Formality",
     "GlossaryInfo",
     "Language",
+    "MultilingualGlossaryDictionaryEntries",
+    "MultilingualGlossaryDictionaryInfo",
+    "MultilingualGlossaryInfo",
     "SplitSentences",
     "SpokenTerms",
     "SpokenTermsEntries",

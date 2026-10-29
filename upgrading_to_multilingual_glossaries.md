@@ -15,7 +15,7 @@ To support these new v3 APIs, we have created new methods to interact with these
 | `create_glossary_from_csv()`         | `create_multilingual_glossary_from_csv()`     | Similar functionality, but now returns a `MultilingualGlossaryInfo` object |
 | `get_glossary()`                     | `get_multilingual_glossary()`                 | Similar functionality, but now returns `MultilingualGlossaryInfo`. Also can accept a `MultilingualGlossaryInfo` object as the glossary parameter instead of a `GlossaryInfo` object.|
 | `list_glossaries()`                  | `list_multilingual_glossaries()`              | Similar functionality, but now returns a list of `MultilingualGlossaryInfo` objects.        |
-| `get_glossary_entries()`             | `get_multilingual_glossary_entries()`         | Requires specifying source and target languages. Also returns a `MultilingualGlossaryDictionaryEntriesResponse` object as the response.         |
+| `get_glossary_entries()`             | `get_multilingual_glossary_dictionary_entries()` | Requires specifying source and target languages. Returns a `MultilingualGlossaryDictionaryEntries` object whose `entries` is a dictionary. (`get_multilingual_glossary_entries()` is deprecated.) |
 | `delete_glossary()`                  | `delete_multilingual_glossary()`              | Similar functionality, but now can accept a `MultilingualGlossaryInfo` object instead of a `GlossaryInfo` object when specifying the glossary.  |
 
 ## 3. Model Changes
@@ -62,8 +62,8 @@ print(entries) # 'hello\thallo'
 # multilingual glossary example
 glossary_dicts = [MultilingualGlossaryDictionaryEntries("EN", "DE", {"hello": "hallo"})]
 created_glossary = deepl_client.create_multilingual_glossary("My Glossary", glossary_dicts)
-dict_entries = deepl_client.get_multilingual_glossary_entries(created_glossary, "EN", "DE")
-print(dict_entries.dictionaries[0].entries) # 'hello\thallo'
+dict_entries = deepl_client.get_multilingual_glossary_dictionary_entries(created_glossary, "EN", "DE")
+print(dict_entries.entries) # {'hello': 'hallo'}
 ```
 
 ### List and delete glossaries
@@ -87,11 +87,11 @@ for glossary in glossaries:
 In addition to introducing multilingual glossaries, we introduce several new methods that enhance the functionality for managing glossaries. Below are the details for each new method:
 
 ### Update Multilingual Glossary Dictionary
-- **Method**: `update_multilingual_glossary_dictionary(glossary: Union[str, MultilingualGlossaryInfo], glossary_dict: MultilingualGlossaryDictionaryEntries) -> MultilingualGlossaryInfo`
+- **Method**: `update_multilingual_glossary_dictionary(glossary: Union[str, MultilingualGlossaryInfo], dictionary: MultilingualGlossaryDictionaryEntries) -> MultilingualGlossaryInfo`
 - **Description**: Use this method to update or create a glossary dictionary's entries
 - **Parameters**:
   - `glossary`: The ID or `MultilingualGlossaryInfo` of the glossary to update.
-  - `glossary_dict`: The glossary dictionary including its new entries.
+  - `dictionary`: The glossary dictionary including its new entries.
 - **Returns**: `MultilingualGlossaryInfo` containing information about the updated glossary.
 - **Note**: This method will either update the glossary's entries if they exist for the given glossary dictionary's language pair, or adds any new ones to the dictionary if not. It will also create a new glossary dictionary if one
 did not exist for the given language pair.
@@ -110,18 +110,18 @@ did not exist for the given language pair.
         glossary_dict
     )
 
-    entries_response = deepl_client.get_multilingual_glossary_entries(my_glossary, "EN", "DE")
-    print(entries_response.dictionaries[0])  # "{'artist': 'Maler', 'hello': 'hallo', 'prize': 'Gewinn'}"
+    dictionary = deepl_client.get_multilingual_glossary_dictionary_entries(my_glossary, "EN", "DE")
+    print(dictionary.entries)  # "{'artist': 'Maler', 'hello': 'hallo', 'prize': 'Gewinn'}"
 ```
 
 ### Update Multilingual Glossary Dictionary from CSV
-- **Method**: `update_multilingual_glossary_dictionary_from_csv(glossary: Union[str, MultilingualGlossaryInfo], source_lang: Union[str, Language], target_lang: Union[str, Language], csv_data: Union[TextIO, BinaryIO, str, bytes, Any]) -> MultilingualGlossaryInfo`
+- **Method**: `update_multilingual_glossary_dictionary_from_csv(glossary: Union[str, MultilingualGlossaryInfo], source_lang: Union[str, Language], target_lang: Union[str, Language], csv: Union[TextIO, BinaryIO, str, bytes, Any]) -> MultilingualGlossaryInfo`
 - **Description**: This method allows you to update or create a glossary dictionary using entries in CSV format.
 - **Parameters**:
   - `glossary`: The ID or `MultilingualGlossaryInfo` of the glossary to update.
   - `source_lang`: Language of source entries.
   - `target_lang`: Language of target entries.
-  - `csv_data`: CSV data containing glossary entries.
+  - `csv`: CSV data containing glossary entries.
 - **Returns**: `MultilingualGlossaryInfo` containing information about the updated glossary.
 - **Example**:
   ```python
@@ -134,7 +134,7 @@ did not exist for the given language pair.
             glossary="4c81ffb4-2e...",
             source_lang="EN",
             target_lang="DE",
-            csv_data=csv_data,
+            csv=csv_data,
         )
 
 ### Update Multilingual Glossary Name
@@ -149,11 +149,11 @@ did not exist for the given language pair.
   updated_glossary = deepl_client.update_multilingual_glossary_name("4c81ffb4-2e...", "New Glossary Name")
 
 ### Replace a Multilingual Glossary Dictionary
-- **Method**: `replace_multilingual_glossary_dictionary(glossary: Union[str, MultilingualGlossaryInfo], glossary_dict: MultilingualGlossaryDictionaryEntries) -> MultilingualGlossaryInfo`
+- **Method**: `replace_multilingual_glossary_dictionary(glossary: Union[str, MultilingualGlossaryInfo], dictionary: MultilingualGlossaryDictionaryEntries) -> MultilingualGlossaryInfo`
 - **Description**: This method replaces the existing glossary dictionary with a new set of entries.
 - **Parameters**:
   - `glossary`: The ID or `MultilingualGlossaryInfo` of the glossary whose dictionary will be replaced.
-  - `glossary_dict`: The new glossary dictionary entries that will replace any existing ones for that language pair.
+  - `dictionary`: The new glossary dictionary entries that will replace any existing ones for that language pair.
 - **Returns**: `MultilingualGlossaryInfo` containing information about the updated glossary.
 - **Note**: Ensure that the new dictionary entries are complete and valid, as this method will completely overwrite the existing entries. It will also create a new glossary dictionary if one did not exist for the given language pair.
 - **Example**:
@@ -162,13 +162,13 @@ did not exist for the given language pair.
   replaced_glossary = deepl_client.replace_multilingual_glossary_dictionary("4c81ffb4-2e...", new_glossary_dict)
 
 ### Replace Multilingual Glossary Dictionary from CSV
-- **Method**: `replace_multilingual_glossary_dictionary_from_csv(glossary: Union[str, MultilingualGlossaryInfo], source_lang: Union[str, Language], target_lang: Union[str, Language], csv_data: Union[TextIO, BinaryIO, str, bytes, Any]) -> MultilingualGlossaryInfo`
+- **Method**: `replace_multilingual_glossary_dictionary_from_csv(glossary: Union[str, MultilingualGlossaryInfo], source_lang: Union[str, Language], target_lang: Union[str, Language], csv: Union[TextIO, BinaryIO, str, bytes, Any]) -> MultilingualGlossaryInfo`
 - **Description**: This method allows you to replace or create a glossary dictionary using entries in CSV format.
 - **Parameters**:
   - `glossary`: The ID or `MultilingualGlossaryInfo` of the glossary to update.
   - `source_lang`: Language of source entries.
   - `target_lang`: Language of target entries.
-  - `csv_data`: CSV data containing glossary entries.
+  - `csv`: CSV data containing glossary entries.
 - **Returns**: `MultilingualGlossaryInfo` containing information about the updated glossary.
 - **Example**:
   ```python
@@ -181,7 +181,7 @@ did not exist for the given language pair.
             glossary="4c81ffb4-2e...",
             source_lang="EN",
             target_lang="DE",
-            csv_data=csv_data,
+            csv=csv_data,
         )
 
 ### Delete a Multilingual Glossary Dictionary
