@@ -527,6 +527,55 @@ def test_raises_when_waiting_for_job_exceeds_timeout(mocked):
         )
 
 
+def test_raises_with_error_message_when_waited_job_fails(mocked):
+    reply_with_job(
+        mocked, "failed", operation="export", error={"message": "broken"}
+    )
+
+    with pytest.raises(
+        deepl.DeepLException,
+        match="Error occurred while exporting translation memory: broken",
+    ):
+        make_deepl_client().wait_until_translation_memory_job_done("job-1")
+
+
+def test_raises_when_waited_job_expires(mocked):
+    reply_with_job(mocked, "expired")
+
+    with pytest.raises(
+        deepl.DeepLException,
+        match="Error occurred while importing translation memory: "
+        "unknown error",
+    ):
+        make_deepl_client().wait_until_translation_memory_job_done("job-1")
+
+
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+        self.sleeps = []
+
+    def time(self):
+        return self.now
+
+    def sleep(self, secs):
+        self.sleeps.append(secs)
+        self.now += secs
+
+
+def test_cuts_last_sleep_to_timeout_when_waiting_for_job(mocked, monkeypatch):
+    clock = FakeClock()
+    monkeypatch.setattr(deepl.deepl_client, "time", clock)
+    reply_with_job(mocked, "processing")
+
+    with pytest.raises(deepl.DeepLException, match="Manual timeout of 7s"):
+        make_deepl_client().wait_until_translation_memory_job_done(
+            "job-1", timeout_s=7
+        )
+
+    assert clock.sleeps == [5.0, 2.0]
+
+
 def test_imports_file_by_creating_job_uploading_and_waiting(mocked, tmp_path):
     path = tmp_path / "example.tmx"
     path.write_text(example_tmx)
@@ -591,6 +640,19 @@ def test_raises_when_imported_file_does_not_exist(tmp_path):
         make_deepl_client().import_translation_memory_from_filepath(
             tmp_path / "missing.tmx"
         )
+
+
+def test_raises_for_unreadable_import_file_before_creating_job(
+    mocked, no_retries, tmp_path
+):
+    # A directory exists but cannot be opened as a file.
+    with pytest.raises(
+        deepl.DeepLException, match="Error reading translation memory file"
+    ) as exc_info:
+        make_deepl_client().import_translation_memory_from_filepath(tmp_path)
+
+    assert isinstance(exc_info.value.__cause__, OSError)
+    assert len(mocked.calls) == 0
 
 
 def test_raises_with_error_message_when_import_job_fails(mocked, tmp_path):
@@ -661,6 +723,41 @@ def test_raises_with_error_message_when_export_job_fails(mocked, tmp_path):
         )
 
     assert not (tmp_path / "exported.tmx").exists()
+
+
+def test_raises_for_missing_export_directory_before_creating_job(
+    mocked, no_retries, tmp_path
+):
+    with pytest.raises(
+        deepl.DeepLException, match="Output directory does not exist"
+    ):
+        make_deepl_client().export_translation_memory_to_filepath(
+            "tm-1", tmp_path / "missing" / "exported.tmx"
+        )
+
+    assert len(mocked.calls) == 0
+
+
+def test_removes_partial_export_file_when_download_fails(
+    mocked, no_retries, tmp_path
+):
+    output_path = tmp_path / "exported.tmx"
+    mocked.post(
+        url("v3/translation_memories/tm-1/export"),
+        status=202,
+        json={"job_id": "job-1"},
+    )
+    reply_with_job(
+        mocked, "completed", operation="export", download_url=DOWNLOAD_URL
+    )
+    mocked.get(DOWNLOAD_URL, status=403, body="expired")
+
+    with pytest.raises(deepl.DeepLException, match="HTTP status: 403"):
+        make_deepl_client().export_translation_memory_to_filepath(
+            "tm-1", output_path
+        )
+
+    assert not output_path.exists()
 
 
 def test_downloads_export_without_authorization_into_file_object(mocked):

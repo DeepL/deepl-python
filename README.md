@@ -1238,6 +1238,11 @@ Importing takes a while: the API detects the uploaded file asynchronously, so
 the job keeps reporting `awaiting_input` for roughly half a minute after the
 upload before completing. Pass `timeout_s` to bound how long to wait.
 
+The file is read before the import job is created: a missing file raises
+`ValueError`, and a file that cannot be read raises `DeepLException` (with the
+`OSError` as its cause), in both cases without sending a request. A failed or
+expired import job raises `DeepLException` with the API's error message.
+
 The three steps are also available separately, for example to upload the file
 yourself or to poll for progress. `create_translation_memory_import()` returns
 an upload URL that the file must be uploaded to before processing starts, then
@@ -1268,6 +1273,12 @@ job = deepl_client.wait_until_translation_memory_job_done(
 )
 ```
 
+`wait_until_translation_memory_job_done()` polls every 5 seconds and returns
+the job once it is completed. If the job fails or expires it raises
+`DeepLException` with the API's error message. With `timeout_s` it raises
+`DeepLException` once the timeout is exceeded, cutting the last sleep short so
+the wait does not run past the timeout.
+
 Errors from the pre-signed upload and download URLs are not DeepL API errors:
 `upload_translation_memory_file()` and `download_translation_memory_export()`
 raise a plain `DeepLException` with the response body in the message,
@@ -1295,6 +1306,12 @@ job = deepl_client.export_translation_memory_to_filepath(
     "YOUR_TM_ID", "/path/to/exported.tmx"
 )
 ```
+
+The output path is checked before the export job is created: if its directory
+does not exist, or the path is a directory or not writable,
+`DeepLException` is raised without sending a request. If the export job
+fails, or the download or writing the file fails, `DeepLException` is raised
+and a partially written file is removed.
 
 As with import, the individual steps are available separately. Note that the
 API may reuse a previously completed export of an unchanged translation memory,

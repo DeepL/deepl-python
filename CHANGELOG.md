@@ -153,6 +153,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `DeepLException`; before they were always `False` and `None`.
 
 ### Changed
+- `wait_until_translation_memory_job_done()` raises `DeepLException` with the
+  API's error message when the job fails or expires, instead of returning the
+  job. It returns only a completed job. With `timeout_s`, the last sleep is cut
+  short so the wait no longer runs past the timeout.
+- `import_translation_memory_from_filepath()` reads the file before creating
+  the import job; a file that cannot be read raises `DeepLException` without
+  sending a request. `export_translation_memory_to_filepath()` checks that the
+  output directory exists and the path is writable before creating the export
+  job, and raises `DeepLException` otherwise.
 - `translate_text()` accepts `glossary` and `glossary_ids` without
   `source_lang`; DeepL detects the source language and uses the glossary
   dictionary for the detected language pair. Document translation with a
@@ -245,6 +254,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed errors from the pre-signed translation memory upload and download URLs
   reporting `should_retry` as false for HTTP 429 and 5xx, and dropping the
   response body of a failed download from the message.
+- Fixed `import_translation_memory_from_filepath()` and
+  `export_translation_memory_to_filepath()` raising a raw `OSError` for local
+  file failures; they now raise `DeepLException` with the `OSError` as cause.
+  A failed export no longer leaves a partially written file behind.
 - HTTP 401 responses now raise `AuthorizationException`, like 403. Before they
   raised `DeepLException` with "Unexpected status code: 401".
 - `DeepLException.should_retry` is now `True` for every HTTP 5xx error. It was
