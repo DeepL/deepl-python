@@ -182,6 +182,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wrap upload failures in `DocumentTranslationException`, with
   `document_handle` set to `None` and the original exception as `__cause__`.
   Invalid arguments still raise `ValueError` or `TypeError`.
+- `formality` is sent as given: a string such as `"Prefer_Less"` is no longer
+  lower-cased before it is sent. `Formality` members send the same values as
+  before.
 
 ### Deprecated
 - `Translator` is deprecated in favour of `DeepLClient`, which supports all its

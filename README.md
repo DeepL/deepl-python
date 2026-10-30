@@ -177,6 +177,7 @@ arguments are:
   [Listing available languages](#listing-available-languages).
     - `'less'` (`Formality.LESS`): use informal language.
     - `'more'` (`Formality.MORE`): use formal, more polite language.
+  A string is sent unchanged, so pass the API's lower-case values.
 - `glossary`: specifies a glossary to use with translation, either as a string
   containing the glossary ID, or a `GlossaryInfo` as returned by
   `get_glossary()`.

@@ -116,7 +116,6 @@ def test_sends_text_and_target_language(mocked):
         ({"preserve_formatting": True}, {"preserve_formatting": True}),
         ({"preserve_formatting": False}, {"preserve_formatting": False}),
         ({"formality": deepl.Formality.MORE}, {"formality": "more"}),
-        ({"formality": "Prefer_Less"}, {"formality": "prefer_less"}),
         (
             {"tag_handling": "xml", "tag_handling_version": "v2"},
             {"tag_handling": "xml", "tag_handling_version": "v2"},
@@ -429,6 +428,14 @@ def test_returns_list_for_single_item_list(mocked):
     results = make_translator().translate_text(["x"], target_lang="DE")
 
     assert isinstance(results, list)
+
+
+def test_sends_formality_string_unchanged(mocked):
+    reply_with_translation(mocked, {**BASE_BODY, "formality": "Prefer_Less"})
+
+    make_translator().translate_text(
+        "hello", target_lang="DE", formality="Prefer_Less"
+    )
 
 
 def test_warns_that_translate_text_with_glossary_is_deprecated(mocked):
