@@ -277,6 +277,25 @@ def test_absent_speech_to_speech_minutes_reads_as_none(mocked):
     assert report.total_usage.speech_to_speech_minutes is None
 
 
+def test_absent_custom_tag_speech_to_speech_minutes_reads_as_none(mocked):
+    mocked.get(
+        url("v2/admin/analytics/custom-tags"),
+        json={
+            "custom_tag_usage_report": {
+                "usage": [
+                    {"custom_tag": "tag", "breakdown": {"total_characters": 3}}
+                ]
+            }
+        },
+    )
+
+    report = make_admin_client().get_custom_tag_usage_analytics(
+        "2026-05-03", "2026-05-04"
+    )
+
+    assert report.usage[0].breakdown.speech_to_speech_minutes is None
+
+
 @pytest.mark.parametrize("body", [{}, {"usage_report": None}, {"other": {}}])
 def test_analytics_response_without_report_raises_exception(mocked, body):
     mocked.get(url("v2/admin/analytics"), json=body)

@@ -1460,8 +1460,9 @@ way. The `group_by` of an `AdminUsageReport` and the `aggregate_by` of a
 `CustomTagUsageReport` are `AdminUsageGroupBy` and `CustomTagUsageAggregateBy`
 members for known values; a value this library does not know is returned as
 the string the API sent. Fields the report leaves out are `None`, for example
-`total_usage` and `speech_to_speech_minutes` of an `AdminUsageBreakdown`. A
-response without a usage report raises a `DeepLException`.
+`total_usage`, and `speech_to_speech_minutes` of an `AdminUsageBreakdown` or a
+`CustomTagUsageBreakdown`. A response without a usage report raises a
+`DeepLException`.
 
 ```python
 report = admin_client.get_usage_analytics(

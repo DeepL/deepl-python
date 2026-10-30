@@ -2973,7 +2973,7 @@ class CustomTagUsageBreakdown:
         text_translation_characters: int,
         text_improvement_characters: int,
         speech_to_text_minutes: float,
-        speech_to_speech_minutes: float,
+        speech_to_speech_minutes: Optional[float],
     ):
         self._total_characters = total_characters
         self._text_translation_characters = text_translation_characters
@@ -2995,8 +2995,8 @@ class CustomTagUsageBreakdown:
             speech_to_text_minutes=_float_or_zero(
                 json, "speech_to_text_minutes"
             ),
-            speech_to_speech_minutes=_float_or_zero(
-                json, "speech_to_speech_minutes"
+            speech_to_speech_minutes=get_float_safe(
+                _as_dict(json), "speech_to_speech_minutes"
             ),
         )
 
@@ -3021,8 +3021,9 @@ class CustomTagUsageBreakdown:
         return self._speech_to_text_minutes
 
     @property
-    def speech_to_speech_minutes(self) -> float:
-        """Returns the number of speech-to-speech minutes used."""
+    def speech_to_speech_minutes(self) -> Optional[float]:
+        """Returns the number of speech-to-speech minutes used, or None if the
+        report does not contain it."""
         return self._speech_to_speech_minutes
 
 
