@@ -404,7 +404,8 @@ file-like object given as `output_file`, in chunks of `chunk_size` bytes
 (default 64 KiB), without loading the whole document into memory. Calling it without `output_file` returns the streaming
 `requests.Response` instead; this is deprecated, emits a `DeprecationWarning`,
 and `output_file` will be required in the next major version. If the download
-fails, the raised exception carries the API's error message.
+fails, the raised exception carries the API's error message; a network failure
+while the document is written to `output_file` raises `ConnectionException`.
 
 #### Document translation options
 
@@ -1327,7 +1328,8 @@ with open("/path/to/exported.tmx", "wb") as output_file:
 ```
 
 `download_translation_memory_export()` writes in chunks of `chunk_size` bytes
-(default 64 KiB). Calling it without `output_file` returns the streaming
+(default 64 KiB); a network failure while it writes raises
+`ConnectionException`. Calling it without `output_file` returns the streaming
 `requests.Response` instead; this is deprecated, emits a `DeprecationWarning`,
 and `output_file` will be required in the next major version.
 
@@ -1528,7 +1530,7 @@ If invalid arguments are provided, they may raise the standard exceptions
 | `NotFoundException` | HTTP 404 on any endpoint |
 | `QuotaExceededException` | HTTP 456: quota exceeded |
 | `TooManyRequestsException` | HTTP 429 after all retries |
-| `ConnectionException` | no HTTP response (connection failure, timeout) |
+| `ConnectionException` | no HTTP response, or a network failure while it is read (connection failure, timeout) |
 | `DeepLException` | any other error, including a non-2xx status not listed above (e.g. an HTTP 3xx that is not followed), with `http_status_code` set |
 
 `should_retry` is `True` for HTTP 429 and 5xx errors. `GlossaryNotFoundException`,

@@ -15,7 +15,7 @@ import time
 import types
 import warnings
 from functools import lru_cache
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 from .util import log_info
 from deepl import util
 
@@ -308,6 +308,30 @@ class HttpClient:
             raise DeepLException(
                 f"Error occurred while preparing request: {e}"
             ) from e
+
+
+def read_response_text(response: requests.Response) -> str:
+    """Reads the body of a streamed response as text, raising
+    ConnectionException if the connection fails while it is read."""
+    try:
+        return response.text
+    except requests.exceptions.RequestException as e:
+        raise ConnectionException(
+            f"Connection failed while reading response: {e}"
+        ) from e
+
+
+def iter_response_content(
+    response: requests.Response, chunk_size: int
+) -> Iterator[bytes]:
+    """Yields the body of a streamed response in chunks, raising
+    ConnectionException if the connection fails while it is read."""
+    try:
+        yield from response.iter_content(chunk_size=chunk_size)
+    except requests.exceptions.RequestException as e:
+        raise ConnectionException(
+            f"Connection failed while reading response: {e}"
+        ) from e
 
 
 # urllib3 1.x has no NameResolutionError; its connection errors keep the

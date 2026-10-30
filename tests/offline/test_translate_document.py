@@ -574,6 +574,18 @@ def test_streams_download_without_reading_the_whole_document(mocked):
     assert all(size == 4 for size in body.read_sizes)
 
 
+@pytest.mark.parametrize("fail_after", [0, 4])
+def test_raises_connection_exception_when_download_connection_breaks(
+    mocked, fail_after
+):
+    reply_with_result(mocked, StreamedBody(BINARY_CONTENT, fail_after))
+
+    with pytest.raises(deepl.ConnectionException, match="reset by peer"):
+        make_translator().translate_document_download(
+            HANDLE, io.BytesIO(), chunk_size=4
+        )
+
+
 def test_retries_upload_when_rate_limited(mocked):
     mocked.post(url("v2/document"), status=429)
     reply_with_handle(

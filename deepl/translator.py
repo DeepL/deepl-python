@@ -21,7 +21,7 @@ from deepl.api_data import (
     TranslationMemoryInfo,
     Usage,
 )
-from . import util
+from . import http_client, util
 from ._base_client import BaseClient
 from .exceptions import (
     DeepLException,
@@ -1093,6 +1093,9 @@ class Translator(BaseClient):
             default 64 KiB. Only used if output_file is specified.
         :return: None if output_file is specified, otherwise the
             requests.Response will be returned.
+
+        :raises ConnectionException: If the connection fails while the
+            document is downloaded into output_file.
         """
 
         data = {"document_key": handle.document_key}
@@ -1110,7 +1113,7 @@ class Translator(BaseClient):
 
         if not 200 <= status_code < 300:
             # The streamed body is not parsed by _api_call; read the error.
-            content = response.text
+            content = http_client.read_response_text(response)
             try:
                 json = json_module.loads(content)
             except ValueError:
@@ -1120,7 +1123,7 @@ class Translator(BaseClient):
             )
 
         if output_file:
-            chunks = response.iter_content(chunk_size=chunk_size)
+            chunks = http_client.iter_response_content(response, chunk_size)
             for chunk in chunks:
                 output_file.write(chunk)
             return None

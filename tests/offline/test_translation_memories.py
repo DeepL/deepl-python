@@ -16,7 +16,7 @@ from deepl.api_data import (
 )
 
 from ..fixtures import example_tmx
-from .client import make_deepl_client, url
+from .client import StreamedBody, make_deepl_client, url
 from .matchers import bodyless_request, json_request, storage_request
 
 UPLOAD_URL = "https://storage.example.com/tm/upload?signature=abc"
@@ -787,6 +787,21 @@ def test_warns_and_returns_response_when_downloading_export_without_file(
         response = make_deepl_client().download_translation_memory_export(job)
 
     assert b"".join(response.iter_content(chunk_size=3)) == b"<tmx/>"
+
+
+@pytest.mark.parametrize("fail_after", [0, 2])
+def test_raises_connection_exception_when_export_download_connection_breaks(
+    mocked, fail_after
+):
+    mocked.get(DOWNLOAD_URL, body=StreamedBody(b"<tmx/>", fail_after))
+    job = TranslationMemoryJob.from_json(
+        job_json("completed", "export", download_url=DOWNLOAD_URL)
+    )
+
+    with pytest.raises(deepl.ConnectionException, match="reset by peer"):
+        make_deepl_client().download_translation_memory_export(
+            job, io.BytesIO(), chunk_size=2
+        )
 
 
 def test_raises_when_downloading_export_without_download_url():

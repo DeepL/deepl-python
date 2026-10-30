@@ -40,7 +40,7 @@ from deepl.translator import (
     _warn_download_without_output_file,
     _warn_skip_language_check,
 )
-from deepl import util
+from deepl import http_client, util
 import os
 import pathlib
 import requests  # type: ignore
@@ -2082,6 +2082,8 @@ class DeepLClient(Translator):
 
         :raises DeepLException: If the storage URL returns an error status,
             with http_status_code set; should_retry is True for 429 and 5xx.
+        :raises ConnectionException: If the connection fails while the file
+            is downloaded into output_file.
         """
         if input_file is not None:
             if content is not None:
@@ -2257,7 +2259,8 @@ class DeepLClient(Translator):
         assert isinstance(content, requests.Response)
 
         if output_file:
-            for chunk in content.iter_content(chunk_size=chunk_size):
+            chunks = http_client.iter_response_content(content, chunk_size)
+            for chunk in chunks:
                 output_file.write(chunk)
             return None
         _warn_download_without_output_file()
@@ -2377,11 +2380,6 @@ class DeepLClient(Translator):
                 path.unlink()
             except OSError:
                 pass
-            if isinstance(e, requests.exceptions.RequestException):
-                # The download stream broke off; not a local I/O failure.
-                raise ConnectionException(
-                    f"Error downloading translation memory export: {e}"
-                ) from e
             if isinstance(e, OSError):
                 raise DeepLException(
                     "Error writing translation memory export to "
@@ -2426,8 +2424,8 @@ class DeepLClient(Translator):
         if isinstance(content, requests.Response):
             # A streamed download: read the error body for the message.
             try:
-                detail = content.text
-            except requests.exceptions.RequestException:
+                detail = http_client.read_response_text(content)
+            except ConnectionException:
                 detail = ""
         else:
             detail = content

@@ -132,7 +132,7 @@ class BaseClient:
         elif not 200 <= status_code < 300:
             # Read only the error body of a streamed response; a successful
             # one is left unread so that the caller can stream it.
-            content_str = content.text
+            content_str = http_client.read_response_text(content)
 
         util.log_info("DeepL API response", url=url, status_code=status_code)
         if content_str is not None:
@@ -213,7 +213,11 @@ class BaseClient:
                 if status_code in http.client.responses
                 else "Unknown"
             )
-            content_str = content if isinstance(content, str) else content.text
+            content_str = (
+                content
+                if isinstance(content, str)
+                else http_client.read_response_text(content)
+            )
             raise DeepLException(
                 f"Unexpected status code: {status_code} {status_name}, "
                 f"content: {content_str}.",
