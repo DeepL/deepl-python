@@ -375,6 +375,10 @@ except deepl.DocumentTranslationException as error:
 
 `DocumentTranslationException` copies `http_status_code` and `should_retry`
 from the underlying `DeepLException`, if there is one.
+`translate_document_from_filepath()` raises `ValueError` before any request if
+the input file does not exist; if the input or output file cannot be opened,
+it raises `DocumentTranslationException` with `document_handle` set to `None`.
+
 `translate_document()` and `translate_document_from_filepath()` are convenience
 functions that wrap multiple API calls: uploading, polling status until the
 translation is complete, and downloading. If your application needs to execute

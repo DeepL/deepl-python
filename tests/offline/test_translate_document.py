@@ -725,3 +725,35 @@ def test_copies_status_code_and_retry_flag_into_document_exception(
 
     assert exc_info.value.http_status_code == 500
     assert exc_info.value.should_retry
+
+
+def test_raises_value_error_before_any_request_when_input_file_is_missing(
+    tmp_path,
+):
+    with pytest.raises(ValueError, match="file does not exist"):
+        make_translator().translate_document_from_filepath(
+            tmp_path / "missing.txt", tmp_path / "out.txt", target_lang="DE"
+        )
+
+    assert not (tmp_path / "out.txt").exists()
+
+
+@pytest.mark.parametrize("bad", ["input", "output"])
+def test_wraps_file_open_failure_in_document_exception(tmp_path, bad):
+    input_path = tmp_path / "input.txt"
+    input_path.write_text("hello")
+    output_path = tmp_path / "output.txt"
+    directory = tmp_path / "dir.txt"
+    directory.mkdir()
+    if bad == "input":
+        input_path = directory
+    else:
+        output_path = directory
+
+    with pytest.raises(deepl.DocumentTranslationException) as exc_info:
+        make_translator().translate_document_from_filepath(
+            input_path, output_path, target_lang="DE"
+        )
+
+    assert exc_info.value.document_handle is None
+    assert isinstance(exc_info.value.__cause__, OSError)

@@ -682,9 +682,12 @@ class Translator(BaseClient):
         :return: DocumentStatus when document translation completed, this
             allows the number of billed characters to be queried.
 
+        :raises ValueError: If the input file does not exist, before any
+            request is sent.
         :raises DocumentTranslationException: If an error occurs during
-            upload or translation. The exception includes the document handle
-            if the document was already uploaded, otherwise the handle is None.
+            upload or translation, or opening the input or output file fails.
+            The exception includes the document handle if the document was
+            already uploaded, otherwise the handle is None.
         """
         _check_target_lang_given(
             "translate_document_from_filepath", target_lang
@@ -694,8 +697,19 @@ class Translator(BaseClient):
         out_ext = pathlib.PurePath(output_path).suffix.lower()
         output_format = None if in_ext == out_ext else out_ext[1:]
 
-        with open(input_path, "rb") as in_file:
-            with open(output_path, "wb") as out_file:
+        if not pathlib.Path(input_path).exists():
+            raise ValueError(f"file does not exist: {input_path}")
+
+        try:
+            in_file = open(input_path, "rb")
+        except OSError as e:
+            raise DocumentTranslationException(str(e), None) from e
+        with in_file:
+            try:
+                out_file = open(output_path, "wb")
+            except OSError as e:
+                raise DocumentTranslationException(str(e), None) from e
+            with out_file:
                 try:
                     return self.translate_document(
                         in_file,

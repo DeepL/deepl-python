@@ -338,6 +338,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `translate_document_download()` now raises errors with the API's error
   message. Before, a 400, 404 or 456 response raised without it, and other
   statuses reported `content: <file>`.
+- `translate_document_from_filepath()` raises `ValueError` before any request
+  if the input file does not exist, and `DocumentTranslationException` (with
+  `document_handle` `None`) if the input or output file cannot be opened,
+  instead of a raw `OSError`.
 
 ## [1.32.0] - 2026-08-12
 ### Added
