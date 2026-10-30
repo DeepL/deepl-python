@@ -684,6 +684,32 @@ def test_sends_glossary_style_and_memory_when_translating_from_filepath(
     )
 
 
+@pytest.mark.parametrize(
+    "status, body, error, message",
+    [
+        (400, {"message": "bad key"}, deepl.DeepLException, "bad key"),
+        (404, {"message": "gone"}, deepl.NotFoundException, "gone"),
+        (456, {"message": "limit"}, deepl.QuotaExceededException, "limit"),
+        (409, {"message": "conflict"}, deepl.DeepLException, "conflict"),
+        (300, {"message": "choices"}, deepl.DeepLException, "choices"),
+    ],
+)
+def test_raises_with_api_message_when_document_download_fails(
+    mocked, status, body, error, message
+):
+    mocked.post(
+        url("v2/document/doc-1/result"),
+        status=status,
+        json=body,
+        match=json_request(KEY_BODY),
+    )
+
+    with pytest.raises(error, match=message) as exc_info:
+        make_translator().translate_document_download(HANDLE, io.BytesIO())
+
+    assert exc_info.value.http_status_code == status
+
+
 def test_copies_status_code_and_retry_flag_into_document_exception(
     mocked, no_retries
 ):

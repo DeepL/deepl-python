@@ -398,7 +398,8 @@ raises a `DeepLException` with the API's error message.
 file-like object given as `output_file`, in chunks of `chunk_size` bytes
 (default 64 KiB). Calling it without `output_file` returns the streaming
 `requests.Response` instead; this is deprecated, emits a `DeprecationWarning`,
-and `output_file` will be required in the next major version.
+and `output_file` will be required in the next major version. If the download
+fails, the raised exception carries the API's error message.
 
 #### Document translation options
 

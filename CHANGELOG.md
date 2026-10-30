@@ -335,6 +335,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `DeepLException` for a non-JSON response instead of returning an empty list.
 - Fixed `get_usage()` returning a `Usage` with every value invalid when the
   response body is not a JSON object. It now raises `DeepLException`.
+- `translate_document_download()` now raises errors with the API's error
+  message. Before, a 400, 404 or 456 response raised without it, and other
+  statuses reported `content: <file>`.
 
 ## [1.32.0] - 2026-08-12
 ### Added

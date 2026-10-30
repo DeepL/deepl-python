@@ -27,6 +27,7 @@ from .exceptions import (
     DeepLException,
     DocumentTranslationException,
 )
+import json as json_module
 import os
 import pathlib
 import requests  # type: ignore
@@ -1094,9 +1095,16 @@ class Translator(BaseClient):
         # `import requests` / `from requests`
         assert isinstance(response, requests.Response)
 
-        self._raise_for_status(
-            status_code, "<file>", json, downloading_document=True
-        )
+        if not 200 <= status_code < 300:
+            # The streamed body is not parsed by _api_call; read the error.
+            content = response.text
+            try:
+                json = json_module.loads(content)
+            except ValueError:
+                json = None
+            self._raise_for_status(
+                status_code, content, json, downloading_document=True
+            )
 
         if output_file:
             chunks = response.iter_content(chunk_size=chunk_size)
