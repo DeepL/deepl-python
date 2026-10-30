@@ -274,7 +274,7 @@ class Translator(BaseClient):
         if source_lang is not None:
             request_data["source_lang"] = source_lang
         if formality is not None:
-            request_data["formality"] = str(formality)
+            request_data["formality"] = str(formality).lower()
         if isinstance(glossary, GlossaryInfo) or isinstance(
             glossary, MultilingualGlossaryInfo
         ):
