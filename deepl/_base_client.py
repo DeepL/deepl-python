@@ -154,7 +154,7 @@ class BaseClient:
                     value = json_module.dumps(value)
                 message += f", {field}: {value}"
 
-        if 200 <= status_code < 400:
+        if 200 <= status_code < 300:
             return
         elif status_code in (
             http.HTTPStatus.UNAUTHORIZED,

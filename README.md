@@ -1491,7 +1491,7 @@ If invalid arguments are provided, they may raise the standard exceptions
 | `QuotaExceededException` | HTTP 456: quota exceeded |
 | `TooManyRequestsException` | HTTP 429 after all retries |
 | `ConnectionException` | no HTTP response (connection failure, timeout) |
-| `DeepLException` | any other error, with `http_status_code` set |
+| `DeepLException` | any other error, including a non-2xx status not listed above (e.g. an HTTP 3xx that is not followed), with `http_status_code` set |
 
 `should_retry` is `True` for HTTP 429 and 5xx errors. `GlossaryNotFoundException`,
 raised for a 404 on glossary functions, is deprecated: it is a subclass of

@@ -11,6 +11,8 @@ from .client import make_translator, url
 @pytest.mark.parametrize(
     "status, error, message, should_retry",
     [
+        (300, deepl.DeepLException, "Unexpected status code: 300", False),
+        (304, deepl.DeepLException, "Unexpected status code: 304", False),
         (400, deepl.DeepLException, "Bad request", False),
         (401, deepl.AuthorizationException, "Authorization failure", False),
         (403, deepl.AuthorizationException, "Authorization failure", False),

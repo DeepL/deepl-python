@@ -227,6 +227,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   version. Passing it emits a `DeprecationWarning`.
 
 ### Fixed
+- HTTP 3xx responses that are not followed as redirects (e.g. 300, 304, or a
+  redirect without `Location`) now raise `DeepLException` with
+  `http_status_code`, instead of being parsed as a successful response.
 - HTTP 401 responses now raise `AuthorizationException`, like 403. Before they
   raised `DeepLException` with "Unexpected status code: 401".
 - `DeepLException.should_retry` is now `True` for every HTTP 5xx error. It was
