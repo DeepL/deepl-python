@@ -143,8 +143,9 @@ class HttpClient:
         """Makes API request, retrying if necessary, and returns response.
 
         If retry_only_unprocessed is True, the request is only retried after
-        failures that show it was not processed (HTTP 429 and DNS resolution
-        errors), for requests that are unsafe to repeat.
+        failures that show it was not processed (HTTP 429, DNS resolution
+        errors, refused connections and connect timeouts), for requests that
+        are unsafe to repeat.
 
         Return and exceptions are the same as function request()."""
         backoff = _BackoffTimer(self._timeout_s)
@@ -266,9 +267,7 @@ class HttpClient:
 
         if response is None:
             if only_unprocessed:
-                return exception.should_retry and _is_name_resolution_error(
-                    exception
-                )
+                return exception.should_retry and _was_not_sent(exception)
             return exception.should_retry
 
         status_code, _ = response
@@ -320,9 +319,27 @@ _NAME_RESOLUTION_ERRORS = tuple(
 )
 
 
-def _is_name_resolution_error(exception: BaseException) -> bool:
-    """Returns True if the exception was caused by a failure to resolve the
-    host name, in which case the request was never sent."""
+_CONNECT_TIMEOUT_ERRORS = (
+    requests.exceptions.ConnectTimeout,
+    requests.packages.urllib3.exceptions.ConnectTimeoutError,  # type: ignore
+)
+
+
+def _was_not_sent(exception: BaseException) -> bool:
+    """Returns True if the exception shows that the request was never sent:
+    the host name could not be resolved, the connection was refused or
+    connecting timed out."""
+    return _caused_by(
+        exception,
+        _NAME_RESOLUTION_ERRORS
+        + (ConnectionRefusedError,)
+        + _CONNECT_TIMEOUT_ERRORS,
+    )
+
+
+def _caused_by(exception: BaseException, types: tuple) -> bool:
+    """Returns True if the exception or any exception in its cause chain is
+    an instance of one of the given types."""
     pending: List[Optional[BaseException]] = [exception]
     seen = set()
     while pending:
@@ -330,7 +347,7 @@ def _is_name_resolution_error(exception: BaseException) -> bool:
         if e is None or id(e) in seen:
             continue
         seen.add(id(e))
-        if isinstance(e, _NAME_RESOLUTION_ERRORS):
+        if isinstance(e, types):
             return True
         pending.extend(
             [e.__cause__, e.__context__, getattr(e, "reason", None)]

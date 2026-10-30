@@ -1623,9 +1623,10 @@ disables retries), and `timeout_s` is the minimum timeout in seconds for each
 attempt. Both options are also accepted by `deepl.Translator` and
 `deepl.DeepLAdminClient`.
 
-`DeepLAdminClient.create_developer_key()` is only retried after an HTTP 429
-status code or a DNS resolution failure, because a retry after any other
-failure could create a second key.
+`DeepLAdminClient.create_developer_key()` is only retried when the request was
+not sent: after an HTTP 429 status code, a DNS resolution failure, a refused
+connection or a connect timeout. A retry after any other failure could create
+a second key.
 
 The module-level settings `deepl.http_client.max_network_retries` and
 `deepl.http_client.min_connection_timeout` are deprecated and will be removed

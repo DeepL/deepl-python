@@ -453,8 +453,22 @@ def test_create_developer_key_does_not_retry_dns_failure_of_proxy(mocked):
     assert len(mocked.calls) == 1
 
 
+def _refused_connection(error=requests.exceptions.ConnectionError):
+    refused = ConnectionRefusedError(111, "Connection refused")
+    reason = urllib3.exceptions.NewConnectionError(None, "refused")
+    reason.__cause__ = refused
+    reason.__context__ = refused
+    return error(urllib3.exceptions.MaxRetryError(None, "/", reason))
+
+
 @pytest.mark.parametrize(
-    "failure", [{"status": 429}, {"body": _dns_failure()}]
+    "failure",
+    [
+        {"status": 429},
+        {"body": _dns_failure()},
+        {"body": _refused_connection()},
+        {"body": requests.exceptions.ConnectTimeout("connect timed out")},
+    ],
 )
 def test_create_developer_key_is_retried_when_not_processed(mocked, failure):
     mocked.post(url("v2/admin/developer-keys"), **failure)
@@ -463,6 +477,20 @@ def test_create_developer_key_is_retried_when_not_processed(mocked, failure):
     make_admin_client().create_developer_key()
 
     assert len(mocked.calls) == 2
+
+
+def test_create_developer_key_does_not_retry_refused_proxy_connection(
+    mocked,
+):
+    mocked.post(
+        url("v2/admin/developer-keys"),
+        body=_refused_connection(requests.exceptions.ProxyError),
+    )
+
+    with pytest.raises(deepl.ConnectionException):
+        make_admin_client().create_developer_key()
+
+    assert len(mocked.calls) == 1
 
 
 def test_other_admin_requests_are_retried(mocked):

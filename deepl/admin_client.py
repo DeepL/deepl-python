@@ -172,9 +172,9 @@ class DeepLAdminClient(BaseClient):
         extra_body_parameters: Optional[dict] = None,
     ) -> DeveloperKey:
         """Creates a developer key in the organization. The request is only
-        retried if it cannot have been processed (HTTP 429 or a DNS
-        resolution failure): a retry after a server error, timeout or lost
-        connection could create a second key.
+        retried if it was not sent (HTTP 429, a DNS resolution failure, a
+        refused connection or a connect timeout): a retry after a server
+        error, read timeout or lost connection could create a second key.
 
         :param label: (Optional) Label for the new key. The API uses
             "DeepL API Key" if no label is given.
