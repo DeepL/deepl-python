@@ -11,7 +11,7 @@ import urllib3
 
 import deepl
 
-from .client import make_admin_client, url
+from .client import StreamedBody, make_admin_client, url
 from .matchers import bodyless_request, json_request
 
 UTC = datetime.timezone.utc
@@ -472,6 +472,7 @@ def test_create_developer_key_without_label(mocked):
         {"status": 503},
         {"body": requests.exceptions.ConnectionError("reset")},
         {"body": requests.exceptions.ReadTimeout("slow")},
+        {"body": StreamedBody(b"{}", fail_after=0)},
     ],
 )
 def test_create_developer_key_is_not_retried_after_possible_processing(

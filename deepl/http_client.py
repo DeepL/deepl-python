@@ -145,7 +145,9 @@ class HttpClient:
         If retry_only_unprocessed is True, the request is only retried after
         failures that show it was not processed (HTTP 429, DNS resolution
         errors, refused connections and connect timeouts), for requests that
-        are unsafe to repeat.
+        are unsafe to repeat. Otherwise connection failures, including a
+        connection that breaks off while the response body is read, and
+        timeouts are retried too.
 
         Return and exceptions are the same as function request()."""
         backoff = _BackoffTimer(self._timeout_s)
@@ -246,6 +248,11 @@ class HttpClient:
             raise ConnectionException(message, should_retry=True) from e
         except requests.exceptions.Timeout as e:
             message = f"Request timed out: {e}"
+            raise ConnectionException(message, should_retry=True) from e
+        except requests.exceptions.ChunkedEncodingError as e:
+            # The connection broke off while the body was read (reset or
+            # truncated); the request reached the server.
+            message = f"Connection broken while reading response: {e}"
             raise ConnectionException(message, should_retry=True) from e
         except requests.exceptions.RequestException as e:
             message = f"Request failed: {e}"

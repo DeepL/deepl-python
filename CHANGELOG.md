@@ -251,6 +251,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `glossary` parameter. Calling it emits a `DeprecationWarning`.
 
 ### Fixed
+- A connection that is reset or breaks off while the response body is read
+  is now retried like other connection failures, and raises
+  `ConnectionException` with `should_retry` `True` once retries are used up.
+  `create_developer_key()` is still not retried after it.
 - HTTP 3xx responses that are not followed as redirects (e.g. 300, 304, or a
   redirect without `Location`) now raise `DeepLException` with
   `http_status_code`, instead of being parsed as a successful response.

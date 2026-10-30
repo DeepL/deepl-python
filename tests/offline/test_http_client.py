@@ -7,7 +7,7 @@ import pytest
 import requests  # type: ignore
 import urllib3
 
-from .client import make_deepl_client, make_translator, url
+from .client import StreamedBody, make_deepl_client, make_translator, url
 from .matchers import bodyless_request
 
 USAGE_JSON = {"character_count": 1, "character_limit": 2}
@@ -36,6 +36,15 @@ def test_retries_request_after_connection_error(mocked):
 
 def test_retries_request_after_timeout(mocked):
     mocked.get(url("v2/usage"), body=requests.exceptions.ReadTimeout("slow"))
+    mocked.get(url("v2/usage"), json=USAGE_JSON)
+
+    make_translator().get_usage()
+
+    assert len(mocked.calls) == 2
+
+
+def test_retries_request_when_connection_breaks_while_reading_body(mocked):
+    mocked.get(url("v2/usage"), body=StreamedBody(b"{}", fail_after=0))
     mocked.get(url("v2/usage"), json=USAGE_JSON)
 
     make_translator().get_usage()
