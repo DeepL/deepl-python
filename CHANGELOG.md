@@ -242,6 +242,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   connect to the proxy), are no longer retried and raise `ConnectionException`
   with `should_retry` `False`.
 - Query string values encode a space as `%20` instead of `+`.
+- Fixed errors from the pre-signed translation memory upload and download URLs
+  reporting `should_retry` as false for HTTP 429 and 5xx, and dropping the
+  response body of a failed download from the message.
 - HTTP 401 responses now raise `AuthorizationException`, like 403. Before they
   raised `DeepLException` with "Unexpected status code: 401".
 - `DeepLException.should_retry` is now `True` for every HTTP 5xx error. It was

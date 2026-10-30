@@ -2061,6 +2061,9 @@ class DeepLClient(Translator):
             .. deprecated::
                 Use content instead. input_file will be removed in the next
                 major version.
+
+        :raises DeepLException: If the storage URL returns an error status,
+            with http_status_code set; should_retry is True for 429 and 5xx.
         """
         if input_file is not None:
             if content is not None:
@@ -2206,6 +2209,9 @@ class DeepLClient(Translator):
             default 64 KiB. Only used if output_file is specified.
         :return: None if output_file is specified, otherwise the
             requests.Response.
+
+        :raises DeepLException: If the storage URL returns an error status,
+            with http_status_code set; should_retry is True for 429 and 5xx.
         """
         download_url = job.result.download_url if job.result else None
         if not download_url:
@@ -2361,10 +2367,21 @@ class DeepLClient(Translator):
     ) -> None:
         if 200 <= status_code < 300:
             return
-        detail = content if isinstance(content, str) else ""
+        if isinstance(content, requests.Response):
+            # A streamed download: read the error body for the message.
+            try:
+                detail = content.text
+            except requests.exceptions.RequestException:
+                detail = ""
+        else:
+            detail = content
         message = f"Error {action}, HTTP status: {status_code}"
         if detail:
             message += f", detail: {detail}"
+        # Storage URLs are not DeepL API endpoints, so every error is a plain
+        # DeepLException; 429 and 5xx are retryable as for the API.
         raise DeepLException(
-            message, should_retry=False, http_status_code=status_code
+            message,
+            should_retry=status_code == 429 or status_code >= 500,
+            http_status_code=status_code,
         )

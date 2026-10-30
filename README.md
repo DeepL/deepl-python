@@ -1268,6 +1268,13 @@ job = deepl_client.wait_until_translation_memory_job_done(
 )
 ```
 
+Errors from the pre-signed upload and download URLs are not DeepL API errors:
+`upload_translation_memory_file()` and `download_translation_memory_export()`
+raise a plain `DeepLException` with the response body in the message,
+`http_status_code` set, and `should_retry` true for HTTP 429 and 5xx. An
+expired URL (for example HTTP 403) therefore does not raise
+`AuthorizationException`.
+
 `TranslationMemoryJob.status` returns a `TranslationMemoryJobStatus` member
 (`AWAITING_INPUT`, `PROCESSING`, `COMPLETED`, `FAILED` or `EXPIRED`), or the
 plain string for a status the library does not know. Members are strings and

@@ -369,6 +369,24 @@ def test_raises_with_status_and_detail_when_storage_rejects_upload(mocked):
     assert exc_info.value.http_status_code == 403
 
 
+@pytest.mark.parametrize(
+    "status, should_retry",
+    [(429, True), (500, True), (503, True), (403, False)],
+)
+def test_marks_storage_errors_retryable_for_429_and_5xx(
+    mocked, no_retries, status, should_retry
+):
+    mocked.put(UPLOAD_URL, status=status)
+
+    with pytest.raises(deepl.DeepLException) as exc_info:
+        make_deepl_client().upload_translation_memory_file(UPLOAD_URL, b"x")
+
+    # A plain DeepLException: storage URLs are not DeepL API endpoints.
+    assert type(exc_info.value) is deepl.DeepLException
+    assert exc_info.value.http_status_code == status
+    assert exc_info.value.should_retry is should_retry
+
+
 @pytest.mark.parametrize("status, reused", [(200, True), (202, False)])
 def test_marks_export_as_reused_when_server_returns_200(
     mocked, status, reused
@@ -681,15 +699,16 @@ def test_raises_when_downloading_export_without_download_url():
         make_deepl_client().download_translation_memory_export(job)
 
 
-def test_raises_when_storage_rejects_download(mocked):
-    mocked.get(DOWNLOAD_URL, status=404)
+def test_raises_with_body_when_storage_rejects_streamed_download(mocked):
+    mocked.get(DOWNLOAD_URL, status=404, body="no such key")
     job = TranslationMemoryJob.from_json(
         job_json("completed", "export", download_url=DOWNLOAD_URL)
     )
 
     with pytest.raises(
         deepl.DeepLException,
-        match="downloading translation memory export, HTTP status: 404",
+        match="downloading translation memory export, HTTP status: 404, "
+        "detail: no such key",
     ):
         make_deepl_client().download_translation_memory_export(
             job, io.BytesIO()
