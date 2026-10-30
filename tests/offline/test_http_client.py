@@ -187,7 +187,7 @@ def test_does_not_retry_tls_or_proxy_failure(mocked, error):
     assert len(mocked.calls) == 1
 
 
-def test_retries_failure_to_connect_to_proxy(mocked):
+def test_does_not_retry_a_failure_to_connect_to_the_proxy(mocked):
     refused = urllib3.exceptions.NewConnectionError(None, "refused")
     mocked.get(
         url("v2/usage"),
@@ -195,8 +195,9 @@ def test_retries_failure_to_connect_to_proxy(mocked):
             "Unable to connect to proxy", refused
         ),
     )
-    mocked.get(url("v2/usage"), json=USAGE_JSON)
 
-    make_translator().get_usage()
+    with pytest.raises(deepl.ConnectionException) as exc_info:
+        make_translator().get_usage()
 
-    assert len(mocked.calls) == 2
+    assert not exc_info.value.should_retry
+    assert len(mocked.calls) == 1

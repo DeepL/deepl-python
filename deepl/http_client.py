@@ -238,12 +238,8 @@ class HttpClient:
             message = f"TLS connection failed: {e}"
             raise ConnectionException(message, should_retry=False) from e
         except requests.exceptions.ProxyError as e:
-            # Only a failure to reach the proxy is transient; an error the
-            # proxy reports (e.g. 407, refused tunnel) is not.
             message = f"Proxy connection failed: {e}"
-            raise ConnectionException(
-                message, should_retry=_is_connect_failure(e)
-            ) from e
+            raise ConnectionException(message, should_retry=False) from e
         except requests.exceptions.ConnectionError as e:
             message = f"Connection failed: {e}"
             raise ConnectionException(message, should_retry=True) from e
@@ -270,7 +266,9 @@ class HttpClient:
 
         if response is None:
             if only_unprocessed:
-                return _is_name_resolution_error(exception)
+                return exception.should_retry and _is_name_resolution_error(
+                    exception
+                )
             return exception.should_retry
 
         status_code, _ = response
@@ -325,24 +323,6 @@ _NAME_RESOLUTION_ERRORS = tuple(
 def _is_name_resolution_error(exception: BaseException) -> bool:
     """Returns True if the exception was caused by a failure to resolve the
     host name, in which case the request was never sent."""
-    return _is_caused_by(exception, _NAME_RESOLUTION_ERRORS)
-
-
-_CONNECT_FAILURES = (
-    socket.gaierror,
-    ConnectionRefusedError,
-    requests.packages.urllib3.exceptions.NewConnectionError,  # type: ignore
-    requests.packages.urllib3.exceptions.ConnectTimeoutError,  # type: ignore
-)
-
-
-def _is_connect_failure(exception: BaseException) -> bool:
-    """Returns True if the exception was caused by a failure to open the
-    connection: DNS failure, refused connection or connect timeout."""
-    return _is_caused_by(exception, _CONNECT_FAILURES)
-
-
-def _is_caused_by(exception: BaseException, types: tuple) -> bool:
     pending: List[Optional[BaseException]] = [exception]
     seen = set()
     while pending:
@@ -350,7 +330,7 @@ def _is_caused_by(exception: BaseException, types: tuple) -> bool:
         if e is None or id(e) in seen:
             continue
         seen.add(id(e))
-        if isinstance(e, types):
+        if isinstance(e, _NAME_RESOLUTION_ERRORS):
             return True
         pending.extend(
             [e.__cause__, e.__context__, getattr(e, "reason", None)]

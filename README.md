@@ -1574,9 +1574,10 @@ option, see the [documentation for requests][requests-verify-ssl-docs].
 This SDK will automatically retry failed HTTP requests if the failures could
 be transient: HTTP 429 and 5xx status codes, and network failures such as
 refused or reset connections, DNS failures and timeouts. TLS and certificate
-failures, and errors reported by a proxy, are not retried. By default a
-request is retried up to 5 times, and each attempt has a timeout of at least
-10 seconds. You can change both per client with the `max_retries` and `timeout_s` options when
+failures, and proxy failures (including a failure to connect to the proxy),
+are not retried. By default a request is retried up to 5 times, and each
+attempt has a timeout of at least 10 seconds. You can change both per client
+with the `max_retries` and `timeout_s` options when
 constructing a `deepl.DeepLClient`:
 
 ```python

@@ -429,7 +429,7 @@ def test_create_developer_key_is_not_retried_after_possible_processing(
     assert len(mocked.calls) == 1
 
 
-def _dns_failure():
+def _dns_failure(error_class=requests.exceptions.ConnectionError):
     gaierror = socket.gaierror(8, "not known")
     if hasattr(urllib3.exceptions, "NameResolutionError"):
         reason = urllib3.exceptions.NameResolutionError(
@@ -438,9 +438,19 @@ def _dns_failure():
     else:
         reason = urllib3.exceptions.NewConnectionError(None, "not known")
     reason.__context__ = gaierror
-    return requests.exceptions.ConnectionError(
-        urllib3.exceptions.MaxRetryError(None, "/", reason)
+    return error_class(urllib3.exceptions.MaxRetryError(None, "/", reason))
+
+
+def test_create_developer_key_does_not_retry_dns_failure_of_proxy(mocked):
+    mocked.post(
+        url("v2/admin/developer-keys"),
+        body=_dns_failure(requests.exceptions.ProxyError),
     )
+
+    with pytest.raises(deepl.ConnectionException):
+        make_admin_client().create_developer_key()
+
+    assert len(mocked.calls) == 1
 
 
 @pytest.mark.parametrize(
