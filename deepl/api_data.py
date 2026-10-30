@@ -1156,12 +1156,14 @@ class SplitSentences(Enum):
         prevent the engine from splitting the sentence unintentionally.
     - ALL: (default) splits on punctuation and on newlines.
     - NO_NEWLINES: splits on punctuation only, ignoring newlines.
+    - DEFAULT: deprecated alias of ALL, use ALL instead.
     """
 
     OFF = "0"
     ALL = "1"
     NO_NEWLINES = "nonewlines"
     DEFAULT = ALL
+    """Deprecated alias of ALL, use ALL instead."""
 
     def __str__(self):
         return self.value

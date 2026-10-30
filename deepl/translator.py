@@ -560,6 +560,10 @@ class Translator(BaseClient):
         """Translate text(s) using given glossary. The source and target
         languages are assumed to match the glossary languages.
 
+        .. deprecated::
+            Use translate_text() with the glossary parameter instead. Calling
+            this function emits a DeprecationWarning.
+
         Note that if the glossary target language is English (EN), the text
         will be translated into British English (EN-GB). To instead translate
         into American English specify target_lang="EN-US".
@@ -574,6 +578,12 @@ class Translator(BaseClient):
             text was one string, then a single TextResult object is returned.
         """
 
+        warnings.warn(
+            "translate_text_with_glossary is deprecated, use translate_text "
+            "with the glossary parameter",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if not isinstance(glossary, GlossaryInfo):
             msg = (
                 "This function expects the glossary parameter to be an "

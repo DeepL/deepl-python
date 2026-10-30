@@ -431,6 +431,26 @@ def test_returns_list_for_single_item_list(mocked):
     assert isinstance(results, list)
 
 
+def test_warns_that_translate_text_with_glossary_is_deprecated(mocked):
+    reply_with_translation(
+        mocked,
+        {
+            **BASE_BODY,
+            "source_lang": "EN",
+            "target_lang": "DE",
+            "glossary_id": "g-v2",
+        },
+    )
+
+    with pytest.warns(
+        DeprecationWarning, match="translate_text_with_glossary is deprecated"
+    ):
+        make_translator().translate_text_with_glossary(
+            "hello", glossary_info(source_lang="EN", target_lang="DE")
+        )
+
+
+@pytest.mark.filterwarnings("ignore:translate_text_with_glossary")
 def test_sends_glossary_target_language_for_translate_with_glossary(mocked):
     reply_with_translation(
         mocked,
@@ -447,6 +467,7 @@ def test_sends_glossary_target_language_for_translate_with_glossary(mocked):
     )
 
 
+@pytest.mark.filterwarnings("ignore:translate_text_with_glossary")
 def test_sends_explicit_target_language_for_translate_with_glossary(mocked):
     reply_with_translation(
         mocked,
@@ -467,6 +488,7 @@ def test_sends_explicit_target_language_for_translate_with_glossary(mocked):
     )
 
 
+@pytest.mark.filterwarnings("ignore:translate_text_with_glossary")
 def test_raises_when_translating_with_glossary_id_string():
     with pytest.raises(ValueError, match="instance of GlossaryInfo"):
         make_translator().translate_text_with_glossary(

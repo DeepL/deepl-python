@@ -47,8 +47,11 @@ def main() -> None:
             glossary=ginfo,
         )
         doc_status.done
-    _ = deepl_client.translate_text_with_glossary(
-        ["Ich bin ein Beispielsatz.", "Ich bin noch ein Satz."], glossary=ginfo
+    _ = deepl_client.translate_text(
+        ["Ich bin ein Beispielsatz.", "Ich bin noch ein Satz."],
+        source_lang="DE",
+        target_lang="FR",
+        glossary=ginfo,
     )
 
     print("Success")

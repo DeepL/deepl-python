@@ -225,6 +225,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `input_file` keyword of `upload_translation_memory_file()` is
   deprecated in favour of `content` and will be removed in the next major
   version. Passing it emits a `DeprecationWarning`.
+- `SplitSentences.DEFAULT` is deprecated, use `SplitSentences.ALL`, which it is
+  an alias of.
+- `translate_text_with_glossary()` is deprecated, use `translate_text()` with
+  the `glossary` parameter. Calling it emits a `DeprecationWarning`.
 
 ### Fixed
 - HTTP 3xx responses that are not followed as redirects (e.g. 300, 304, or a

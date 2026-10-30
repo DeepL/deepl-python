@@ -522,7 +522,7 @@ def get_parser(prog_name):
         "--split-sentences",
         type=str,
         choices=[enum.value for enum in deepl.SplitSentences],
-        default=deepl.SplitSentences.DEFAULT.value,
+        default=deepl.SplitSentences.ALL.value,
         help="control sentence splitting before translation, see API for "
         "information",
     )

@@ -161,9 +161,10 @@ arguments are:
   auto-detect the source language.
 - `target_lang`: Required. Specifies the target language code.
 - `split_sentences`: specify how input text should be split into sentences,
-  default: `'on'`.
-    - `'on''` (`SplitSentences.ON`): input text will be split into sentences
-      using both newlines and punctuation.
+  default: `'1'`.
+    - `'1'` (`SplitSentences.ALL`): input text will be split into sentences
+      using both newlines and punctuation. `SplitSentences.DEFAULT` is a
+      deprecated alias of `SplitSentences.ALL`.
     - `'off'` (`SplitSentences.OFF`): input text will not be split into
       sentences. Use this for applications where each input text contains only
       one sentence.
