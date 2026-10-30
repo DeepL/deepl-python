@@ -401,7 +401,7 @@ wait is shortened so it does not run past `timeout_s`.
 
 `translate_document_download()` writes the translated document to the
 file-like object given as `output_file`, in chunks of `chunk_size` bytes
-(default 64 KiB). Calling it without `output_file` returns the streaming
+(default 64 KiB), without loading the whole document into memory. Calling it without `output_file` returns the streaming
 `requests.Response` instead; this is deprecated, emits a `DeprecationWarning`,
 and `output_file` will be required in the next major version. If the download
 fails, the raised exception carries the API's error message.

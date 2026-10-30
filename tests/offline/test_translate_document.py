@@ -7,7 +7,7 @@ import io
 import deepl
 import pytest
 
-from .client import make_translator, url
+from .client import StreamedBody, make_translator, url
 from .matchers import json_request, multipart_request
 
 HANDLE = deepl.DocumentHandle("doc-1", "key-1")
@@ -561,6 +561,17 @@ def test_writes_download_into_file_object_in_chunks(mocked):
 
     assert result is None
     assert output.getvalue() == BINARY_CONTENT
+
+
+def test_streams_download_without_reading_the_whole_document(mocked):
+    body = StreamedBody(BINARY_CONTENT)
+    reply_with_result(mocked, body)
+    output = io.BytesIO()
+
+    make_translator().translate_document_download(HANDLE, output, chunk_size=4)
+
+    assert output.getvalue() == BINARY_CONTENT
+    assert all(size == 4 for size in body.read_sizes)
 
 
 def test_retries_upload_when_rate_limited(mocked):

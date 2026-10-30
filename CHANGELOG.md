@@ -255,6 +255,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is now retried like other connection failures, and raises
   `ConnectionException` with `should_retry` `True` once retries are used up.
   `create_developer_key()` is still not retried after it.
+- `translate_document_download()` now streams the translated document to
+  `output_file` in chunks, instead of first reading the whole document into
+  memory for the debug log.
 - HTTP 3xx responses that are not followed as redirects (e.g. 300, 304, or a
   redirect without `Location`) now raise `DeepLException` with
   `http_status_code`, instead of being parsed as a successful response.

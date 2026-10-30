@@ -122,17 +122,21 @@ class BaseClient:
         )
 
         json = None
+        content_str: Optional[str] = None
         if isinstance(content, str):
             content_str = content
             try:
                 json = json_module.loads(content)
             except json_module.JSONDecodeError:
                 pass
-        else:
+        elif not 200 <= status_code < 300:
+            # Read only the error body of a streamed response; a successful
+            # one is left unread so that the caller can stream it.
             content_str = content.text
 
         util.log_info("DeepL API response", url=url, status_code=status_code)
-        util.log_debug("Response details", content=content_str)
+        if content_str is not None:
+            util.log_debug("Response details", content=content_str)
 
         return status_code, content, json
 
