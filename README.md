@@ -394,9 +394,11 @@ these steps individually, you can instead use the following functions directly:
 `error_message` of the document, and the `done` (translation succeeded) and
 `ok` (translation has not failed) properties. A status value this library
 version does not know is kept as a string in `status`.
-`translate_document_wait_until_done()` polls the status until the translation
-is done and returns the final `DocumentStatus`; if the translation fails it
-raises a `DeepLException` with the API's error message.
+`translate_document_wait_until_done()` polls the status every 5 seconds until
+the translation is done and returns the final `DocumentStatus`; if the
+translation fails it raises a `DeepLException` with the API's error message.
+With `timeout_s` it raises a `DeepLException` once the timeout expires; the last
+wait is shortened so it does not run past `timeout_s`.
 
 `translate_document_download()` writes the translated document to the
 file-like object given as `output_file`, in chunks of `chunk_size` bytes

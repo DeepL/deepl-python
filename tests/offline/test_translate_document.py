@@ -757,3 +757,25 @@ def test_wraps_file_open_failure_in_document_exception(tmp_path, bad):
 
     assert exc_info.value.document_handle is None
     assert isinstance(exc_info.value.__cause__, OSError)
+
+
+def test_cuts_last_status_poll_sleep_to_timeout(mocked, monkeypatch):
+    clock = [1000.0]
+    sleeps = []
+
+    def sleep(secs):
+        sleeps.append(secs)
+        clock[0] += secs
+
+    monkeypatch.setattr(deepl.translator.time, "time", lambda: clock[0])
+    monkeypatch.setattr(deepl.translator.time, "sleep", sleep)
+    reply_with_status(mocked, "translating")
+    reply_with_status(mocked, "translating")
+    reply_with_status(mocked, "translating")
+
+    with pytest.raises(deepl.DeepLException, match="Manual timeout of 7s"):
+        make_translator().translate_document_wait_until_done(
+            HANDLE, timeout_s=7
+        )
+
+    assert sleeps == [5.0, 2.0]

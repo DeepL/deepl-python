@@ -673,8 +673,8 @@ class Translator(BaseClient):
             by DeepL" watermark to the translated document. Only supported for
             docx and pdf output; ignored by the API for other formats.
         :param timeout_s: (beta) (Optional) Maximum time to wait before
-            the call raises an error. Note that this is not accurate to the
-            second, but only polls every 5 seconds.
+            the call raises an error. The status is polled every 5 seconds;
+            the last wait is shortened so the call does not run past it.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. If provided,
             keys in this dict will be added to the request body, and replace
@@ -795,8 +795,8 @@ class Translator(BaseClient):
             by DeepL" watermark to the translated document. Only supported for
             docx and pdf output; ignored by the API for other formats.
         :param timeout_s: (beta) (Optional) Maximum time to wait before
-            the call raises an error. Note that this is not accurate to the
-            second, but only polls every 5 seconds.
+            the call raises an error. The status is polled every 5 seconds;
+            the last wait is shortened so the call does not run past it.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. If provided,
             keys in this dict will be added to the request body, and replace
@@ -1037,30 +1037,29 @@ class Translator(BaseClient):
         final status when the translation completes successfully.
         :param handle: DocumentHandle to the document translation to wait on.
         :param timeout_s: (beta) (Optional) Maximum time to wait before
-            the call raises an error. Note that this is not accurate to the
-            second, but only polls every 5 seconds.
+            the call raises an error. The status is polled every 5 seconds;
+            the last wait is shortened so the call does not run past it.
         :return: DocumentStatus containing the status when completed.
 
         :raises DeepLException: If the document translation fails, with the
             API's error message, or if timeout_s is exceeded.
         """
+        deadline_s = None if timeout_s is None else time.time() + timeout_s
         status = self.translate_document_get_status(handle)
-        start_time_s = time.time()
         while status.ok and not status.done:
-            if (
-                timeout_s is not None
-                and time.time() - start_time_s > timeout_s
-            ):
+            remaining_s = (
+                None if deadline_s is None else deadline_s - time.time()
+            )
+            if remaining_s is not None and remaining_s <= 0:
                 raise DeepLException(
                     f"Manual timeout of {timeout_s}s exceeded for"
                     + " document translation",
                     should_retry=False,
                 )
             else:
-                secs = (
-                    5.0  # seconds_remaining is currently unreliable, so just
-                )
-                # poll equidistantly
+                # seconds_remaining is unreliable, so poll every 5 seconds;
+                # the last sleep is cut to the deadline.
+                secs = 5.0 if remaining_s is None else min(5.0, remaining_s)
                 util.log_info(
                     f"Rechecking document translation status "
                     f"after sleeping for {secs:.3f} seconds."

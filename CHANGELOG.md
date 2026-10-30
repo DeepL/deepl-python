@@ -342,6 +342,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   if the input file does not exist, and `DocumentTranslationException` (with
   `document_handle` `None`) if the input or output file cannot be opened,
   instead of a raw `OSError`.
+- `translate_document_wait_until_done()` (and `translate_document()` with
+  `timeout_s`) shortens its last wait to the timeout, so it no longer runs up
+  to 5 seconds past `timeout_s`.
 
 ## [1.32.0] - 2026-08-12
 ### Added
