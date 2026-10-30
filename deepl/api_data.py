@@ -2760,7 +2760,7 @@ class AdminUsageBreakdown:
         document_translation_characters: int,
         text_improvement_characters: int,
         speech_to_text_minutes: float,
-        speech_to_speech_minutes: float = 0.0,
+        speech_to_speech_minutes: Optional[float] = None,
     ):
         self._total_characters = total_characters
         self._text_translation_characters = text_translation_characters
@@ -2786,8 +2786,8 @@ class AdminUsageBreakdown:
             speech_to_text_minutes=_float_or_zero(
                 json, "speech_to_text_minutes"
             ),
-            speech_to_speech_minutes=_float_or_zero(
-                json, "speech_to_speech_minutes"
+            speech_to_speech_minutes=get_float_safe(
+                _as_dict(json), "speech_to_speech_minutes"
             ),
         )
 
@@ -2817,8 +2817,9 @@ class AdminUsageBreakdown:
         return self._speech_to_text_minutes
 
     @property
-    def speech_to_speech_minutes(self) -> float:
-        """Returns the number of speech-to-speech minutes used."""
+    def speech_to_speech_minutes(self) -> Optional[float]:
+        """Returns the number of speech-to-speech minutes used, or None if the
+        report does not contain it."""
         return self._speech_to_speech_minutes
 
 
@@ -2878,7 +2879,8 @@ class KeyUsage:
 class AdminUsageReport:
     """Admin usage analytics report for a date range.
 
-    :param total_usage: Usage totals over the whole date range.
+    :param total_usage: Usage totals over the whole date range, or None if
+        absent.
     :param start_date: Start of the report period.
     :param end_date: End of the report period.
     :param group_by: Grouping used for the report: an AdminUsageGroupBy for a
@@ -2890,7 +2892,7 @@ class AdminUsageReport:
 
     def __init__(
         self,
-        total_usage: AdminUsageBreakdown,
+        total_usage: Optional[AdminUsageBreakdown],
         start_date: Optional[datetime.datetime],
         end_date: Optional[datetime.datetime],
         group_by: Union[AdminUsageGroupBy, str, None] = None,
@@ -2908,9 +2910,12 @@ class AdminUsageReport:
     def from_json(json: Any) -> "AdminUsageReport":
         """Create AdminUsageReport from the given API JSON object."""
         report = _as_dict(_as_dict(json).get("usage_report"))
+        total_usage = report.get("total_usage")
         return AdminUsageReport(
-            total_usage=AdminUsageBreakdown.from_json(
-                report.get("total_usage")
+            total_usage=(
+                AdminUsageBreakdown.from_json(total_usage)
+                if isinstance(total_usage, dict)
+                else None
             ),
             start_date=_parse_utc_timestamp(report.get("start_date")),
             end_date=_parse_utc_timestamp(report.get("end_date")),
@@ -2926,8 +2931,9 @@ class AdminUsageReport:
         )
 
     @property
-    def total_usage(self) -> AdminUsageBreakdown:
-        """Returns the usage totals over the whole date range."""
+    def total_usage(self) -> Optional[AdminUsageBreakdown]:
+        """Returns the usage totals over the whole date range, or None if the
+        report does not contain them."""
         return self._total_usage
 
     @property

@@ -1459,13 +1459,16 @@ date raises a `ValueError` before any request is sent. Use
 way. The `group_by` of an `AdminUsageReport` and the `aggregate_by` of a
 `CustomTagUsageReport` are `AdminUsageGroupBy` and `CustomTagUsageAggregateBy`
 members for known values; a value this library does not know is returned as
-the string the API sent.
+the string the API sent. Fields the report leaves out are `None`, for example
+`total_usage` and `speech_to_speech_minutes` of an `AdminUsageBreakdown`. A
+response without a usage report raises a `DeepLException`.
 
 ```python
 report = admin_client.get_usage_analytics(
     "2026-06-01", "2026-07-01", group_by=deepl.AdminUsageGroupBy.KEY
 )
-print(f"Total characters: {report.total_usage.total_characters}")
+if report.total_usage is not None:
+    print(f"Total characters: {report.total_usage.total_characters}")
 for key_usage in report.key_usages:
     print(f"{key_usage.api_key_label}: {key_usage.usage.total_characters}")
 ```

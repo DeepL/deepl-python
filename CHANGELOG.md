@@ -47,7 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `extra_body_parameters`.
   `create_developer_key()` is retried only when the request was not sent:
   after HTTP 429, a DNS resolution failure, a refused connection or a connect
-  timeout.
+  timeout. `AdminUsageReport.total_usage` and
+  `AdminUsageBreakdown.speech_to_speech_minutes` are `None` when the report
+  does not contain them, and a response without `usage_report` or
+  `custom_tag_usage_report` raises `DeepLException`.
 - Added `get_languages_for_resource()` method to the `DeepLClient` class to
   retrieve the languages supported by a resource, with per-feature support
   information, via the `/v3/languages` endpoint. Resources are given as

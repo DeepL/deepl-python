@@ -100,7 +100,7 @@ def test_get_usage_analytics(mocked):
     assert usage.api_key_label == "Staging API Key"
     assert usage.usage_date == datetime.datetime(2025, 9, 29, tzinfo=UTC)
     assert usage.usage.text_improvement_characters == 156
-    assert usage.usage.speech_to_speech_minutes == 0
+    assert usage.usage.speech_to_speech_minutes is None
 
 
 def test_get_custom_tag_usage_analytics(mocked):
@@ -252,6 +252,43 @@ def test_date_range_rejected_by_api_raises_exception(mocked):
 
     with pytest.raises(deepl.DeepLException, match="must be before"):
         make_admin_client().get_usage_analytics("2026-05-04", "2026-05-03")
+
+
+def test_absent_total_usage_reads_as_none(mocked):
+    mocked.get(url("v2/admin/analytics"), json={"usage_report": {}})
+
+    report = make_admin_client().get_usage_analytics(
+        "2026-05-03", "2026-05-04"
+    )
+
+    assert report.total_usage is None
+
+
+def test_absent_speech_to_speech_minutes_reads_as_none(mocked):
+    mocked.get(
+        url("v2/admin/analytics"),
+        json={"usage_report": {"total_usage": {"total_characters": 3}}},
+    )
+
+    report = make_admin_client().get_usage_analytics(
+        "2026-05-03", "2026-05-04"
+    )
+
+    assert report.total_usage.speech_to_speech_minutes is None
+
+
+@pytest.mark.parametrize("body", [{}, {"usage_report": None}, {"other": {}}])
+def test_analytics_response_without_report_raises_exception(mocked, body):
+    mocked.get(url("v2/admin/analytics"), json=body)
+    mocked.get(url("v2/admin/analytics/custom-tags"), json=body)
+
+    client = make_admin_client()
+    with pytest.raises(deepl.DeepLException, match="missing usage_report"):
+        client.get_usage_analytics("2026-05-03", "2026-05-04")
+    with pytest.raises(
+        deepl.DeepLException, match="missing custom_tag_usage_report"
+    ):
+        client.get_custom_tag_usage_analytics("2026-05-03", "2026-05-04")
 
 
 def test_response_with_malformed_values_is_parsed_tolerantly(mocked):

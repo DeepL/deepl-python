@@ -110,7 +110,8 @@ class DeepLAdminClient(BaseClient):
             see AdminUsageGroupBy.
         :return: AdminUsageReport containing the usage statistics.
         :raises ValueError: If a date is not a date or a "YYYY-MM-DD" string.
-        :raises DeepLException: If the API rejects the date range.
+        :raises DeepLException: If the API rejects the date range, or the
+            response contains no usage report.
         """
         params = _date_range_params(start_date, end_date)
         if group_by is not None:
@@ -122,6 +123,7 @@ class DeepLAdminClient(BaseClient):
         )
         self._raise_for_status(status, content, json)
         _require_object(json, "Usage analytics")
+        _require_report(json, "usage_report")
         return AdminUsageReport.from_json(json)
 
     def get_custom_tag_usage_analytics(
@@ -149,7 +151,8 @@ class DeepLAdminClient(BaseClient):
         :param page: (Optional) Page number to retrieve.
         :return: CustomTagUsageReport containing the usage statistics.
         :raises ValueError: If a date is not a date or a "YYYY-MM-DD" string.
-        :raises DeepLException: If the API rejects the date range.
+        :raises DeepLException: If the API rejects the date range, or the
+            response contains no usage report.
         """
         params = _date_range_params(start_date, end_date)
         if aggregate_by is not None:
@@ -163,6 +166,7 @@ class DeepLAdminClient(BaseClient):
         )
         self._raise_for_status(status, content, json)
         _require_object(json, "Custom tag usage analytics")
+        _require_report(json, "custom_tag_usage_report")
         return CustomTagUsageReport.from_json(json)
 
     def create_developer_key(
@@ -337,6 +341,11 @@ def _parse_key(json) -> DeveloperKey:
 def _require_object(json, what: str):
     if not isinstance(json, dict):
         raise DeepLException(f"{what} response is not a JSON object")
+
+
+def _require_report(json: dict, field: str):
+    if not isinstance(json.get(field), dict):
+        raise DeepLException(f"Usage analytics response is missing {field}")
 
 
 def _key_id(key: Union[str, DeveloperKey]) -> str:
