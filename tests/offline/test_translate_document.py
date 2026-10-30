@@ -580,10 +580,14 @@ def test_raises_connection_exception_when_download_connection_breaks(
 ):
     reply_with_result(mocked, StreamedBody(BINARY_CONTENT, fail_after))
 
-    with pytest.raises(deepl.ConnectionException, match="reset by peer"):
+    with pytest.raises(
+        deepl.ConnectionException, match="reset by peer"
+    ) as exc_info:
         make_translator().translate_document_download(
             HANDLE, io.BytesIO(), chunk_size=4
         )
+
+    assert exc_info.value.should_retry is True
 
 
 def test_retries_upload_when_rate_limited(mocked):

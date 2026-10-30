@@ -260,7 +260,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   memory for the debug log.
 - A connection reset or timeout while `translate_document_download()` or
   `download_translation_memory_export()` reads the downloaded file now raises
-  `ConnectionException`, instead of a `requests` exception.
+  `ConnectionException` with `should_retry` `True`, instead of a `requests`
+  exception.
 - HTTP 3xx responses that are not followed as redirects (e.g. 300, 304, or a
   redirect without `Location`) now raise `DeepLException` with
   `http_status_code`, instead of being parsed as a successful response.

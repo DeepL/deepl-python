@@ -798,10 +798,14 @@ def test_raises_connection_exception_when_export_download_connection_breaks(
         job_json("completed", "export", download_url=DOWNLOAD_URL)
     )
 
-    with pytest.raises(deepl.ConnectionException, match="reset by peer"):
+    with pytest.raises(
+        deepl.ConnectionException, match="reset by peer"
+    ) as exc_info:
         make_deepl_client().download_translation_memory_export(
             job, io.BytesIO(), chunk_size=2
         )
+
+    assert exc_info.value.should_retry is True
 
 
 def test_raises_when_downloading_export_without_download_url():

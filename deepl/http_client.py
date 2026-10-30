@@ -316,9 +316,7 @@ def read_response_text(response: requests.Response) -> str:
     try:
         return response.text
     except requests.exceptions.RequestException as e:
-        raise ConnectionException(
-            f"Connection failed while reading response: {e}"
-        ) from e
+        raise _body_read_exception(e) from e
 
 
 def iter_response_content(
@@ -329,9 +327,24 @@ def iter_response_content(
     try:
         yield from response.iter_content(chunk_size=chunk_size)
     except requests.exceptions.RequestException as e:
-        raise ConnectionException(
-            f"Connection failed while reading response: {e}"
-        ) from e
+        raise _body_read_exception(e) from e
+
+
+_RETRYABLE_BODY_READ_ERRORS = (
+    requests.exceptions.ConnectionError,
+    requests.exceptions.Timeout,
+    requests.exceptions.ChunkedEncodingError,
+)
+
+
+def _body_read_exception(
+    e: requests.exceptions.RequestException,
+) -> ConnectionException:
+    # A reset or timeout is retryable, as in _internal_request.
+    return ConnectionException(
+        f"Connection failed while reading response: {e}",
+        should_retry=isinstance(e, _RETRYABLE_BODY_READ_ERRORS),
+    )
 
 
 # urllib3 1.x has no NameResolutionError; its connection errors keep the
