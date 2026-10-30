@@ -1123,9 +1123,11 @@ class Translator(BaseClient):
             )
 
         if output_file:
+            # output_file is annotated to accept TextIO too; it receives bytes.
+            output: Any = output_file
             chunks = http_client.iter_response_content(response, chunk_size)
             for chunk in chunks:
-                output_file.write(chunk)
+                output.write(chunk)
             return None
         else:
             _warn_download_without_output_file()
