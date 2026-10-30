@@ -373,6 +373,8 @@ except deepl.DocumentTranslationException as error:
         print(f"Error during upload: {error}")
 ```
 
+`DocumentTranslationException` copies `http_status_code` and `should_retry`
+from the underlying `DeepLException`, if there is one.
 `translate_document()` and `translate_document_from_filepath()` are convenience
 functions that wrap multiple API calls: uploading, polling status until the
 translation is complete, and downloading. If your application needs to execute

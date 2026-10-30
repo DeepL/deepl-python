@@ -86,6 +86,19 @@ def _required_str(json: dict, key: str) -> str:
     return value
 
 
+def _document_translation_exception(
+    cause: Exception, handle: Optional[DocumentHandle]
+) -> DocumentTranslationException:
+    if isinstance(cause, DeepLException):
+        return DocumentTranslationException(
+            str(cause),
+            handle,
+            should_retry=cause.should_retry,
+            http_status_code=cause.http_status_code,
+        )
+    return DocumentTranslationException(str(cause), handle)
+
+
 def _warn_skip_cache() -> None:
     warnings.warn(
         "skip_cache is deprecated and has no effect",
@@ -803,13 +816,13 @@ class Translator(BaseClient):
             # Invalid arguments, rejected before anything is sent.
             raise
         except Exception as e:
-            raise DocumentTranslationException(str(e), None) from e
+            raise _document_translation_exception(e, None) from e
 
         try:
             status = self.translate_document_wait_until_done(handle, timeout_s)
             self.translate_document_download(handle, output_document)
         except Exception as e:
-            raise DocumentTranslationException(str(e), handle) from e
+            raise _document_translation_exception(e, handle) from e
         return status
 
     def translate_document_upload(

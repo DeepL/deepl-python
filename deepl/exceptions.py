@@ -78,12 +78,24 @@ class DocumentTranslationException(DeepLException):
     :param message: Message describing the error that occurred.
     :param document_handle: The document handle of the associated document,
         or None if the error occurred before the document was uploaded.
+    :param should_retry: True if the request would normally be retried
+        following this error; copied from a DeepLException cause.
+    :param http_status_code: The HTTP status code of a DeepLException cause,
+        if it has one, otherwise None.
     """
 
     def __init__(
-        self, message: str, document_handle: Optional[DocumentHandle]
+        self,
+        message: str,
+        document_handle: Optional[DocumentHandle],
+        should_retry: bool = False,
+        http_status_code: Optional[int] = None,
     ):
-        super().__init__(message)
+        super().__init__(
+            message,
+            should_retry=should_retry,
+            http_status_code=http_status_code,
+        )
         self.document_handle = document_handle
 
     def __str__(self):

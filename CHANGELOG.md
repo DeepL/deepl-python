@@ -147,6 +147,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the `content` parameter name to `upload_translation_memory_file()`
   for the file content, replacing `input_file`. Positional calls are
   unaffected.
+- `DocumentTranslationException` accepts `should_retry` and
+  `http_status_code`. `translate_document()` and
+  `translate_document_from_filepath()` copy both from the underlying
+  `DeepLException`; before they were always `False` and `None`.
 
 ### Changed
 - `translate_text()` accepts `glossary` and `glossary_ids` without

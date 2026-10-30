@@ -682,3 +682,20 @@ def test_sends_glossary_style_and_memory_when_translating_from_filepath(
         translation_memory="tm-1",
         extra_body_parameters={"extra": "1"},
     )
+
+
+def test_copies_status_code_and_retry_flag_into_document_exception(
+    mocked, no_retries
+):
+    reply_with_handle(
+        mocked, {"file": ("a.txt", b"hello")}, {"target_lang": "DE"}
+    )
+    mocked.post(url("v2/document/doc-1"), status=500, body="")
+
+    with pytest.raises(deepl.DocumentTranslationException) as exc_info:
+        make_translator().translate_document(
+            b"hello", io.BytesIO(), target_lang="DE", filename="a.txt"
+        )
+
+    assert exc_info.value.http_status_code == 500
+    assert exc_info.value.should_retry
