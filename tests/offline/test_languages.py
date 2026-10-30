@@ -168,6 +168,14 @@ def test_sends_resource_and_include_when_getting_languages(
     make_deepl_client().get_languages_for_resource(resource, include=include)
 
 
+def test_encodes_space_in_query_value_as_percent_20(mocked):
+    mocked.get(url("v3/languages"), json=LANGUAGES_JSON)
+
+    make_deepl_client().get_languages_for_resource("translate text")
+
+    assert "resource=translate%20text" in mocked.calls[0].request.url
+
+
 def test_parses_languages_for_resource(mocked):
     mocked.get(url("v3/languages"), json=LANGUAGES_JSON)
 

@@ -957,7 +957,7 @@ class DeepLClient(Translator):
     @staticmethod
     def _language_pair_query(source_lang: str, target_lang: str) -> str:
         # glossaries are only supported for base language types
-        return urllib.parse.urlencode(
+        return util.encode_query(
             {
                 "source_lang": Language.remove_regional_variant(source_lang),
                 "target_lang": Language.remove_regional_variant(target_lang),
@@ -1106,7 +1106,7 @@ class DeepLClient(Translator):
         :return: SpokenTermsEntries containing the terms.
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
-        query = urllib.parse.urlencode({"lang": lang})
+        query = util.encode_query({"lang": lang})
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}/entries?{query}",
             method="GET",
@@ -1173,7 +1173,7 @@ class DeepLClient(Translator):
         :param lang: Language of the term list to delete, e.g. "de".
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
-        query = urllib.parse.urlencode({"lang": lang})
+        query = util.encode_query({"lang": lang})
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}/term-lists?{query}",
             method="DELETE",
@@ -1231,7 +1231,7 @@ class DeepLClient(Translator):
         if include is not None:
             params.extend(("include", str(value)) for value in include)
 
-        endpoint = f"v3/languages?{urllib.parse.urlencode(params)}"
+        endpoint = f"v3/languages?{util.encode_query(params)}"
         status, content, json = self._api_call(endpoint, method="GET")
         self._raise_for_status(status, content, json)
 
@@ -1290,7 +1290,7 @@ class DeepLClient(Translator):
 
         endpoint = "v3/style_rules"
         if params:
-            query_string = urllib.parse.urlencode(params)
+            query_string = util.encode_query(params)
             endpoint += f"?{query_string}"
 
         status, content, json = self._api_call(endpoint, method="GET")
@@ -1584,7 +1584,7 @@ class DeepLClient(Translator):
 
         endpoint = "v3/style_profiles"
         if params:
-            endpoint += f"?{urllib.parse.urlencode(params)}"
+            endpoint += f"?{util.encode_query(params)}"
 
         status, content, json = self._api_call(endpoint, method="GET")
         self._raise_for_status(status, content, json)
@@ -1850,7 +1850,7 @@ class DeepLClient(Translator):
 
         endpoint = "v3/translation_memories"
         if params:
-            query_string = urllib.parse.urlencode(params)
+            query_string = util.encode_query(params)
             endpoint += f"?{query_string}"
 
         status, content, json = self._api_call(endpoint, method="GET")
@@ -1959,12 +1959,7 @@ class DeepLClient(Translator):
 
         endpoint = f"v3/translation_memories/{tm_id}/segments"
         if params:
-            # quote_via=quote percent-encodes spaces in filter_text as %20.
-            # urlencode defaults to quote_plus, which encodes them as "+" —
-            # correct for a form body, but not for a URI query string.
-            query_string = urllib.parse.urlencode(
-                params, quote_via=urllib.parse.quote
-            )
+            query_string = util.encode_query(params)
             endpoint += f"?{query_string}"
 
         status, content, json = self._api_call(endpoint, method="GET")

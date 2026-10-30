@@ -8,6 +8,7 @@ import io
 import itertools
 import logging
 import re
+import urllib.parse
 import warnings
 from typing import Any, BinaryIO, Dict, Optional, TextIO, Union
 
@@ -52,6 +53,11 @@ def _add_extra_body_parameters(
     nothing."""
     if extra_body_parameters:
         request_data.update(extra_body_parameters)
+
+
+def encode_query(params) -> str:
+    """Encodes params as a URI query string, a space as %20 (RFC 3986)."""
+    return urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
 
 
 def log_debug(message, **kwargs):

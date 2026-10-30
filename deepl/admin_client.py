@@ -16,7 +16,6 @@ from deepl._base_client import BaseClient
 from deepl import util
 import datetime
 import re
-import urllib.parse
 from typing import Dict, List, Optional, Union
 
 
@@ -118,7 +117,7 @@ class DeepLAdminClient(BaseClient):
             params["group_by"] = str(group_by)
 
         status, content, json = self._api_call(
-            f"v2/admin/analytics?{urllib.parse.urlencode(params)}",
+            f"v2/admin/analytics?{util.encode_query(params)}",
             method="GET",
         )
         self._raise_for_status(status, content, json)
@@ -159,7 +158,7 @@ class DeepLAdminClient(BaseClient):
             params["page"] = str(page)
 
         status, content, json = self._api_call(
-            f"v2/admin/analytics/custom-tags?{urllib.parse.urlencode(params)}",
+            f"v2/admin/analytics/custom-tags?{util.encode_query(params)}",
             method="GET",
         )
         self._raise_for_status(status, content, json)

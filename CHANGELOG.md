@@ -233,6 +233,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TLS and certificate failures, and errors reported by a proxy, are no longer
   retried and raise `ConnectionException` with `should_retry` `False`. A
   failure to connect to the proxy is still retried.
+- Query string values encode a space as `%20` instead of `+`.
 - HTTP 401 responses now raise `AuthorizationException`, like 403. Before they
   raised `DeepLException` with "Unexpected status code: 401".
 - `DeepLException.should_retry` is now `True` for every HTTP 5xx error. It was
