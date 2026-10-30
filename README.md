@@ -165,7 +165,7 @@ arguments are:
     - `'1'` (`SplitSentences.ALL`): input text will be split into sentences
       using both newlines and punctuation. `SplitSentences.DEFAULT` is a
       deprecated alias of `SplitSentences.ALL`.
-    - `'off'` (`SplitSentences.OFF`): input text will not be split into
+    - `'0'` (`SplitSentences.OFF`): input text will not be split into
       sentences. Use this for applications where each input text contains only
       one sentence.
     - `'nonewlines'` (`SplitSentences.NO_NEWLINES`): input text will be split
