@@ -5,6 +5,7 @@
 import deepl
 import pytest
 import requests  # type: ignore
+import urllib3
 
 from .client import make_deepl_client, make_translator, url
 from .matchers import bodyless_request
@@ -167,3 +168,35 @@ def test_does_not_retry_client_errors(mocked):
         make_translator().get_usage()
 
     assert len(mocked.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        requests.exceptions.SSLError("certificate verify failed"),
+        requests.exceptions.ProxyError("Tunnel connection failed: 407"),
+    ],
+)
+def test_does_not_retry_tls_or_proxy_failure(mocked, error):
+    mocked.get(url("v2/usage"), body=error)
+
+    with pytest.raises(deepl.ConnectionException) as exc_info:
+        make_translator().get_usage()
+
+    assert not exc_info.value.should_retry
+    assert len(mocked.calls) == 1
+
+
+def test_retries_failure_to_connect_to_proxy(mocked):
+    refused = urllib3.exceptions.NewConnectionError(None, "refused")
+    mocked.get(
+        url("v2/usage"),
+        body=requests.exceptions.ProxyError(
+            "Unable to connect to proxy", refused
+        ),
+    )
+    mocked.get(url("v2/usage"), json=USAGE_JSON)
+
+    make_translator().get_usage()
+
+    assert len(mocked.calls) == 2
