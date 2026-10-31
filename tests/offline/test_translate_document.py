@@ -486,19 +486,26 @@ def test_raises_with_handle_when_document_translation_fails(mocked):
     assert exc_info.value.document_handle.document_id == "doc-1"
 
 
-def test_wraps_upload_failure_without_handle(mocked):
+@pytest.mark.parametrize("from_filepath", [False, True])
+def test_raises_original_exception_when_upload_fails(
+    mocked, tmp_path, from_filepath
+):
     mocked.post(url("v2/document"), status=456, json={"message": "limit"})
+    translator = make_translator()
 
-    with pytest.raises(deepl.DocumentTranslationException) as exc_info:
-        make_translator().translate_document(
-            b"hello", io.BytesIO(), target_lang="DE", filename="a.txt"
-        )
+    with pytest.raises(deepl.QuotaExceededException) as exc_info:
+        if from_filepath:
+            input_path = tmp_path / "a.txt"
+            input_path.write_text("hello")
+            translator.translate_document_from_filepath(
+                input_path, tmp_path / "out.txt", target_lang="DE"
+            )
+        else:
+            translator.translate_document(
+                b"hello", io.BytesIO(), target_lang="DE", filename="a.txt"
+            )
 
-    assert exc_info.value.document_handle is None
-    assert isinstance(exc_info.value.__cause__, deepl.QuotaExceededException)
-    assert "Quota for this billing period has been exceeded" in str(
-        exc_info.value
-    )
+    assert not isinstance(exc_info.value, deepl.DocumentTranslationException)
 
 
 def test_raises_with_handle_when_document_status_fails(mocked):

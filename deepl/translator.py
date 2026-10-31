@@ -804,34 +804,32 @@ class Translator(BaseClient):
         :return: DocumentStatus when document translation completed, this
             allows the number of billed characters to be queried.
 
-        :raises DocumentTranslationException: If an error occurs during
-            upload or translation. The exception includes the document handle
-            if the document was already uploaded, otherwise the handle is None.
+        :raises DeepLException: If the upload fails, the exception raised by
+            translate_document_upload(), for example QuotaExceededException.
+        :raises DocumentTranslationException: If an error occurs after the
+            upload, during translation or download, or the translation fails.
+            The exception includes the document handle.
         """
         _check_target_lang_given("translate_document", target_lang)
 
-        try:
-            handle = self.translate_document_upload(
-                input_document,
-                target_lang=target_lang,
-                source_lang=source_lang,
-                formality=formality,
-                glossary=glossary,
-                glossary_ids=glossary_ids,
-                style_rule=style_rule,
-                style_profile=style_profile,
-                translation_memory=translation_memory,
-                translation_memory_threshold=translation_memory_threshold,
-                filename=filename,
-                output_format=output_format,
-                enable_watermark=enable_watermark,
-                extra_body_parameters=extra_body_parameters,
-            )
-        except (TypeError, ValueError):
-            # Invalid arguments, rejected before anything is sent.
-            raise
-        except Exception as e:
-            raise _document_translation_exception(e, None) from e
+        # Upload errors are raised unwrapped; only errors after a handle
+        # exists become a DocumentTranslationException.
+        handle = self.translate_document_upload(
+            input_document,
+            target_lang=target_lang,
+            source_lang=source_lang,
+            formality=formality,
+            glossary=glossary,
+            glossary_ids=glossary_ids,
+            style_rule=style_rule,
+            style_profile=style_profile,
+            translation_memory=translation_memory,
+            translation_memory_threshold=translation_memory_threshold,
+            filename=filename,
+            output_format=output_format,
+            enable_watermark=enable_watermark,
+            extra_body_parameters=extra_body_parameters,
+        )
 
         try:
             status = self.translate_document_wait_until_done(handle, timeout_s)
