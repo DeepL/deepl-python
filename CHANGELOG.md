@@ -251,8 +251,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - A glossary CSV row without a target term now raises a `ValueError` naming
   the row; previously a bare `IndexError` (it is still an `IndexError`).
-- A connection that is reset or breaks off while the response body is read
-  is now retried like other connection failures, and raises
+- A connection that is reset or breaks off while a non-streamed response body
+  is read is now retried like other connection failures, and raises
   `ConnectionException` with `should_retry` `True` once retries are used up.
   `create_developer_key()` is still not retried after it.
 - `translate_document_download()` now streams the translated document to
@@ -260,8 +260,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   memory for the debug log.
 - A connection reset or timeout while `translate_document_download()` or
   `download_translation_memory_export()` reads the downloaded file now raises
-  `ConnectionException` with `should_retry` `True`, instead of a `requests`
-  exception.
+  `ConnectionException`, instead of a `requests` exception.
 - HTTP 3xx responses that are not followed as redirects (e.g. 300, 304, or a
   redirect without `Location`) now raise `DeepLException` with
   `http_status_code`, instead of being parsed as a successful response.

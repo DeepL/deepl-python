@@ -823,7 +823,7 @@ def test_raises_connection_exception_when_export_download_connection_breaks(
             job, io.BytesIO(), chunk_size=2
         )
 
-    assert exc_info.value.should_retry is True
+    assert exc_info.value.should_retry is False
 
 
 def test_raises_when_downloading_export_without_download_url():

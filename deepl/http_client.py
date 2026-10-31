@@ -330,20 +330,13 @@ def iter_response_content(
         raise _body_read_exception(e) from e
 
 
-_RETRYABLE_BODY_READ_ERRORS = (
-    requests.exceptions.ConnectionError,
-    requests.exceptions.Timeout,
-    requests.exceptions.ChunkedEncodingError,
-)
-
-
 def _body_read_exception(
     e: requests.exceptions.RequestException,
 ) -> ConnectionException:
-    # A reset or timeout is retryable, as in _internal_request.
+    # Not retried; should_retry False until the next major version.
     return ConnectionException(
         f"Connection failed while reading response: {e}",
-        should_retry=isinstance(e, _RETRYABLE_BODY_READ_ERRORS),
+        should_retry=False,
     )
 
 

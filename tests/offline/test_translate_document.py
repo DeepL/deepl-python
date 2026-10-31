@@ -594,7 +594,7 @@ def test_raises_connection_exception_when_download_connection_breaks(
             HANDLE, io.BytesIO(), chunk_size=4
         )
 
-    assert exc_info.value.should_retry is True
+    assert exc_info.value.should_retry is False
 
 
 def test_retries_upload_when_rate_limited(mocked):
