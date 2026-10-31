@@ -831,9 +831,17 @@ class Translator(BaseClient):
 
         try:
             status = self.translate_document_wait_until_done(handle, timeout_s)
-            self.translate_document_download(handle, output_document)
+            if status.ok:
+                self.translate_document_download(handle, output_document)
         except Exception as e:
             raise _document_translation_exception(e, handle) from e
+
+        if not status.ok:
+            error_message = status.error_message or "unknown error"
+            raise DocumentTranslationException(
+                f"Error occurred while translating document: {error_message}",
+                handle,
+            )
         return status
 
     def translate_document_upload(
@@ -1030,15 +1038,17 @@ class Translator(BaseClient):
         """
         Continually polls the status of the document translation associated
         with the given handle, sleeping in between requests, and returns the
-        final status when the translation completes successfully.
+        final status when the translation completes or fails. Check
+        DocumentStatus.ok on the result. An unknown status keeps polling, so
+        pass timeout_s to bound the wait.
         :param handle: DocumentHandle to the document translation to wait on.
         :param timeout_s: (beta) (Optional) Maximum time to wait before
             the call raises an error. The status is polled every 5 seconds;
             the last wait is shortened so the call does not run past it.
-        :return: DocumentStatus containing the status when completed.
+        :return: DocumentStatus containing the final status, with ok False
+            and error_message set if the translation failed.
 
-        :raises DeepLException: If the document translation fails, with the
-            API's error message, or if timeout_s is exceeded.
+        :raises DeepLException: If timeout_s is exceeded.
         """
         deadline_s = None if timeout_s is None else time.time() + timeout_s
         status = self.translate_document_get_status(handle)
@@ -1062,13 +1072,6 @@ class Translator(BaseClient):
                 )
                 time.sleep(secs)
                 status = self.translate_document_get_status(handle)
-        if not status.ok:
-            error_message = status.error_message or "unknown error"
-            raise DeepLException(
-                "Error occurred while translating document: "
-                f"{error_message}",
-                should_retry=False,
-            )
         return status
 
     def translate_document_download(

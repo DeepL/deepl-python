@@ -527,27 +527,13 @@ def test_raises_when_waiting_for_job_exceeds_timeout(mocked):
         )
 
 
-def test_raises_with_error_message_when_waited_job_fails(mocked):
-    reply_with_job(
-        mocked, "failed", operation="export", error={"message": "broken"}
-    )
+@pytest.mark.parametrize("status", ["failed", "expired"])
+def test_returns_job_when_waited_job_fails_or_expires(mocked, status):
+    reply_with_job(mocked, status, error={"message": "broken"})
 
-    with pytest.raises(
-        deepl.DeepLException,
-        match="Error occurred while exporting translation memory: broken",
-    ):
-        make_deepl_client().wait_until_translation_memory_job_done("job-1")
+    job = make_deepl_client().wait_until_translation_memory_job_done("job-1")
 
-
-def test_raises_when_waited_job_expires(mocked):
-    reply_with_job(mocked, "expired")
-
-    with pytest.raises(
-        deepl.DeepLException,
-        match="Error occurred while importing translation memory: "
-        "unknown error",
-    ):
-        make_deepl_client().wait_until_translation_memory_job_done("job-1")
+    assert not job.ok
 
 
 class FakeClock:

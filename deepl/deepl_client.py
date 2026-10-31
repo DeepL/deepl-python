@@ -64,18 +64,19 @@ from typing import (
 _T = TypeVar("_T")
 
 
-def _tm_job_action(job: TranslationMemoryJob) -> str:
-    if job.operation == TranslationMemoryJob.OPERATION_IMPORT:
-        return "importing"
-    if job.operation == TranslationMemoryJob.OPERATION_EXPORT:
-        return "exporting"
-    return "processing"
-
-
 def _tm_job_error_message(job: TranslationMemoryJob) -> str:
     return (
         job.result.error_message if job.result else None
     ) or "unknown error"
+
+
+def _raise_for_failed_tm_job(job: TranslationMemoryJob, action: str) -> None:
+    if not job.ok:
+        raise DeepLException(
+            f"Error occurred while {action} translation memory: "
+            f"{_tm_job_error_message(job)}",
+            should_retry=False,
+        )
 
 
 def _open_error(path: pathlib.Path, err: int) -> OSError:
@@ -2179,8 +2180,9 @@ class DeepLClient(Translator):
         job: Union[str, TranslationMemoryJob],
         timeout_s: Optional[int] = None,
     ) -> TranslationMemoryJob:
-        """Polls a translation memory job until it completes, sleeping 5
-        seconds between requests, and returns the completed job.
+        """Polls a translation memory job until it is done, sleeping 5 seconds
+        between requests, and returns the job when it is completed, failed or
+        expired. Check TranslationMemoryJob.ok on the result.
 
         Note that an import job keeps reporting "awaiting_input" for a while
         after its file has been uploaded, because the API detects the upload
@@ -2192,22 +2194,16 @@ class DeepLClient(Translator):
         :param timeout_s: (Optional) Maximum time in seconds to wait before
             raising an error. The last sleep is cut short so that the wait
             does not run past the timeout.
-        :return: TranslationMemoryJob containing the completed status.
+        :return: TranslationMemoryJob containing the final status; ok is
+            False if the job failed or expired.
 
-        :raises DeepLException: If the job fails or expires, with the API's
-            error message, or if timeout_s is exceeded.
+        :raises DeepLException: If timeout_s is exceeded.
         """
         # Validates the reference; get_translation_memory_job() encodes it.
         self._job_id(job)
         start_time_s = time.time()
         status = self.get_translation_memory_job(job)
         while True:
-            if not status.ok:
-                raise DeepLException(
-                    f"Error occurred while {_tm_job_action(status)} "
-                    f"translation memory: {_tm_job_error_message(status)}",
-                    should_retry=False,
-                )
             if status.done:
                 return status
             secs = 5.0
@@ -2326,9 +2322,11 @@ class DeepLClient(Translator):
             content_type=content_type or "application/xml",
         )
 
-        return self.wait_until_translation_memory_job_done(
+        job = self.wait_until_translation_memory_job_done(
             created.job_id, timeout_s
         )
+        _raise_for_failed_tm_job(job, "importing")
+        return job
 
     def export_translation_memory_to_filepath(
         self,
@@ -2374,6 +2372,8 @@ class DeepLClient(Translator):
         job = self.wait_until_translation_memory_job_done(
             created.job_id, timeout_s
         )
+        # Raised before the output file is opened, so none is created.
+        _raise_for_failed_tm_job(job, "exporting")
 
         try:
             with open(path, "wb") as output_file:
