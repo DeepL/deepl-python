@@ -2403,15 +2403,24 @@ class DeepLClient(Translator):
         a translation memory upload or download URL.
 
         These URLs are pre-signed and point outside the DeepL API, so the
-        DeepL Authorization header is deliberately not sent.
+        DeepL Authorization header and other client headers are deliberately
+        not sent. Only a caller User-Agent is sent, as on API requests.
         """
         util.log_info("Request to storage URL", method=method, url=url)
+        request_headers = dict(headers or {})
+        request_headers.update(
+            {
+                k: v
+                for k, v in self.headers.items()
+                if k.lower() == "user-agent"
+            }
+        )
         return self._client.request_with_backoff(
             method,
             url,
             data=data,
             json=None,
-            headers=dict(headers or {}),
+            headers=request_headers,
             stream=stream,
         )
 

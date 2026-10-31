@@ -730,6 +730,32 @@ def test_raises_os_error_for_unusable_export_path_before_creating_job(
     assert len(mocked.calls) == 0
 
 
+@pytest.mark.parametrize("operation", ["import", "export"])
+def test_sends_only_caller_user_agent_to_storage(mocked, tmp_path, operation):
+    client = make_deepl_client(
+        headers={"User-Agent": "my agent", "X-Custom": "v"}
+    )
+    storage_url = UPLOAD_URL if operation == "import" else DOWNLOAD_URL
+    if operation == "import":
+        mocked.put(UPLOAD_URL)
+    else:
+        mocked.get(DOWNLOAD_URL, body=b"<tmx/>")
+
+    if operation == "import":
+        client.upload_translation_memory_file(UPLOAD_URL, b"<tmx/>")
+    else:
+        job = TranslationMemoryJob.from_json(
+            job_json("completed", "export", download_url=DOWNLOAD_URL)
+        )
+        client.download_translation_memory_export(job, io.BytesIO())
+
+    headers = mocked.calls[0].request.headers
+    assert mocked.calls[0].request.url == storage_url
+    assert headers["User-Agent"] == "my agent"
+    assert "X-Custom" not in headers
+    assert "Authorization" not in headers
+
+
 def test_removes_partial_export_file_when_download_fails(
     mocked, no_retries, tmp_path
 ):
