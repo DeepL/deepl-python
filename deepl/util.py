@@ -183,6 +183,11 @@ def convert_dict_to_tsv(
     )
 
 
+class _GlossaryCsvRowError(ValueError, IndexError):
+    """ValueError for an invalid CSV row; also an IndexError, which earlier
+    versions raised."""
+
+
 def convert_csv_to_dict(
     csv_data: Union[TextIO, BinaryIO, str, bytes, Any],
     skip_checks: bool = False,
@@ -216,6 +221,8 @@ def convert_csv_to_dict(
     for line, index in zip(reader, itertools.count(1)):
         if not line:
             continue
+        if len(line) < 2:
+            raise _GlossaryCsvRowError(f"Entry {index} has no target term")
         source, target = line[0].strip(), line[1].strip()
         if source in entries_dict:
             raise ValueError(

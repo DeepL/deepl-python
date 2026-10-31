@@ -249,6 +249,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `glossary` parameter. Calling it emits a `DeprecationWarning`.
 
 ### Fixed
+- A glossary CSV row without a target term now raises a `ValueError` naming
+  the row; previously a bare `IndexError` (it is still an `IndexError`).
 - A connection that is reset or breaks off while the response body is read
   is now retried like other connection failures, and raises
   `ConnectionException` with `should_retry` `True` once retries are used up.

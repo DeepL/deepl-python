@@ -38,6 +38,12 @@ def test_convert_dict_to_tsv():
         deepl.convert_dict_to_tsv({"\t": "target"})
 
 
+def test_glossary_csv_row_without_target_raises_value_error():
+    with pytest.raises(ValueError, match="Entry 1 has no target term") as e:
+        deepl.util.convert_csv_to_dict("hello\n")
+    assert isinstance(e.value, IndexError)
+
+
 def test_parse_timestamp_microseconds():
     """Standard 6-digit fractional seconds should parse correctly."""
     result = parse_timestamp("2025-01-15T10:30:00.123456+0000")
