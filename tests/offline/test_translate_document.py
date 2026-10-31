@@ -761,19 +761,21 @@ def test_copies_status_code_and_retry_flag_into_document_exception(
     assert exc_info.value.should_retry
 
 
-def test_raises_value_error_before_any_request_when_input_file_is_missing(
-    tmp_path,
+def test_raises_file_not_found_before_any_request_when_input_file_is_missing(
+    mocked, tmp_path
 ):
-    with pytest.raises(ValueError, match="file does not exist"):
+    with pytest.raises(FileNotFoundError) as exc_info:
         make_translator().translate_document_from_filepath(
             tmp_path / "missing.txt", tmp_path / "out.txt", target_lang="DE"
         )
 
+    assert exc_info.value.filename == str(tmp_path / "missing.txt")
+    assert len(mocked.calls) == 0
     assert not (tmp_path / "out.txt").exists()
 
 
 @pytest.mark.parametrize("bad", ["input", "output"])
-def test_wraps_file_open_failure_in_document_exception(tmp_path, bad):
+def test_raises_os_error_when_file_cannot_be_opened(tmp_path, bad):
     input_path = tmp_path / "input.txt"
     input_path.write_text("hello")
     output_path = tmp_path / "output.txt"
@@ -784,13 +786,12 @@ def test_wraps_file_open_failure_in_document_exception(tmp_path, bad):
     else:
         output_path = directory
 
-    with pytest.raises(deepl.DocumentTranslationException) as exc_info:
+    with pytest.raises(OSError) as exc_info:
         make_translator().translate_document_from_filepath(
             input_path, output_path, target_lang="DE"
         )
 
-    assert exc_info.value.document_handle is None
-    assert isinstance(exc_info.value.__cause__, OSError)
+    assert not isinstance(exc_info.value, deepl.DocumentTranslationException)
 
 
 def test_cuts_last_status_poll_sleep_to_timeout(mocked, monkeypatch):

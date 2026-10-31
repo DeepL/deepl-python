@@ -41,6 +41,7 @@ from deepl.translator import (
     _warn_skip_language_check,
 )
 from deepl import http_client, util
+import errno
 import os
 import pathlib
 import requests  # type: ignore
@@ -75,6 +76,11 @@ def _tm_job_error_message(job: TranslationMemoryJob) -> str:
     return (
         job.result.error_message if job.result else None
     ) or "unknown error"
+
+
+def _open_error(path: pathlib.Path, err: int) -> OSError:
+    """Builds the OSError that open() raises for the given errno."""
+    return OSError(err, os.strerror(err), str(path))
 
 
 def _parse_improvements(json: Any, text_count: int) -> List[WriteResult]:
@@ -2294,22 +2300,18 @@ class DeepLClient(Translator):
             carries the new translation memory ID.
 
         :raises ValueError: If input_path does not exist.
-        :raises DeepLException: If the file cannot be read, the upload is
-            rejected, the import job fails or expires, or timeout_s is
-            exceeded.
+        :raises OSError: If the file cannot be read, before the import job is
+            created, for example PermissionError or IsADirectoryError.
+        :raises DeepLException: If the upload is rejected, the import job
+            fails or expires, or timeout_s is exceeded.
         """
         file_path = pathlib.Path(input_path)
         if not file_path.exists():
             raise ValueError(f"file does not exist: {input_path}")
         # Read the file before creating the job, so an unreadable file fails
         # without leaving an import job waiting for its upload.
-        try:
-            with open(file_path, "rb") as input_file:
-                content = input_file.read()
-        except OSError as e:
-            raise DeepLException(
-                f"Error reading translation memory file {input_path}: {e}"
-            ) from e
+        with open(file_path, "rb") as input_file:
+            content = input_file.read()
 
         created = self.create_translation_memory_import(
             file_name=file_path.name,
@@ -2346,23 +2348,27 @@ class DeepLClient(Translator):
             cut short so that the wait does not run past the timeout.
         :return: TranslationMemoryJob for the completed export.
 
-        :raises DeepLException: If output_path cannot be written (checked
-            before the export job is created), the export job fails or
-            expires, the download fails, or timeout_s is exceeded. A partially
-            written output file is removed.
+        :raises OSError: If output_path cannot be written, checked before the
+            export job is created: FileNotFoundError if its directory does
+            not exist, IsADirectoryError if it is a directory, PermissionError
+            if it is not writable. An OSError while writing the file is
+            raised as is.
+        :raises DeepLException: If the export job fails or expires, the
+            download fails, or timeout_s is exceeded.
+
+        A partially written output file is removed.
         """
         path = pathlib.Path(output_path)
         # Check the output path before creating the job, so a path that
         # cannot be written fails without exporting first.
+        # Raises the OSError subclass that open(path, "wb") would raise.
         directory = path.parent
         if not directory.is_dir():
-            raise DeepLException(
-                f"Output directory does not exist: {directory}"
-            )
+            raise _open_error(path, errno.ENOENT)
         if path.is_dir():
-            raise DeepLException(f"Output path is a directory: {output_path}")
+            raise _open_error(path, errno.EISDIR)
         if not os.access(path if path.exists() else directory, os.W_OK):
-            raise DeepLException(f"Output path is not writable: {output_path}")
+            raise _open_error(path, errno.EACCES)
 
         created = self.create_translation_memory_export(translation_memory)
         job = self.wait_until_translation_memory_job_done(
@@ -2374,17 +2380,12 @@ class DeepLClient(Translator):
                 self.download_translation_memory_export(
                     job, output_file, chunk_size=8192
                 )
-        except BaseException as e:
+        except BaseException:
             # Do not leave a partial file behind.
             try:
                 path.unlink()
             except OSError:
                 pass
-            if isinstance(e, OSError):
-                raise DeepLException(
-                    "Error writing translation memory export to "
-                    f"{output_path}: {e}"
-                ) from e
             raise
         return job
 

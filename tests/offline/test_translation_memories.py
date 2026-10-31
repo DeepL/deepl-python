@@ -646,12 +646,10 @@ def test_raises_for_unreadable_import_file_before_creating_job(
     mocked, no_retries, tmp_path
 ):
     # A directory exists but cannot be opened as a file.
-    with pytest.raises(
-        deepl.DeepLException, match="Error reading translation memory file"
-    ) as exc_info:
+    with pytest.raises(OSError) as exc_info:
         make_deepl_client().import_translation_memory_from_filepath(tmp_path)
 
-    assert isinstance(exc_info.value.__cause__, OSError)
+    assert not isinstance(exc_info.value, deepl.DeepLException)
     assert len(mocked.calls) == 0
 
 
@@ -725,16 +723,24 @@ def test_raises_with_error_message_when_export_job_fails(mocked, tmp_path):
     assert not (tmp_path / "exported.tmx").exists()
 
 
-def test_raises_for_missing_export_directory_before_creating_job(
-    mocked, no_retries, tmp_path
+@pytest.mark.parametrize(
+    "path, error",
+    [
+        ("missing/exported.tmx", FileNotFoundError),
+        (".", IsADirectoryError),
+    ],
+)
+def test_raises_os_error_for_unusable_export_path_before_creating_job(
+    mocked, no_retries, tmp_path, path, error
 ):
-    with pytest.raises(
-        deepl.DeepLException, match="Output directory does not exist"
-    ):
+    output_path = tmp_path / path
+
+    with pytest.raises(error) as exc_info:
         make_deepl_client().export_translation_memory_to_filepath(
-            "tm-1", tmp_path / "missing" / "exported.tmx"
+            "tm-1", output_path
         )
 
+    assert exc_info.value.filename == str(output_path)
     assert len(mocked.calls) == 0
 
 

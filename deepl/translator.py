@@ -27,6 +27,7 @@ from .exceptions import (
     DeepLException,
     DocumentTranslationException,
 )
+import errno
 import json as json_module
 import os
 import pathlib
@@ -682,12 +683,15 @@ class Translator(BaseClient):
         :return: DocumentStatus when document translation completed, this
             allows the number of billed characters to be queried.
 
-        :raises ValueError: If the input file does not exist, before any
-            request is sent.
-        :raises DocumentTranslationException: If an error occurs during
-            upload or translation, or opening the input or output file fails.
-            The exception includes the document handle if the document was
-            already uploaded, otherwise the handle is None.
+        :raises FileNotFoundError: If the input file does not exist, before
+            any request is sent.
+        :raises OSError: If opening the input or output file fails, for
+            example PermissionError or IsADirectoryError.
+        :raises DeepLException: If the upload fails, the exception raised by
+            translate_document_upload(), for example QuotaExceededException.
+        :raises DocumentTranslationException: If an error occurs after the
+            upload, during translation or download, or the translation fails.
+            The exception includes the document handle.
         """
         _check_target_lang_given(
             "translate_document_from_filepath", target_lang
@@ -698,18 +702,12 @@ class Translator(BaseClient):
         output_format = None if in_ext == out_ext else out_ext[1:]
 
         if not pathlib.Path(input_path).exists():
-            raise ValueError(f"file does not exist: {input_path}")
+            raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), str(input_path)
+            )
 
-        try:
-            in_file = open(input_path, "rb")
-        except OSError as e:
-            raise DocumentTranslationException(str(e), None) from e
-        with in_file:
-            try:
-                out_file = open(output_path, "wb")
-            except OSError as e:
-                raise DocumentTranslationException(str(e), None) from e
-            with out_file:
+        with open(input_path, "rb") as in_file:
+            with open(output_path, "wb") as out_file:
                 try:
                     return self.translate_document(
                         in_file,
