@@ -759,7 +759,7 @@ class DeepLClient(Translator):
         glossary: Union[str, MultilingualGlossaryInfo],
         source_lang: str,
         target_lang: str,
-        entries: Union[str, Dict[str, str]],
+        entries: Dict[str, str],
         extra_body_parameters: Optional[dict],
     ) -> MultilingualGlossaryDictionaryInfo:
         glossary_id = self._multilingual_glossary_id(glossary)
@@ -1002,11 +1002,7 @@ class DeepLClient(Translator):
             "target_lang": Language.remove_regional_variant(
                 dictionary.target_lang
             ),
-            "entries": (
-                dictionary.entries
-                if isinstance(dictionary.entries, str)
-                else util.convert_dict_to_tsv(dictionary.entries)
-            ),
+            "entries": util.convert_dict_to_tsv(dictionary.entries),
             "entries_format": "tsv",
         }
 

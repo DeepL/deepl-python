@@ -4,7 +4,16 @@
 
 import datetime
 from enum import Enum, auto
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 from deepl.util import (
     get_float_safe,
@@ -710,7 +719,7 @@ class MultilingualGlossaryDictionaryEntries:
         self,
         source_lang: str,
         target_lang: str,
-        entries: Union[str, Dict[str, str]],
+        entries: Dict[str, str],
     ):
         self._source_lang = source_lang
         self._target_lang = target_lang
@@ -737,7 +746,8 @@ class MultilingualGlossaryDictionaryEntries:
             return MultilingualGlossaryDictionaryEntries(
                 str(json["source_lang"]),
                 str(json["target_lang"]),
-                entries,
+                # Released behaviour: API entries stay the raw TSV string.
+                cast(Dict[str, str], entries),
             )
         except (KeyError, TypeError, ValueError) as error:
             raise _malformed_response(
@@ -763,9 +773,7 @@ class MultilingualGlossaryDictionaryEntries:
         return self._target_lang
 
     @property
-    def entries(self) -> Union[str, Dict[str, str]]:
-        """Returns the entries: a dictionary of source-target terms, or the
-        TSV string as returned by the API."""
+    def entries(self) -> Dict[str, str]:
         return self._entries
 
 
