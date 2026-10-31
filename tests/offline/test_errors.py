@@ -104,3 +104,19 @@ def test_includes_reply_content_for_unexpected_status(mocked):
 
     with pytest.raises(deepl.DeepLException, match="content: teapot"):
         make_translator().get_usage()
+
+
+def test_exceptions_import_from_translator_module():
+    from deepl.translator import (
+        AuthorizationException,
+        DocumentNotReadyException,
+        GlossaryNotFoundException,
+        QuotaExceededException,
+        TooManyRequestsException,
+    )
+
+    assert AuthorizationException is deepl.AuthorizationException
+    assert DocumentNotReadyException is deepl.DocumentNotReadyException
+    assert GlossaryNotFoundException is deepl.GlossaryNotFoundException
+    assert QuotaExceededException is deepl.QuotaExceededException
+    assert TooManyRequestsException is deepl.TooManyRequestsException

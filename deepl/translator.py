@@ -23,9 +23,15 @@ from deepl.api_data import (
 )
 from . import http_client, util
 from ._base_client import BaseClient
-from .exceptions import (
+from .exceptions import (  # noqa: F401
     DeepLException,
     DocumentTranslationException,
+    # Kept for imports from this module.
+    AuthorizationException,
+    DocumentNotReadyException,
+    GlossaryNotFoundException,
+    QuotaExceededException,
+    TooManyRequestsException,
 )
 import errno
 import json as json_module
