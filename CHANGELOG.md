@@ -8,8 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added the `headers` option to the `Translator`, `DeepLClient` and
   `DeepLAdminClient` constructors: extra HTTP headers sent with every request
-  to the DeepL API. A `User-Agent` header replaces the generated one; an
-  `Authorization` header is ignored.
+  to the DeepL API. A header replaces the library's header of the same name,
+  including `User-Agent` and `Authorization`; `Content-Type`,
+  `Content-Length`, `Transfer-Encoding`, `Host` and an `Accept` the library
+  sets for a call keep the library's value. Translation memory storage URLs
+  get only the `User-Agent`.
 - Added the `app_info` option, an `AppInfo(app_name, app_version)`, to the
   `Translator`, `DeepLClient` and `DeepLAdminClient` constructors, the same as
   calling `set_app_info()`.
@@ -160,26 +163,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `DeepLException`; before they were always `False` and `None`.
 
 ### Changed
-- `wait_until_translation_memory_job_done()` raises `DeepLException` with the
-  API's error message when the job fails or expires, instead of returning the
-  job. It returns only a completed job. With `timeout_s`, the last sleep is cut
-  short so the wait no longer runs past the timeout.
-- `import_translation_memory_from_filepath()` reads the file before creating
-  the import job; a file that cannot be read raises `DeepLException` without
-  sending a request. `export_translation_memory_to_filepath()` checks that the
-  output directory exists and the path is writable before creating the export
-  job, and raises `DeepLException` otherwise.
-- `translate_text()` accepts `glossary` and `glossary_ids` without
-  `source_lang`; DeepL detects the source language and uses the glossary
-  dictionary for the detected language pair. Document translation with a
+- With `timeout_s`, `wait_until_translation_memory_job_done()` now cuts its
+  last sleep short; previously it could run up to 5 seconds past the timeout.
+- `import_translation_memory_from_filepath()` now reads the file and
+  `export_translation_memory_to_filepath()` now checks the output path before
+  creating the job, so these `OSError`s are raised without creating a job;
+  previously the job was created first.
+- `translate_text()` now accepts `glossary` and `glossary_ids` without
+  `source_lang`, and DeepL uses the glossary dictionary for the detected
+  language pair; previously it raised `ValueError`. Document translation with a
   glossary still requires `source_lang`.
+- A path in `server_url` is now kept; previously the last path segment was
+  dropped.
+- HTTP 401 responses now raise `AuthorizationException`; previously
+  `DeepLException`.
+- Creating a `Translator` now emits a `DeprecationWarning`; previously it did
+  not.
 - HTTP 404 responses raise `NotFoundException` instead of `DeepLException`
   (glossary functions keep raising `GlossaryNotFoundException`, now a
   subclass of `NotFoundException`).
-- The `User-Agent` platform information no longer includes the `requests`
-  version; it ends with `python/<version>`.
-- Target languages `EN` and `PT` are no longer rejected client-side. The API
-  translates them into `EN-US` and `PT-PT` respectively.
+- The `User-Agent` platform information now ends with `python/<version>`;
+  previously it also included the `requests` version.
+- Target languages `EN` and `PT` are now sent to the API, which translates them
+  into `EN-US` and `PT-PT`; previously they were rejected client-side.
 - `get_source_languages()`, `get_target_languages()`, and
   `get_glossary_languages()` now use the `/v3/languages` endpoint
   internally instead of the deprecated `/v2/languages` and
@@ -195,18 +201,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   string instead of raising `ValueError`. Type-checked code that reads
   `status.status.value` may need an `isinstance(..., DocumentStatus.Status)`
   guard; `str(status)` returns the status string in both cases.
-- `translate_document_wait_until_done()` now raises `DeepLException` with the
-  API's error message when the document translation fails, instead of
-  returning the `DocumentStatus` with status `error`.
-- `translate_document()` and `translate_document_from_filepath()` now also
-  wrap upload failures in `DocumentTranslationException`, with
-  `document_handle` set to `None` and the original exception as `__cause__`.
-  Invalid arguments still raise `ValueError` or `TypeError`.
 
 ### Deprecated
 - `Translator` is deprecated in favour of `DeepLClient`, which supports all its
-  functions, and will be removed in the next major version. Creating a
-  `Translator` emits a `DeprecationWarning`; creating a `DeepLClient` does not.
+  functions, and will be removed in the next major version.
 - `GlossaryNotFoundException` is deprecated, catch `NotFoundException` instead.
   It will be removed in the next major version.
 - `auth_key_is_free_account()` is deprecated, use `is_free_account_auth_key()`.
@@ -272,19 +270,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed errors from the pre-signed translation memory upload and download URLs
   reporting `should_retry` as false for HTTP 429 and 5xx, and dropping the
   response body of a failed download from the message.
-- Fixed `import_translation_memory_from_filepath()` and
-  `export_translation_memory_to_filepath()` raising a raw `OSError` for local
-  file failures; they now raise `DeepLException` with the `OSError` as cause.
-  A failed export no longer leaves a partially written file behind.
-- HTTP 401 responses now raise `AuthorizationException`, like 403. Before they
-  raised `DeepLException` with "Unexpected status code: 401".
+- A failed `export_translation_memory_to_filepath()` no longer leaves a
+  partially written file behind.
 - `DeepLException.should_retry` is now `True` for every HTTP 5xx error. It was
   `False` for all of them except 503, although they are retried.
 - An error response whose `message` or `detail` is not a string (a number,
   object or `null`) no longer raises `TypeError`; the value is included as
   JSON, `null` is left out.
-- A `server_url` with a path but no trailing slash, such as
-  `https://example.com/deepl`, no longer loses its path in request URLs.
 - Leading and trailing whitespace in the authentication key is removed before
   it is sent and before the `:fx` check that selects the API Free server. A
   key of only whitespace is rejected with `ValueError`.
@@ -345,9 +337,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   list before) or a language in it is missing its code or name (instead of a
   raw `KeyError`, `AttributeError` or `TypeError`). A null `features` field is
   treated as no features.
-- Multilingual glossary entries returned by the API are parsed into a
-  dictionary of source-target terms; `MultilingualGlossaryDictionaryEntries.entries`
-  previously held the raw TSV string.
 - Glossary IDs are URL-encoded in `/v3/glossaries` request paths, and the
   language pair in the query of `get_multilingual_glossary_entries()` and
   `delete_multilingual_glossary_dictionary()` is URL-encoded.
@@ -369,10 +358,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `translate_document_download()` now raises errors with the API's error
   message. Before, a 400, 404 or 456 response raised without it, and other
   statuses reported `content: <file>`.
-- `translate_document_from_filepath()` raises `ValueError` before any request
-  if the input file does not exist, and `DocumentTranslationException` (with
-  `document_handle` `None`) if the input or output file cannot be opened,
-  instead of a raw `OSError`.
 - `translate_document_wait_until_done()` (and `translate_document()` with
   `timeout_s`) shortens its last wait to the timeout, so it no longer runs up
   to 5 seconds past `timeout_s`.
