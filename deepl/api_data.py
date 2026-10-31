@@ -7,7 +7,6 @@ from enum import Enum, auto
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from deepl.util import (
-    convert_tsv_to_dict,
     get_float_safe,
     get_int_safe,
     parse_timestamp,
@@ -728,13 +727,12 @@ class MultilingualGlossaryDictionaryEntries:
     def from_json(json) -> "MultilingualGlossaryDictionaryEntries":
         """Create MultilingualGlossaryDictionaryEntries from the given
         API JSON object. Entries in TSV format, as the API returns them, are
-        parsed into a dictionary of source-target terms.
+        kept as the TSV string; use deepl.util.convert_tsv_to_dict() to parse
+        them.
         """
         try:
             entries = json["entries"]
-            if isinstance(entries, str):
-                entries = convert_tsv_to_dict(entries, skip_checks=True)
-            elif not isinstance(entries, dict):
+            if not isinstance(entries, (str, dict)):
                 raise TypeError(f"entries is a {type(entries).__name__}")
             return MultilingualGlossaryDictionaryEntries(
                 str(json["source_lang"]),

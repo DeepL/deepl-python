@@ -844,8 +844,9 @@ class DeepLClient(Translator):
             retrieve.
         :param source_lang: Language of source terms.
         :param target_lang: Language of target terms.
-        :return: MultilingualGlossaryDictionaryEntries containing the entries
-            as a dictionary of source-target terms.
+        :return: MultilingualGlossaryDictionaryEntries whose entries are the
+            TSV string the API returns; use deepl.util.convert_tsv_to_dict()
+            to get a dictionary of source-target terms.
         :raises GlossaryNotFoundException: If the glossary or the dictionary
             is not found.
         """

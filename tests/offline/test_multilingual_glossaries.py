@@ -299,7 +299,7 @@ def test_sends_base_languages_when_getting_dictionary_entries(
             glossary, "EN-US", "DE"
         )
 
-    assert [d.entries for d in response.dictionaries] == [{"Hello": "Hallo"}]
+    assert [d.entries for d in response.dictionaries] == ["Hello\tHallo"]
 
 
 @pytest.mark.parametrize("glossary", ["g-1", glossary_info()])
@@ -627,7 +627,7 @@ def test_warns_on_deprecated_glossary_id_keyword(mocked):
 
 
 @pytest.mark.parametrize("glossary", ["g-1", glossary_info()])
-def test_returns_parsed_entries_of_one_dictionary(mocked, glossary):
+def test_returns_raw_tsv_entries_of_one_dictionary(mocked, glossary):
     mocked.get(
         url("v3/glossaries/g-1/entries"),
         json={
@@ -649,7 +649,7 @@ def test_returns_parsed_entries_of_one_dictionary(mocked, glossary):
 
     assert isinstance(result, MultilingualGlossaryDictionaryEntries)
     assert (result.source_lang, result.target_lang) == ("en", "de")
-    assert result.entries == {"Hello": "Hallo", "A": "B"}
+    assert result.entries == "Hello\tHallo\nA\tB"
 
 
 def test_raises_not_found_when_entries_response_has_no_dictionary(mocked):
@@ -805,14 +805,6 @@ def test_encodes_language_pair_in_query(mocked, method, path, call):
         (
             MultilingualGlossaryDictionaryInfo.from_json,
             {**DICTIONARY_JSON, "entry_count": "many"},
-        ),  # noqa: E501
-        (
-            MultilingualGlossaryDictionaryEntries.from_json,
-            {
-                "source_lang": "en",
-                "target_lang": "de",
-                "entries": "no separator",
-            },
         ),  # noqa: E501
         (
             MultilingualGlossaryDictionaryEntries.from_json,

@@ -43,7 +43,7 @@ def test_sends_multilingual_glossary_requests_from_create_to_delete():
         entries = client.get_multilingual_glossary_dictionary_entries(
             created, "EN", "DE"
         )
-        assert entries.entries == {"Hello": "Hallo"}
+        assert entries.entries == "Hello\tHallo"
 
         assert (
             client.update_multilingual_glossary_name(created, renamed).name
