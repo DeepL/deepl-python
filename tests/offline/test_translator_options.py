@@ -119,7 +119,29 @@ def test_sends_headers_option(mocked, make_client, path, body, call):
     headers = mocked.calls[0].request.headers
     assert headers["X-Custom"] == "value"
     assert headers["User-Agent"] == "my agent"
-    assert headers["Authorization"] == AUTH_HEADER
+    assert headers["Authorization"] == "DeepL-Auth-Key other"
+
+
+def test_keeps_library_technical_headers_over_caller_headers(mocked):
+    mocked.post(
+        url("v2/translate"), json={"translations": [{"text": "Hallo"}]}
+    )
+    client = make_deepl_client(
+        headers={
+            "Content-Type": "text/plain",
+            "Content-Length": "999",
+            "Transfer-Encoding": "chunked",
+            "Host": "example.com",
+        }
+    )
+
+    client.translate_text("Hello", target_lang="DE")
+
+    request = mocked.calls[0].request
+    assert request.headers["Content-Type"] == "application/json"
+    assert request.headers["Content-Length"] == str(len(request.body))
+    assert "Transfer-Encoding" not in request.headers
+    assert "Host" not in request.headers
 
 
 @pytest.mark.parametrize(

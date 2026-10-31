@@ -21,6 +21,12 @@ from typing import Any, Dict, Optional, Tuple, Union
 import urllib.parse
 
 
+# Describe the request the library builds; caller values are never sent.
+_TECHNICAL_HEADERS = frozenset(
+    ["content-type", "content-length", "transfer-encoding", "host"]
+)
+
+
 class BaseClient:
     """Shared HTTP handling for the DeepL API clients. Internal, not part of
     the public API."""
@@ -57,13 +63,15 @@ class BaseClient:
         )
         if app_info is not None:
             self._client.set_app_info(*app_info)
-        # Caller headers cannot replace the Authorization header.
-        self.headers = {
-            k: v
-            for k, v in (headers or {}).items()
-            if k.lower() != "authorization"
-        }
-        self.headers["Authorization"] = f"DeepL-Auth-Key {auth_key}"
+        # A caller header replaces the library's header of the same name,
+        # compared case-insensitively, Authorization included.
+        self.headers = {"Authorization": f"DeepL-Auth-Key {auth_key}"}
+        for name, value in (headers or {}).items():
+            for existing in [
+                k for k in self.headers if k.lower() == name.lower()
+            ]:
+                del self.headers[existing]
+            self.headers[name] = value
 
     def __del__(self):
         self.close()
@@ -98,8 +106,9 @@ class BaseClient:
         util.log_info("Request to DeepL API", method=method, url=url)
         util.log_debug("Request details", data=data, json=json)
 
-        # Headers set by the library for this call (Accept, Content-Type) win
-        # over client headers; names compare case-insensitively.
+        # Headers the library sets for this call (Accept, Content-Type) win
+        # over client headers; technical client headers are dropped so that
+        # requests builds them. Names compare case-insensitively.
         headers = dict(headers or {})
         call_header_names = {k.lower() for k in headers}
         headers.update(
@@ -107,6 +116,7 @@ class BaseClient:
                 k: v
                 for k, v in self.headers.items()
                 if k.lower() not in call_header_names
+                and k.lower() not in _TECHNICAL_HEADERS
             }
         )
 
