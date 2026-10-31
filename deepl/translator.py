@@ -145,8 +145,11 @@ class Translator(BaseClient):
         of a request. If None, the deprecated
         deepl.http_client.min_connection_timeout is used (default 10.0).
     :param headers: (Optional) Additional HTTP headers sent with every
-        request to the DeepL API. A User-Agent header replaces the one the
-        library generates. An Authorization header is ignored.
+        request to the DeepL API. A header replaces the library's header of
+        the same name (compared case-insensitively), including User-Agent
+        and Authorization; Content-Type, Content-Length, Transfer-Encoding,
+        Host and an Accept the library sets for a call keep the library's
+        value.
     :param app_info: (Optional) AppInfo identifying your application in the
         User-Agent header, same as set_app_info().
     :param skip_language_check: Deprecated, and now has no effect as the
