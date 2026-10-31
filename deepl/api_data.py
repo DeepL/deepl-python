@@ -710,7 +710,7 @@ class MultilingualGlossaryDictionaryEntries:
         self,
         source_lang: str,
         target_lang: str,
-        entries: Dict[str, str],
+        entries: Union[str, Dict[str, str]],
     ):
         self._source_lang = source_lang
         self._target_lang = target_lang
@@ -763,7 +763,9 @@ class MultilingualGlossaryDictionaryEntries:
         return self._target_lang
 
     @property
-    def entries(self) -> Dict[str, str]:
+    def entries(self) -> Union[str, Dict[str, str]]:
+        """Returns the entries: a dictionary of source-target terms, or the
+        TSV string as returned by the API."""
         return self._entries
 
 
