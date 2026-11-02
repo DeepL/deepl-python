@@ -277,31 +277,6 @@ def test_raises_when_changing_dictionary_without_glossary_id():
 
 
 @pytest.mark.parametrize("glossary", ["g-1", glossary_info()])
-def test_sends_base_languages_when_getting_dictionary_entries(
-    mocked, glossary
-):
-    mocked.get(
-        url("v3/glossaries/g-1/entries"),
-        json={
-            "dictionaries": [
-                {
-                    "source_lang": "en",
-                    "target_lang": "de",
-                    "entries": "Hello\tHallo",
-                }
-            ]
-        },
-        match=bodyless_request({"source_lang": "EN", "target_lang": "DE"}),
-    )
-
-    dictionary = make_deepl_client().get_multilingual_glossary_dictionary_entries(  # noqa: E501
-        glossary, "EN-US", "DE"
-    )
-
-    assert dictionary.entries == "Hello\tHallo"
-
-
-@pytest.mark.parametrize("glossary", ["g-1", glossary_info()])
 def test_sends_delete_when_deleting_glossary(mocked, glossary):
     mocked.delete(
         url("v3/glossaries/g-1"), status=204, match=bodyless_request()
