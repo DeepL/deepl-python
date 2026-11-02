@@ -976,7 +976,7 @@ updated = deepl_client.update_style_rule_name("YOUR_STYLE_ID", "New Name")
 # Update configured rules
 updated = deepl_client.update_style_rule_configured_rules(
     "YOUR_STYLE_ID",
-    {"style_and_tone": {"formality": "formal"}},
+    {"dates_and_times": {"calendar_era": "use_bc_and_ad"}},
 )
 ```
 
