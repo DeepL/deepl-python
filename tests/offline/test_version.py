@@ -6,4 +6,4 @@ import deepl
 
 
 def test_version():
-    assert "1.32.0" == deepl.__version__
+    assert "1.33.0" == deepl.__version__

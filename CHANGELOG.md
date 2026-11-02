@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.33.0] - 2026-11-02
 TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.
 Translation memories, style rules and multilingual glossaries gained many options and fixes.
 Read Changed and Deprecated before upgrading; no public API is removed in this release.
@@ -811,7 +813,8 @@ Version increased to avoid conflicts with old packages on PyPI.
 ## [0.1.0] - 2021-07-26
 Initial version.
 
-[Unreleased]: https://github.com/DeepL/deepl-python/compare/v1.32.0...HEAD
+[Unreleased]: https://github.com/DeepL/deepl-python/compare/v1.33.0...HEAD
+[1.33.0]: https://github.com/DeepL/deepl-python/compare/v1.32.0...v1.33.0
 [1.32.0]: https://github.com/DeepL/deepl-python/compare/v1.31.0...v1.32.0
 [1.31.0]: https://github.com/DeepL/deepl-python/compare/v1.30.0...v1.31.0
 [1.30.0]: https://github.com/DeepL/deepl-python/compare/v1.29.0...v1.30.0
