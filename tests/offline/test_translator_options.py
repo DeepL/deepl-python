@@ -47,15 +47,6 @@ def test_sends_only_library_version_in_user_agent_when_opted_out(mocked):
     make_translator(send_platform_info=False).get_usage()
 
 
-def test_sends_custom_user_agent(mocked, monkeypatch):
-    monkeypatch.setitem(
-        vars(deepl.http_client), "user_agent", "my custom agent"
-    )
-    reply_with_usage(mocked, "my custom agent")
-
-    make_translator().get_usage()
-
-
 @pytest.mark.parametrize(
     "kwargs, user_agent",
     [
@@ -70,25 +61,6 @@ def test_appends_app_info_to_user_agent(mocked, kwargs, user_agent):
     reply_with_usage(mocked, user_agent)
 
     make_translator(**kwargs).set_app_info("my_plugin", "1.0").get_usage()
-
-
-def test_appends_app_info_to_custom_user_agent(mocked, monkeypatch):
-    monkeypatch.setitem(
-        vars(deepl.http_client), "user_agent", "my custom agent"
-    )
-    reply_with_usage(mocked, "my custom agent my_plugin/1.0")
-
-    make_translator().set_app_info("my_plugin", "1.0").get_usage()
-
-
-def test_warns_about_deprecated_user_agent_global(monkeypatch):
-    monkeypatch.setitem(vars(deepl.http_client), "user_agent", None)
-
-    with pytest.warns(
-        DeprecationWarning,
-        match="^deepl.http_client.user_agent is deprecated, use a User-Agent",
-    ):
-        deepl.http_client.user_agent = "my custom agent"
 
 
 @pytest.mark.parametrize(

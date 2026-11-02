@@ -37,7 +37,7 @@ from deepl.translator import (
     Translator,
     _DOWNLOAD_CHUNK_SIZE,
 )
-from deepl import http_client, util
+from deepl import _http_client, util
 import errno
 import os
 import pathlib
@@ -2045,7 +2045,7 @@ class DeepLClient(Translator):
         )
         assert isinstance(content, requests.Response)
 
-        chunks = http_client.iter_response_content(content, chunk_size)
+        chunks = _http_client.iter_response_content(content, chunk_size)
         for chunk in chunks:
             output_file.write(chunk)
 
@@ -2215,7 +2215,7 @@ class DeepLClient(Translator):
         if isinstance(content, requests.Response):
             # A streamed download: read the error body for the message.
             try:
-                detail = http_client.read_response_text(content)
+                detail = _http_client.read_response_text(content)
             except ConnectionException:
                 detail = ""
         else:

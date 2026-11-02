@@ -21,7 +21,7 @@ from deepl.api_data import (
     TranslationMemoryInfo,
     Usage,
 )
-from . import http_client, util
+from . import _http_client, util
 from ._base_client import BaseClient
 from .exceptions import (  # noqa: F401
     DeepLException,
@@ -113,12 +113,10 @@ class Translator(BaseClient):
         certificates. This is passed to the underlying requests session, see
         the requests verify documentation for more information.
     :param max_retries: (Optional) Maximum number of times a failed request
-        is retried, for failures that may be transient (e.g. HTTP 429). If
-        None, the deprecated deepl.http_client.max_network_retries is used
-        (default 5).
+        is retried, for failures that may be transient (e.g. HTTP 429).
+        Default 5; 0 disables retries.
     :param timeout_s: (Optional) Minimum timeout in seconds for each attempt
-        of a request. If None, the deprecated
-        deepl.http_client.min_connection_timeout is used (default 10.0).
+        of a request. Default 10.0.
     :param headers: (Optional) Additional HTTP headers sent with every
         request to the DeepL API. A header replaces the library's header of
         the same name (compared case-insensitively), including User-Agent
@@ -142,8 +140,8 @@ class Translator(BaseClient):
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
-        max_retries: Optional[int] = None,
-        timeout_s: Optional[float] = None,
+        max_retries: int = 5,
+        timeout_s: float = 10.0,
         headers: Optional[Dict[str, str]] = None,
         app_info: Optional[AppInfo] = None,
     ):
@@ -1028,7 +1026,7 @@ class Translator(BaseClient):
 
         if not 200 <= status_code < 300:
             # The streamed body is not parsed by _api_call; read the error.
-            content = http_client.read_response_text(response)
+            content = _http_client.read_response_text(response)
             try:
                 json = json_module.loads(content)
             except ValueError:
@@ -1039,7 +1037,7 @@ class Translator(BaseClient):
 
         # output_file is annotated to accept TextIO too; it receives bytes.
         output: Any = output_file
-        chunks = http_client.iter_response_content(response, chunk_size)
+        chunks = _http_client.iter_response_content(response, chunk_size)
         for chunk in chunks:
             output.write(chunk)
 

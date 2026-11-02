@@ -2,7 +2,7 @@
 # Use of this source code is governed by an MIT
 # license that can be found in the LICENSE file.
 
-from . import http_client, util
+from . import _http_client, util
 from .api_data import AppInfo
 from .exceptions import (
     AuthorizationException,
@@ -45,8 +45,8 @@ class BaseClient:
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
-        max_retries: Optional[int] = None,
-        timeout_s: Optional[float] = None,
+        max_retries: int = 5,
+        timeout_s: float = 10.0,
         headers: Optional[Dict[str, str]] = None,
         app_info: Optional[AppInfo] = None,
     ):
@@ -54,7 +54,7 @@ class BaseClient:
         if not auth_key:
             raise ValueError("auth_key must not be empty")
         self._server_url = server_url
-        self._client = http_client.HttpClient(
+        self._client = _http_client.HttpClient(
             proxy,
             send_platform_info,
             verify_ssl,
@@ -142,7 +142,7 @@ class BaseClient:
         elif not 200 <= status_code < 300:
             # Read only the error body of a streamed response; a successful
             # one is left unread so that the caller can stream it.
-            content_str = http_client.read_response_text(content)
+            content_str = _http_client.read_response_text(content)
 
         util.log_info("DeepL API response", url=url, status_code=status_code)
         if content_str is not None:
@@ -226,7 +226,7 @@ class BaseClient:
             content_str = (
                 content
                 if isinstance(content, str)
-                else http_client.read_response_text(content)
+                else _http_client.read_response_text(content)
             )
             raise DeepLException(
                 f"Unexpected status code: {status_code} {status_name}, "

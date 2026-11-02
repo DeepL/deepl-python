@@ -19,8 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `get_multilingual_glossary()` and the `content` argument of
   `upload_translation_memory_file()` are required in their type annotations;
   they are no longer `Optional`.
+- The `max_retries` and `timeout_s` options of `Translator`, `DeepLClient`
+  and `DeepLAdminClient` default to `5` and `10.0` for each client instead of
+  `None`, and no longer accept `None`. Clients no longer read any
+  module-level setting; pass the options to every client that needs other
+  values.
 
 ### Removed
+- Removed the public module `deepl.http_client`; it is now the internal
+  `deepl._http_client`. Code that used `HttpClient`, `read_response_text()` or
+  `iter_response_content()` from it must use the client classes instead.
+- Removed the module-level settings `deepl.http_client.max_network_retries`,
+  `deepl.http_client.min_connection_timeout` and
+  `deepl.http_client.user_agent`. Use the `max_retries` and `timeout_s` client
+  options, and a `User-Agent` entry in the `headers` client option.
 - Removed the language code constants of `Language` (`Language.GERMAN`,
   `Language.ENGLISH_AMERICAN`, ...). Pass language codes as strings, for
   example `"de"`, or use the codes returned by `get_source_languages()` and

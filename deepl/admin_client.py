@@ -42,12 +42,10 @@ class DeepLAdminClient(BaseClient):
         certificates. This is passed to the underlying requests session, see
         the requests verify documentation for more information.
     :param max_retries: (Optional) Maximum number of times a failed request
-        is retried, for failures that may be transient (e.g. HTTP 429). If
-        None, the deprecated deepl.http_client.max_network_retries is used
-        (default 5).
+        is retried, for failures that may be transient (e.g. HTTP 429).
+        Default 5; 0 disables retries.
     :param timeout_s: (Optional) Minimum timeout in seconds for each attempt
-        of a request. If None, the deprecated
-        deepl.http_client.min_connection_timeout is used (default 10.0).
+        of a request. Default 10.0.
     :param headers: (Optional) Additional HTTP headers sent with every
         request to the DeepL API. A header replaces the library's header of
         the same name (compared case-insensitively), including User-Agent
@@ -69,8 +67,8 @@ class DeepLAdminClient(BaseClient):
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
-        max_retries: Optional[int] = None,
-        timeout_s: Optional[float] = None,
+        max_retries: int = 5,
+        timeout_s: float = 10.0,
         headers: Optional[Dict[str, str]] = None,
         app_info: Optional[AppInfo] = None,
     ):

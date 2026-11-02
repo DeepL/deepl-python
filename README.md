@@ -1506,7 +1506,7 @@ deepl_client = deepl.DeepLClient(...).set_app_info("sample_python_plugin", "1.0.
 
 This information is passed along when the library makes calls to the DeepL API.
 Both name and version are required. Please note that a `User-Agent` header in the
-`headers` option (or the deprecated `deepl.http_client.user_agent`) overrides this
+`headers` option overrides this
 setting; if you need to use one, please manually identify your application in it.
 
 ### Exceptions
@@ -1631,18 +1631,6 @@ not sent: after an HTTP 429 status code, a DNS resolution failure, a refused
 connection or a connect timeout. A retry after any other failure could create
 a second key.
 
-The module-level settings `deepl.http_client.max_network_retries` and
-`deepl.http_client.min_connection_timeout` are deprecated and will be removed
-in a future major version. Assigning either setting emits a
-`DeprecationWarning`. They still apply to clients created without the
-corresponding option, and affect every client in the process:
-
-```python
-deepl.http_client.max_network_retries = 3  # deprecated, use max_retries
-deepl.http_client.min_connection_timeout = 30.0  # deprecated, use timeout_s
-```
-
-
 #### Anonymous platform information
 
 By default, we send some basic information about the platform the client library is running on with each request, see [here for an explanation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent). This data is completely anonymous and only used to improve our product, not track any individual users. If you do not wish to send this data, you can opt-out when creating your `deepl.DeepLClient` object by setting the `send_platform_info` flag like so:
@@ -1656,11 +1644,6 @@ You can also replace the whole `User-Agent` with the `headers` option:
 ```python
 deepl_client = deepl.DeepLClient(..., headers={"User-Agent": "my custom user agent"})
 ```
-
-The module-level setting `deepl.http_client.user_agent`, which replaces the
-library part of the `User-Agent` for every client in the process, is deprecated
-in favour of the `headers` option and will be removed in the next major version.
-Assigning it emits a `DeprecationWarning`.
 
 ## Command Line Interface
 

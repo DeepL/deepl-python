@@ -651,11 +651,12 @@ def test_forbidden_raises_authorization_exception(mocked):
         make_admin_client().list_developer_keys()
 
 
-def test_admin_client_applies_retry_and_timeout_options(mocked, no_retries):
+def test_admin_client_applies_retry_and_timeout_options(mocked):
     mocked.get(url("v2/admin/developer-keys"), status=503)
-    mocked.get(url("v2/admin/developer-keys"), json=[])
+    mocked.get(url("v2/admin/developer-keys"), status=503)
 
-    make_admin_client(max_retries=1, timeout_s=42.0).list_developer_keys()
+    with pytest.raises(deepl.DeepLException, match="Service unavailable"):
+        make_admin_client(max_retries=1, timeout_s=42.0).list_developer_keys()
 
     assert len(mocked.calls) == 2
     assert mocked.calls[1].request.req_kwargs["timeout"] == 42.0

@@ -11,9 +11,7 @@ import pytest
 from .client import make_translator
 
 
-def test_sends_requests_through_proxy(monkeypatch, tmp_path):
-    monkeypatch.setitem(vars(deepl.http_client), "max_network_retries", 0)
-
+def test_sends_requests_through_proxy(tmp_path):
     # proxy.py writes below the home directory unless told otherwise, which CI
     # runners do not have.
     with proxy.Proxy(
@@ -29,7 +27,7 @@ def test_sends_requests_through_proxy(monkeypatch, tmp_path):
         num_acceptors=1,
     ) as local_proxy:
         translator = make_translator(
-            proxy=f"http://127.0.0.1:{local_proxy.flags.port}"
+            proxy=f"http://127.0.0.1:{local_proxy.flags.port}", max_retries=0
         )
 
         assert isinstance(translator.get_usage(), deepl.Usage)

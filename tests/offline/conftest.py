@@ -20,8 +20,13 @@ def mocked():
 def no_retries(monkeypatch):
     """Makes the SDK fail on the first 429, 5xx or connection error instead
     of retrying with backoff."""
-    # Patch the module dict: assigning the deprecated global would warn.
-    monkeypatch.setitem(vars(deepl.http_client), "max_network_retries", 0)
+    http_client = deepl._http_client.HttpClient
+    init = http_client.__init__
+
+    def init_without_retries(self, *args, **kwargs):
+        init(self, *args, **{**kwargs, "max_retries": 0})
+
+    monkeypatch.setattr(http_client, "__init__", init_without_retries)
 
 
 @pytest.fixture

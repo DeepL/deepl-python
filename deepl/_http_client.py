@@ -9,43 +9,12 @@ import platform
 import random
 import requests  # type: ignore
 import socket
-import sys
 import traceback
 import time
-import types
-import warnings
 from functools import lru_cache
 from typing import Dict, Iterator, List, Optional, Tuple, Union
 from .util import log_info
 from deepl import util
-
-# Deprecated in favour of the headers, max_retries and timeout_s client
-# options; will be removed in the next major version. Assigning any of them
-# emits a warning.
-user_agent = None
-max_network_retries = 5
-min_connection_timeout = 10.0
-
-_DEPRECATED_GLOBALS = {
-    "user_agent": "a User-Agent entry in the headers client option",
-    "max_network_retries": "the max_retries client option",
-    "min_connection_timeout": "the timeout_s client option",
-}
-
-
-class _HttpClientModule(types.ModuleType):
-    def __setattr__(self, name, value):
-        if name in _DEPRECATED_GLOBALS:
-            warnings.warn(
-                f"deepl.http_client.{name} is deprecated, use "
-                f"{_DEPRECATED_GLOBALS[name]}",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        super().__setattr__(name, value)
-
-
-sys.modules[__name__].__class__ = _HttpClientModule
 
 
 class _BackoffTimer:
@@ -58,7 +27,7 @@ class _BackoffTimer:
     BACKOFF_JITTER = 0.23
     BACKOFF_MULTIPLIER = 1.6
 
-    def __init__(self, min_timeout: Optional[float] = None):
+    def __init__(self, min_timeout: float):
         self._min_timeout = min_timeout
         self._num_retries = 0
         self._backoff = self.BACKOFF_INITIAL
@@ -68,12 +37,7 @@ class _BackoffTimer:
         return self._num_retries
 
     def get_timeout(self):
-        min_timeout = (
-            min_connection_timeout
-            if self._min_timeout is None
-            else self._min_timeout
-        )
-        return max(self.get_time_until_deadline(), min_timeout)
+        return max(self.get_time_until_deadline(), self._min_timeout)
 
     def get_time_until_deadline(self):
         return max(self._deadline - time.time(), 0.0)
@@ -100,8 +64,8 @@ class HttpClient:
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
-        max_retries: Optional[int] = None,
-        timeout_s: Optional[float] = None,
+        max_retries: int = 5,
+        timeout_s: float = 10.0,
     ):
         self._max_retries = max_retries
         self._timeout_s = timeout_s
@@ -219,11 +183,7 @@ class HttpClient:
         **kwargs,
     ) -> Tuple[int, Union[str, requests.Response]]:
         if timeout is None:
-            timeout = (
-                min_connection_timeout
-                if self._timeout_s is None
-                else self._timeout_s
-            )
+            timeout = self._timeout_s
         try:
             response = self._session.send(
                 request, stream=stream, timeout=timeout, **kwargs
@@ -264,12 +224,7 @@ class HttpClient:
     def _should_retry(
         self, response, exception, num_retries, only_unprocessed=False
     ):
-        max_retries = (
-            max_network_retries
-            if self._max_retries is None
-            else self._max_retries
-        )
-        if num_retries >= max_retries:
+        if num_retries >= self._max_retries:
             return False
 
         if response is None:
@@ -296,7 +251,6 @@ class HttpClient:
         try:
             if not any(k.lower() == "user-agent" for k in headers):
                 headers["User-Agent"] = _generate_user_agent(
-                    user_agent,
                     self._send_platform_info,
                     self._app_info_name,
                     self._app_info_version,
@@ -395,26 +349,22 @@ def _caused_by(exception: BaseException, types: tuple) -> bool:
 
 @lru_cache(maxsize=4)
 def _generate_user_agent(
-    user_agent_str: Optional[str],
     send_platform_info: bool,
     app_info_name: Optional[str],
     app_info_version: Optional[str],
 ):
-    if user_agent_str:
-        library_info_str = user_agent_str
-    else:
-        library_info_str = f"deepl-python/{version.VERSION}"
-        if send_platform_info:
-            try:
-                library_info_str += (
-                    f" ({platform.platform()}) "
-                    f"python/{platform.python_version()}"
-                )
-            except Exception:
-                util.log_info(
-                    "Exception when querying platform information:\n"
-                    + traceback.format_exc()
-                )
+    library_info_str = f"deepl-python/{version.VERSION}"
+    if send_platform_info:
+        try:
+            library_info_str += (
+                f" ({platform.platform()}) "
+                f"python/{platform.python_version()}"
+            )
+        except Exception:
+            util.log_info(
+                "Exception when querying platform information:\n"
+                + traceback.format_exc()
+            )
     if app_info_name and app_info_version:
         library_info_str += f" {app_info_name}/{app_info_version}"
     return library_info_str

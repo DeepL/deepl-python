@@ -37,8 +37,6 @@ from .exceptions import (  # noqa
     QuotaExceededException,
 )
 
-from . import http_client  # noqa
-
 from .api_data import (  # noqa
     MultilingualGlossaryDictionaryEntries,
     MultilingualGlossaryDictionaryInfo,
@@ -108,7 +106,6 @@ __all__ = [
     "TranslationMemoryJobStatus",
     "Translator",
     "Usage",
-    "http_client",
     "AuthorizationException",
     "ConnectionException",
     "DeepLException",
