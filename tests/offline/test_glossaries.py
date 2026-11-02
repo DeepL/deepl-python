@@ -53,7 +53,7 @@ def test_sends_base_languages_when_creating_glossary(mocked):
 
     make_translator().create_glossary(
         "glossary",
-        deepl.Language.ENGLISH_AMERICAN,
+        "en-US",
         "pt-br",
         {"a": "b"},
     )

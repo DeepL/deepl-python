@@ -103,16 +103,6 @@ class DocumentTranslationException(DeepLException):
             return super().__str__()
         return f"{super().__str__()}, document handle: {self.document_handle}"
 
-    @property
-    def document_request(self):
-        """Deprecated, use document_handle instead."""
-        import warnings
-
-        warnings.warn(
-            "document_request is deprecated", DeprecationWarning, stacklevel=2
-        )
-        return self.document_handle
-
 
 class GlossaryNotFoundException(NotFoundException):
     """The specified glossary was not found.

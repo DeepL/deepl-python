@@ -82,9 +82,8 @@ removed in the next major version. Creating a `Translator` emits a
 `deepl.Translator(...)` with `deepl.DeepLClient(...)`.
 
 `deepl.is_free_account_auth_key(auth_key)` returns `True` if the key belongs
-to a DeepL API Free account (it ends with `:fx`). `auth_key_is_free_account()`
-is deprecated in its favour. Leading and trailing whitespace of the key is
-ignored.
+to a DeepL API Free account (it ends with `:fx`). Leading and trailing
+whitespace of the key is ignored.
 
 ### Translating text
 
@@ -104,9 +103,8 @@ variant according to ISO 3166-1, for example `'EN-US'`, or `'PT-BR'`. A target
 language without a variant translates into its default variant, for example
 `'EN'` into `'EN-US'` and `'PT'` into `'PT-PT'`; specify the variant to choose
 explicitly. The full list of supported languages is in the
-[API documentation][api-docs-lang-list]. Language codes are plain strings; the
-language code constants of `deepl.Language` (for example `Language.GERMAN`) are
-deprecated and will be removed in the next major version.
+[API documentation][api-docs-lang-list], and `get_source_languages()` and
+`get_target_languages()` return the supported languages at runtime.
 
 There are additional optional arguments to control translation, see
 [Text translation options](#text-translation-options) below.
@@ -163,8 +161,7 @@ arguments are:
 - `split_sentences`: specify how input text should be split into sentences,
   default: `'1'`.
     - `'1'` (`SplitSentences.ALL`): input text will be split into sentences
-      using both newlines and punctuation. `SplitSentences.DEFAULT` is a
-      deprecated alias of `SplitSentences.ALL`.
+      using both newlines and punctuation.
     - `'0'` (`SplitSentences.OFF`): input text will not be split into
       sentences. Use this for applications where each input text contains only
       one sentence.
@@ -304,9 +301,6 @@ result = deepl_client.rephrase_text(
 print(result.text)
 ```
 
-The `style` keyword is a deprecated alias of `writing_style`; it still works but
-emits a `DeprecationWarning`.
-
 To only fix spelling and grammar without rewriting the text for style or tone,
 use `correct_text()`, which takes the text and the optional `target_lang`:
 
@@ -405,9 +399,7 @@ wait is shortened so it does not run past `timeout_s`.
 
 `translate_document_download()` writes the translated document to the
 file-like object given as `output_file`, in chunks of `chunk_size` bytes
-(default 64 KiB), without loading the whole document into memory. Calling it without `output_file` returns the streaming
-`requests.Response` instead; this is deprecated, emits a `DeprecationWarning`,
-and `output_file` will be required in the next major version. If the download
+(default 64 KiB), without loading the whole document into memory. If the download
 fails, the raised exception carries the API's error message; a network failure
 while the document is written to `output_file` raises `ConnectionException`.
 
@@ -502,7 +494,7 @@ You can also upload a glossary downloaded from the DeepL website using
 `create_multilingual_glossary_from_csv()`. Instead of supplying the entries as a 
 dictionary within a MultilingualGlossaryDictionaryEntries object, you can specify 
 the CSV data as `csv` either as a file-like object or string or bytes 
-containing file content (`csv_data` is the deprecated name of this argument):
+containing file content:
 
 ```python
 # Open the CSV file assuming UTF-8 encoding. If your file contains a BOM,
@@ -574,10 +566,6 @@ dictionary = deepl_client.get_multilingual_glossary_dictionary_entries(
 print(deepl.util.convert_tsv_to_dict(dictionary.entries))  # "{'artist': 'Maler', 'prize': 'Gewinn'}"
 ```
 
-`get_multilingual_glossary_entries()` is deprecated: it returns a
-`MultilingualGlossaryDictionaryEntriesResponse` wrapping a list of
-dictionaries. Use `get_multilingual_glossary_dictionary_entries()` instead.
-
 #### Editing a glossary
 
 Functions to edit stored glossaries are also provided:
@@ -602,11 +590,7 @@ Functions to edit stored glossaries are also provided:
 - `update_multilingual_glossary_name()` takes a glossary ID or `MultilingualGlossaryInfo`
   object, plus the new name of the glossary. 
 
-The `*_from_csv()` variants take the entries as `csv` instead. The
-`glossary_dicts` (of `create_multilingual_glossary()`), `glossary_dict` and
-`csv_data` argument names are deprecated; use `dictionaries`, `dictionary` and
-`csv`. `get_multilingual_glossary()` likewise takes `glossary`; its
-`glossary_id` keyword is deprecated.
+The `*_from_csv()` variants take the entries as `csv` instead.
 
 The functions that create, update or replace glossaries and dictionaries
 (`create_multilingual_glossary()`, `create_multilingual_glossary_from_csv()`,
@@ -1260,9 +1244,7 @@ optional keyword arguments `content_type`, `display_name` and
 `upload_translation_memory_file()` takes the import job (or its upload URL),
 the file `content` as bytes or a binary file object, and an optional
 `content_type` (default `application/xml`) that must match the one declared
-when creating the job. The keyword `input_file` is a deprecated alias of
-`content`: it emits a `DeprecationWarning` and will be removed in the next
-major version.
+when creating the job.
 
 ```python
 created = deepl_client.create_translation_memory_import(
@@ -1339,9 +1321,7 @@ with open("/path/to/exported.tmx", "wb") as output_file:
 
 `download_translation_memory_export()` writes in chunks of `chunk_size` bytes
 (default 64 KiB); a network failure while it writes raises
-`ConnectionException`. Calling it without `output_file` returns the streaming
-`requests.Response` instead; this is deprecated, emits a `DeprecationWarning`,
-and `output_file` will be required in the next major version.
+`ConnectionException`.
 
 #### Deleting a translation memory
 

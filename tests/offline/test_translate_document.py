@@ -547,15 +547,9 @@ def test_raises_when_downloading_document_that_is_not_ready(
     assert exc_info.value.http_status_code == 503
 
 
-def test_warns_and_returns_streaming_response_when_downloading_without_file(
-    mocked,
-):
-    reply_with_result(mocked, b"translated")
-
-    with pytest.warns(DeprecationWarning, match="pass output_file"):
-        response = make_translator().translate_document_download(HANDLE)
-
-    assert b"".join(response.iter_content(chunk_size=4)) == b"translated"
+def test_requires_output_file_when_downloading_document():
+    with pytest.raises(TypeError, match="output_file"):
+        make_translator().translate_document_download(HANDLE)
 
 
 def test_writes_download_into_file_object_in_chunks(mocked):

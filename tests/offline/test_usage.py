@@ -61,26 +61,6 @@ def test_parses_usage_without_limits(mocked):
     assert str(usage) == "Usage this billing period:\n"
 
 
-def test_warns_about_deprecated_limit_exceeded(mocked):
-    mocked.get(
-        url("v2/usage"),
-        json={"character_count": 1, "character_limit": 1},
-    )
-
-    usage = make_translator().get_usage()
-
-    with pytest.warns(
-        DeprecationWarning,
-        match="^any_limit_exceeded is deprecated, use any_limit_reached$",
-    ):
-        assert usage.any_limit_exceeded
-    with pytest.warns(
-        DeprecationWarning,
-        match="^limit_exceeded is deprecated, use limit_reached$",
-    ):
-        assert usage.character.limit_exceeded
-
-
 def test_parses_api_pro_usage(mocked):
     mocked.get(
         url("v2/usage"),

@@ -294,12 +294,11 @@ def test_sends_base_languages_when_getting_dictionary_entries(
         match=bodyless_request({"source_lang": "EN", "target_lang": "DE"}),
     )
 
-    with pytest.warns(DeprecationWarning):
-        response = make_deepl_client().get_multilingual_glossary_entries(
-            glossary, "EN-US", "DE"
-        )
+    dictionary = make_deepl_client().get_multilingual_glossary_dictionary_entries(  # noqa: E501
+        glossary, "EN-US", "DE"
+    )
 
-    assert [d.entries for d in response.dictionaries] == ["Hello\tHallo"]
+    assert dictionary.entries == "Hello\tHallo"
 
 
 @pytest.mark.parametrize("glossary", ["g-1", glossary_info()])
@@ -584,27 +583,6 @@ def test_accepts_entries_by_keyword(mocked, method, path, call):
 
 
 @pytest.mark.parametrize(
-    "method, path, call",
-    keyword_cases("glossary_dicts", "glossary_dict", "csv_data"),
-)
-def test_warns_on_deprecated_entries_keyword(mocked, method, path, call):
-    response = DICTIONARY_JSON if method == "PUT" else GLOSSARY_JSON
-    mocked.add(method, url(path), json=response)
-
-    with pytest.warns(DeprecationWarning, match="is deprecated"):
-        call(make_deepl_client())
-
-
-def test_raises_when_new_and_deprecated_keyword_are_both_given():
-    with pytest.raises(
-        TypeError, match="both dictionaries and glossary_dicts"
-    ):
-        make_deepl_client().create_multilingual_glossary(
-            "glossary", [ENTRIES], glossary_dicts=[ENTRIES]
-        )
-
-
-@pytest.mark.parametrize(
     "call",
     [
         lambda c: c.get_multilingual_glossary(glossary_info()),
@@ -617,13 +595,6 @@ def test_accepts_glossary_info_when_getting_glossary(mocked, call):
     )
 
     assert call(make_deepl_client()).glossary_id == "g-1"
-
-
-def test_warns_on_deprecated_glossary_id_keyword(mocked):
-    mocked.get(url("v3/glossaries/g-1"), json=GLOSSARY_JSON)
-
-    with pytest.warns(DeprecationWarning, match="glossary_id"):
-        make_deepl_client().get_multilingual_glossary(glossary_id="g-1")
 
 
 @pytest.mark.parametrize("glossary", ["g-1", glossary_info()])

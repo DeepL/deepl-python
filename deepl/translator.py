@@ -66,25 +66,8 @@ def _check_target_lang_given(
     return target_lang
 
 
-def _warn_skip_language_check() -> None:
-    # stacklevel=3: point at the caller of the public method, not this helper
-    warnings.warn(
-        "skip_language_check is deprecated and has no effect",
-        DeprecationWarning,
-        stacklevel=3,
-    )
-
-
 # Default chunk size for writing downloads into output_file.
 _DOWNLOAD_CHUNK_SIZE = 64 * 1024
-
-
-def _warn_download_without_output_file() -> None:
-    warnings.warn(
-        "returning the response is deprecated; pass output_file",
-        DeprecationWarning,
-        stacklevel=3,
-    )
 
 
 def _required_str(json: dict, key: str) -> str:
@@ -105,14 +88,6 @@ def _document_translation_exception(
             http_status_code=cause.http_status_code,
         )
     return DocumentTranslationException(str(cause), handle)
-
-
-def _warn_skip_cache() -> None:
-    warnings.warn(
-        "skip_cache is deprecated and has no effect",
-        DeprecationWarning,
-        stacklevel=3,
-    )
 
 
 class Translator(BaseClient):
@@ -152,9 +127,6 @@ class Translator(BaseClient):
         value.
     :param app_info: (Optional) AppInfo identifying your application in the
         User-Agent header, same as set_app_info().
-    :param skip_language_check: Deprecated, and now has no effect as the
-        corresponding internal functionality has been removed. This parameter
-        will be removed in a future version.
 
     All functions may raise DeepLException or a subclass if a connection error
     occurs.
@@ -174,7 +146,6 @@ class Translator(BaseClient):
         timeout_s: Optional[float] = None,
         headers: Optional[Dict[str, str]] = None,
         app_info: Optional[AppInfo] = None,
-        skip_language_check: Optional[bool] = None,
     ):
         if type(self) is Translator:
             warnings.warn(
@@ -185,8 +156,6 @@ class Translator(BaseClient):
         if not auth_key or not auth_key.strip():
             raise ValueError("auth_key must not be empty")
         auth_key = auth_key.strip()
-        if skip_language_check is not None:
-            _warn_skip_language_check()
 
         if server_url is None:
             server_url = (
@@ -573,63 +542,6 @@ class Translator(BaseClient):
             )
 
         return output if multi_input else output[0]
-
-    def translate_text_with_glossary(
-        self,
-        text: Union[str, Iterable[str]],
-        glossary: GlossaryInfo,
-        target_lang: Union[str, Language, None] = None,
-        **kwargs,
-    ) -> Union[TextResult, List[TextResult]]:
-        """Translate text(s) using given glossary. The source and target
-        languages are assumed to match the glossary languages.
-
-        .. deprecated::
-            Use translate_text() with the glossary parameter instead. Calling
-            this function emits a DeprecationWarning.
-
-        Note that if the glossary target language is English (EN), the text
-        will be translated into British English (EN-GB). To instead translate
-        into American English specify target_lang="EN-US".
-
-        :param text: Text to translate.
-        :type text: UTF-8 :class:`str`; string sequence (list, tuple, iterator,
-            generator)
-        :param glossary: glossary to use for translation.
-        :type glossary: :class:`GlossaryInfo`.
-        :param target_lang: override target language of glossary.
-        :return: List of TextResult objects containing results, unless input
-            text was one string, then a single TextResult object is returned.
-        """
-
-        warnings.warn(
-            "translate_text_with_glossary is deprecated, use translate_text "
-            "with the glossary parameter",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if not isinstance(glossary, GlossaryInfo):
-            msg = (
-                "This function expects the glossary parameter to be an "
-                "instance of GlossaryInfo. Use get_glossary() to obtain a "
-                "GlossaryInfo using the glossary ID of an existing "
-                "glossary. Alternatively, use translate_text() and "
-                "specify the glossary ID using the glossary parameter. "
-            )
-            raise ValueError(msg)
-
-        if target_lang is None:
-            target_lang = glossary.target_lang
-            if target_lang == "EN":
-                target_lang = "EN-GB"
-
-        return self.translate_text(
-            text,
-            source_lang=glossary.source_lang,
-            target_lang=target_lang,
-            glossary=glossary,
-            **kwargs,
-        )
 
     def translate_document_from_filepath(
         self,
@@ -1086,21 +998,16 @@ class Translator(BaseClient):
     def translate_document_download(
         self,
         handle: DocumentHandle,
-        output_file: Union[TextIO, BinaryIO, Any, None] = None,
+        output_file: Union[TextIO, BinaryIO, Any],
         chunk_size: int = _DOWNLOAD_CHUNK_SIZE,
-    ) -> Optional[requests.Response]:
+    ) -> None:
         """Downloads the translated document for the request associated with
         given handle and writes it to the file-like object output_file.
 
         :param handle: DocumentHandle associated with request.
         :param output_file: File-like object to store downloaded document.
-            Omitting it is deprecated: the requests.Response is then returned
-            instead, and iter_content() reads the streamed file data. In the
-            next major version output_file will be required.
         :param chunk_size: (Optional) Size of chunk in bytes for streaming,
-            default 64 KiB. Only used if output_file is specified.
-        :return: None if output_file is specified, otherwise the
-            requests.Response will be returned.
+            default 64 KiB.
 
         :raises ConnectionException: If the connection fails while the
             document is downloaded into output_file.
@@ -1130,29 +1037,17 @@ class Translator(BaseClient):
                 status_code, content, json, downloading_document=True
             )
 
-        if output_file:
-            # output_file is annotated to accept TextIO too; it receives bytes.
-            output: Any = output_file
-            chunks = http_client.iter_response_content(response, chunk_size)
-            for chunk in chunks:
-                output.write(chunk)
-            return None
-        else:
-            _warn_download_without_output_file()
-            return response
+        # output_file is annotated to accept TextIO too; it receives bytes.
+        output: Any = output_file
+        chunks = http_client.iter_response_content(response, chunk_size)
+        for chunk in chunks:
+            output.write(chunk)
 
-    def get_source_languages(
-        self, skip_cache: Optional[bool] = None
-    ) -> List[Language]:
+    def get_source_languages(self) -> List[Language]:
         """Request the list of available source languages.
 
-        :param skip_cache: Deprecated, and now has no effect as the
-            corresponding internal functionality has been removed. This
-            parameter will be removed in a future version.
         :return: List of supported source languages.
         """
-        if skip_cache is not None:
-            _warn_skip_cache()
         status, content, json = self._api_call(
             "v3/languages",
             method="GET",
@@ -1176,18 +1071,11 @@ class Translator(BaseClient):
                 f"Malformed language in response: {e!r}"
             ) from e
 
-    def get_target_languages(
-        self, skip_cache: Optional[bool] = None
-    ) -> List[Language]:
+    def get_target_languages(self) -> List[Language]:
         """Request the list of available target languages.
 
-        :param skip_cache: Deprecated, and now has no effect as the
-            corresponding internal functionality has been removed. This
-            parameter will be removed in a future version.
         :return: List of supported target languages.
         """
-        if skip_cache is not None:
-            _warn_skip_cache()
         status, content, json = self._api_call(
             "v3/languages",
             method="GET",

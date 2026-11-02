@@ -42,12 +42,9 @@ def test_remove_regional_variant():
         ("EN-US", "EN"),
         ("en-GB", "EN"),
         ("de-AT", "DE"),
-        (deepl.Language.ENGLISH_AMERICAN, "EN"),
-        (deepl.Language.ENGLISH_BRITISH, "EN"),
-        (deepl.Language.GERMAN, "DE"),
-        (deepl.Language.ACEHNESE, "ACE"),
-        (deepl.Language.KURDISH_KURMANJI, "KMR"),
-        (deepl.Language.SPANISH_LATIN_AMERICAN, "ES"),
+        ("de", "DE"),
+        ("ace", "ACE"),
+        ("es-419", "ES"),
     ]:
         assert deepl.Language.remove_regional_variant(lang) == expected
 
@@ -82,21 +79,6 @@ def test_parses_target_languages_with_formality_support(mocked):
         ("DE", True),
         ("EN-US", False),
     ]
-
-
-@pytest.mark.parametrize(
-    "method", ["get_source_languages", "get_target_languages"]
-)
-@pytest.mark.parametrize("skip_cache", [True, False])
-def test_warns_about_deprecated_skip_cache(mocked, method, skip_cache):
-    mocked.get(url("v3/languages"), json=LANGUAGES_JSON)
-
-    with pytest.warns(
-        DeprecationWarning, match="^skip_cache is deprecated"
-    ) as w:
-        getattr(make_deepl_client(), method)(skip_cache=skip_cache)
-
-    assert w[0].filename == __file__
 
 
 @pytest.mark.parametrize("body", [{"message": "unexpected"}, "text"])

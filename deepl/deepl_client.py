@@ -3,7 +3,6 @@
 # license that can be found in the LICENSE file.
 
 from deepl.api_data import (
-    AppInfo,
     CustomInstruction,
     GlossaryInfo,
     MultilingualGlossaryDictionaryEntries,
@@ -37,8 +36,6 @@ from deepl.exceptions import (
 from deepl.translator import (
     Translator,
     _DOWNLOAD_CHUNK_SIZE,
-    _warn_download_without_output_file,
-    _warn_skip_language_check,
 )
 from deepl import http_client, util
 import errno
@@ -47,7 +44,6 @@ import pathlib
 import requests  # type: ignore
 import time
 import urllib.parse
-import warnings
 from typing import (
     Any,
     BinaryIO,
@@ -109,63 +105,12 @@ def _parse_improvements(json: Any, text_count: int) -> List[WriteResult]:
     return output
 
 
-def _renamed_argument(
-    method: str, name: str, value: Any, old_name: str, old_value: Any
-) -> Any:
-    """Returns the value of a renamed parameter, accepting its deprecated
-    keyword with a DeprecationWarning."""
-    if old_value is not None:
-        if value is not None:
-            raise TypeError(
-                f"{method}() got values for both {name} and {old_name}"
-            )
-        warnings.warn(
-            f"the {old_name} argument of {method}() is deprecated, "
-            f"use {name}",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return old_value
-    if value is None:
-        raise TypeError(f"{method}() missing required argument: {name}")
-    return value
-
-
 class DeepLClient(Translator):
-    def __init__(
-        self,
-        auth_key: str,
-        *,
-        server_url: Optional[str] = None,
-        proxy: Union[Dict, str, None] = None,
-        send_platform_info: bool = True,
-        verify_ssl: Union[bool, str, None] = None,
-        max_retries: Optional[int] = None,
-        timeout_s: Optional[float] = None,
-        headers: Optional[Dict[str, str]] = None,
-        app_info: Optional[AppInfo] = None,
-        skip_language_check: Optional[bool] = None,
-    ):
-        if skip_language_check is not None:
-            _warn_skip_language_check()
-        super().__init__(
-            auth_key,
-            server_url=server_url,
-            proxy=proxy,
-            send_platform_info=send_platform_info,
-            verify_ssl=verify_ssl,
-            max_retries=max_retries,
-            timeout_s=timeout_s,
-            headers=headers,
-            app_info=app_info,
-        )
-
     def rephrase_text(
         self,
         text: Union[str, Iterable[str]],
         *,
         target_lang: Union[None, str, Language] = None,
-        style: Union[str, WritingStyle, None] = None,
         tone: Union[str, WritingTone, None] = None,
         writing_style: Union[str, WritingStyle, None] = None,
         extra_body_parameters: Optional[dict] = None,
@@ -179,15 +124,11 @@ class DeepLClient(Translator):
             generator)
         :param target_lang: language code the final text should be in, for
             example "DE", "EN-US", "FR".
-        :param style: Deprecated alias of `writing_style`.
-
-            .. deprecated:: 1.33.0
-                Use `writing_style` instead.
         :param tone: Tone to be used for the improvement, as a WritingTone or
             string. Either writing_style OR tone can be used.
         :param writing_style: Writing style to be used for the improvement, as
             a WritingStyle or string. Either writing_style OR tone can be
-            used. Takes precedence over the deprecated `style`.
+            used.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. If provided,
             keys in this dict will be added to the request body, and replace
@@ -195,15 +136,6 @@ class DeepLClient(Translator):
         :return: List of WriteResult objects containing results, unless input
             text was one string, then a single WriteResult object is returned.
         """
-        if style is not None:
-            warnings.warn(
-                "style is deprecated, use writing_style",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            if writing_style is None:
-                writing_style = style
-
         if isinstance(text, str):
             if len(text) == 0:
                 raise ValueError("text must not be empty")
@@ -289,13 +221,8 @@ class DeepLClient(Translator):
     def create_multilingual_glossary(
         self,
         name: str,
-        dictionaries: Optional[
-            List[MultilingualGlossaryDictionaryEntries]
-        ] = None,
+        dictionaries: List[MultilingualGlossaryDictionaryEntries],
         *,
-        glossary_dicts: Optional[
-            List[MultilingualGlossaryDictionaryEntries]
-        ] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
         """Creates a glossary with given name with all of the specified
@@ -316,10 +243,6 @@ class DeepLClient(Translator):
         :param name: user-defined name to attach to glossary.
         :param dictionaries: a list of MultilingualGlossaryDictionaryEntries
             which each contains entries for a particular language pair
-        :param glossary_dicts: Deprecated alias of dictionaries.
-
-            .. deprecated:: 1.33.0
-                Use ``dictionaries`` instead.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. They are added
             last and replace fields with the same key.
@@ -331,13 +254,6 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        dictionaries = _renamed_argument(
-            "create_multilingual_glossary",
-            "dictionaries",
-            dictionaries,
-            "glossary_dicts",
-            glossary_dicts,
-        )
         if any(map(lambda d: not d.entries, dictionaries)):
             raise ValueError("glossary entries must not be empty")
 
@@ -350,9 +266,8 @@ class DeepLClient(Translator):
         name: str,
         source_lang: str,
         target_lang: str,
-        csv: Union[TextIO, BinaryIO, str, bytes, Any] = None,
+        csv: Union[TextIO, BinaryIO, str, bytes, Any],
         *,
-        csv_data: Union[TextIO, BinaryIO, str, bytes, Any] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
         """Creates a glossary with given name for the source and target
@@ -376,10 +291,6 @@ class DeepLClient(Translator):
         :param target_lang: Language of target entries.
         :param csv: CSV data containing glossary entries, either as a
             file-like object or string or bytes containing file content.
-        :param csv_data: Deprecated alias of csv.
-
-            .. deprecated:: 1.33.0
-                Use ``csv`` instead.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. They are added
             last and replace fields with the same key.
@@ -391,13 +302,6 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        csv = _renamed_argument(
-            "create_multilingual_glossary_from_csv",
-            "csv",
-            csv,
-            "csv_data",
-            csv_data,
-        )
         entries = util.convert_csv_to_dict(csv)
 
         dictionaries = [
@@ -496,9 +400,8 @@ class DeepLClient(Translator):
     def update_multilingual_glossary_dictionary(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
-        dictionary: Optional[MultilingualGlossaryDictionaryEntries] = None,
+        dictionary: MultilingualGlossaryDictionaryEntries,
         *,
-        glossary_dict: Optional[MultilingualGlossaryDictionaryEntries] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
         """Updates or creates a glossary dictionary with given glossary
@@ -518,10 +421,6 @@ class DeepLClient(Translator):
 
         :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
         :param dictionary: The new or updated glossary dictionary
-        :param glossary_dict: Deprecated alias of dictionary.
-
-            .. deprecated:: 1.33.0
-                Use ``dictionary`` instead.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. They are added
             last and replace fields with the same key.
@@ -532,13 +431,6 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        dictionary = _renamed_argument(
-            "update_multilingual_glossary_dictionary",
-            "dictionary",
-            dictionary,
-            "glossary_dict",
-            glossary_dict,
-        )
         if not dictionary or not dictionary.entries:
             raise ValueError("glossary entries must not be empty")
 
@@ -553,9 +445,8 @@ class DeepLClient(Translator):
         glossary: Union[str, MultilingualGlossaryInfo],
         source_lang: str,
         target_lang: str,
-        csv: Union[TextIO, BinaryIO, str, bytes, Any] = None,
+        csv: Union[TextIO, BinaryIO, str, bytes, Any],
         *,
-        csv_data: Union[TextIO, BinaryIO, str, bytes, Any] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryInfo:
         """Updates or creates a glossary dictionary with given entries in
@@ -580,10 +471,6 @@ class DeepLClient(Translator):
         :param target_lang: Language of target entries.
         :param csv: CSV data containing glossary entries, either as a
             file-like object or string or bytes containing file content.
-        :param csv_data: Deprecated alias of csv.
-
-            .. deprecated:: 1.33.0
-                Use ``csv`` instead.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. They are added
             last and replace fields with the same key.
@@ -594,13 +481,6 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        csv = _renamed_argument(
-            "update_multilingual_glossary_dictionary_from_csv",
-            "csv",
-            csv,
-            "csv_data",
-            csv_data,
-        )
         entries = util.convert_csv_to_dict(csv)
 
         dictionaries = [
@@ -645,9 +525,8 @@ class DeepLClient(Translator):
     def replace_multilingual_glossary_dictionary(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
-        dictionary: Optional[MultilingualGlossaryDictionaryEntries] = None,
+        dictionary: MultilingualGlossaryDictionaryEntries,
         *,
-        glossary_dict: Optional[MultilingualGlossaryDictionaryEntries] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryDictionaryInfo:
         """Replaces a glossary dictionary with given entries for the
@@ -665,10 +544,6 @@ class DeepLClient(Translator):
 
         :param glossary: MultilingualGlossaryInfo or ID of glossary to update.
         :param dictionary: The new glossary dictionary
-        :param glossary_dict: Deprecated alias of dictionary.
-
-            .. deprecated:: 1.33.0
-                Use ``dictionary`` instead.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. They are added
             last and replace fields with the same key.
@@ -679,13 +554,6 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        dictionary = _renamed_argument(
-            "replace_multilingual_glossary_dictionary",
-            "dictionary",
-            dictionary,
-            "glossary_dict",
-            glossary_dict,
-        )
         if not dictionary or not dictionary.entries:
             raise ValueError("glossary entries must not be empty")
 
@@ -702,9 +570,8 @@ class DeepLClient(Translator):
         glossary: Union[str, MultilingualGlossaryInfo],
         source_lang: str,
         target_lang: str,
-        csv: Union[TextIO, BinaryIO, str, bytes, Any] = None,
+        csv: Union[TextIO, BinaryIO, str, bytes, Any],
         *,
-        csv_data: Union[TextIO, BinaryIO, str, bytes, Any] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> MultilingualGlossaryDictionaryInfo:
         """Replaces a glossary dictionary with given CSV formatted entries
@@ -727,10 +594,6 @@ class DeepLClient(Translator):
         :param target_lang: Language of target entries.
         :param csv: CSV data containing glossary entries, either as a
             file-like object or string or bytes containing file content.
-        :param csv_data: Deprecated alias of csv.
-
-            .. deprecated:: 1.33.0
-                Use ``csv`` instead.
         :param extra_body_parameters: (Optional) Additional key/value pairs to
             include in the JSON request body sent to the API. They are added
             last and replace fields with the same key.
@@ -741,13 +604,6 @@ class DeepLClient(Translator):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        csv = _renamed_argument(
-            "replace_multilingual_glossary_dictionary_from_csv",
-            "csv",
-            csv,
-            "csv_data",
-            csv_data,
-        )
         entries = util.convert_csv_to_dict(csv)
 
         return self._replace_multilingual_glossary_dictionary(
@@ -781,30 +637,17 @@ class DeepLClient(Translator):
 
     def get_multilingual_glossary(
         self,
-        glossary: Union[str, MultilingualGlossaryInfo, None] = None,
-        *,
-        glossary_id: Optional[str] = None,
+        glossary: Union[str, MultilingualGlossaryInfo],
     ) -> MultilingualGlossaryInfo:
         """Retrieves MultilingualGlossaryInfo for the specified glossary.
 
         :param glossary: MultilingualGlossaryInfo or ID of glossary to
             retrieve.
-        :param glossary_id: Deprecated alias of glossary.
-
-            .. deprecated:: 1.33.0
-                Use ``glossary`` instead.
         :return: MultilingualGlossaryInfo with information about specified
             glossary.
         :raises GlossaryNotFoundException: If no glossary with given ID is
             found.
         """
-        glossary = _renamed_argument(
-            "get_multilingual_glossary",
-            "glossary",
-            glossary,
-            "glossary_id",
-            glossary_id,
-        )
         status, content, json = self._api_call(
             f"v3/glossaries/{self._multilingual_glossary_id(glossary)}",
             method="GET",
@@ -859,40 +702,6 @@ class DeepLClient(Translator):
                 f"{source_lang}->{target_lang}"
             )
         return dictionaries[0]
-
-    def get_multilingual_glossary_entries(
-        self,
-        glossary: Union[str, MultilingualGlossaryInfo],
-        source_lang: str,
-        target_lang: str,
-    ) -> MultilingualGlossaryDictionaryEntriesResponse:
-        """Retrieves the entries for a given source and target language in the
-        specified glossary.
-
-        .. deprecated:: 1.33.0
-            Use get_multilingual_glossary_dictionary_entries() instead, which
-            returns the dictionary entries directly.
-
-        :param glossary: MultilingualGlossaryInfo or ID of glossary to
-            retrieve.
-        :param source_lang: Language of source terms.
-        :param target_lang: Language of target terms.
-        :return: MultilingualGlossaryDictionaryEntriesResponse object
-            containing the entries.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
-            found.
-        :raises DeepLException: If the glossary could not be retrieved
-            in the right format.
-        """
-        warnings.warn(
-            "get_multilingual_glossary_entries() is deprecated, use "
-            "get_multilingual_glossary_dictionary_entries()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._get_multilingual_glossary_entries(
-            glossary, source_lang, target_lang
-        )
 
     def _get_multilingual_glossary_entries(
         self,
@@ -2068,10 +1877,8 @@ class DeepLClient(Translator):
     def upload_translation_memory_file(
         self,
         translation_memory_import: Union[str, TranslationMemoryImport],
-        content: Union[BinaryIO, bytes, Any] = None,
+        content: Union[BinaryIO, bytes, Any],
         content_type: str = "application/xml",
-        *,
-        input_file: Union[BinaryIO, bytes, Any] = None,
     ) -> None:
         """Uploads a TMX file to the upload URL of an import job, which starts
         processing.
@@ -2082,31 +1889,12 @@ class DeepLClient(Translator):
             opened in binary mode.
         :param content_type: (Optional) MIME type of the file. Must match the
             content_type declared when the import job was created.
-        :param input_file: Deprecated alias of content.
-
-            .. deprecated::
-                Use content instead. input_file will be removed in the next
-                major version.
 
         :raises DeepLException: If the storage URL returns an error status,
             with http_status_code set; should_retry is True for 429 and 5xx.
         :raises ConnectionException: If the connection fails while the file
             is downloaded into output_file.
         """
-        if input_file is not None:
-            if content is not None:
-                raise ValueError("pass either content or input_file, not both")
-            warnings.warn(
-                "input_file is deprecated, use content",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            content = input_file
-        if content is None:
-            raise TypeError(
-                "upload_translation_memory_file() missing required argument: "
-                "'content'"
-            )
         if isinstance(translation_memory_import, TranslationMemoryImport):
             upload_url = translation_memory_import.upload_url
         else:
@@ -2227,21 +2015,17 @@ class DeepLClient(Translator):
     def download_translation_memory_export(
         self,
         job: TranslationMemoryJob,
-        output_file: Union[BinaryIO, Any, None] = None,
+        output_file: Union[BinaryIO, Any],
         chunk_size: int = _DOWNLOAD_CHUNK_SIZE,
-    ) -> Optional[requests.Response]:
+    ) -> None:
         """Downloads the TMX file of a completed export job.
 
         :param job: Completed export TranslationMemoryJob carrying the
             download URL.
         :param output_file: File-like object to store the downloaded TMX
-            file. Omitting it is deprecated: the requests.Response is then
-            returned instead, and iter_content() reads the streamed file data.
-            In the next major version output_file will be required.
+            file.
         :param chunk_size: (Optional) Size of chunk in bytes for streaming,
-            default 64 KiB. Only used if output_file is specified.
-        :return: None if output_file is specified, otherwise the
-            requests.Response.
+            default 64 KiB.
 
         :raises DeepLException: If the storage URL returns an error status,
             with http_status_code set; should_retry is True for 429 and 5xx.
@@ -2261,13 +2045,9 @@ class DeepLClient(Translator):
         )
         assert isinstance(content, requests.Response)
 
-        if output_file:
-            chunks = http_client.iter_response_content(content, chunk_size)
-            for chunk in chunks:
-                output_file.write(chunk)
-            return None
-        _warn_download_without_output_file()
-        return content
+        chunks = http_client.iter_response_content(content, chunk_size)
+        for chunk in chunks:
+            output_file.write(chunk)
 
     def import_translation_memory_from_filepath(
         self,

@@ -15,7 +15,7 @@ To support these new v3 APIs, we have created new methods to interact with these
 | `create_glossary_from_csv()`         | `create_multilingual_glossary_from_csv()`     | Similar functionality, but now returns a `MultilingualGlossaryInfo` object |
 | `get_glossary()`                     | `get_multilingual_glossary()`                 | Similar functionality, but now returns `MultilingualGlossaryInfo`. Also can accept a `MultilingualGlossaryInfo` object as the glossary parameter instead of a `GlossaryInfo` object.|
 | `list_glossaries()`                  | `list_multilingual_glossaries()`              | Similar functionality, but now returns a list of `MultilingualGlossaryInfo` objects.        |
-| `get_glossary_entries()`             | `get_multilingual_glossary_dictionary_entries()` | Requires specifying source and target languages. Returns a `MultilingualGlossaryDictionaryEntries` object whose `entries` is a dictionary. (`get_multilingual_glossary_entries()` is deprecated.) |
+| `get_glossary_entries()`             | `get_multilingual_glossary_dictionary_entries()` | Requires specifying source and target languages. Returns a `MultilingualGlossaryDictionaryEntries` object whose `entries` is a dictionary. |
 | `delete_glossary()`                  | `delete_multilingual_glossary()`              | Similar functionality, but now can accept a `MultilingualGlossaryInfo` object instead of a `GlossaryInfo` object when specifying the glossary.  |
 
 ## 3. Model Changes

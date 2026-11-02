@@ -34,17 +34,12 @@ def test_sends_text_without_optional_fields(mocked):
     "kwargs, extra_body",
     [
         ({"target_lang": "EN-GB"}, {"target_lang": "EN-GB"}),
-        ({"style": "business"}, {"writing_style": "business"}),
         ({"tone": "friendly"}, {"tone": "friendly"}),
         (
-            {"style": "casual", "tone": "confident"},
+            {"writing_style": "casual", "tone": "confident"},
             {"writing_style": "casual", "tone": "confident"},
         ),
         ({"writing_style": "business"}, {"writing_style": "business"}),
-        (
-            {"writing_style": "academic", "style": "casual"},
-            {"writing_style": "academic"},
-        ),
         (
             {
                 "writing_style": WritingStyle.PREFER_BUSINESS,

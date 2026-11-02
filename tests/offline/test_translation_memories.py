@@ -333,24 +333,6 @@ def test_sends_given_content_type_when_uploading_file(mocked):
     )
 
 
-def test_warns_when_uploading_file_with_input_file_keyword(mocked):
-    mocked.put(UPLOAD_URL, match=storage_request("application/xml", "<tmx/>"))
-
-    with pytest.warns(
-        DeprecationWarning, match="input_file is deprecated, use content"
-    ):
-        make_deepl_client().upload_translation_memory_file(
-            UPLOAD_URL, input_file=b"<tmx/>"
-        )
-
-
-def test_raises_when_uploading_file_with_content_and_input_file():
-    with pytest.raises(ValueError, match="either content or input_file"):
-        make_deepl_client().upload_translation_memory_file(
-            UPLOAD_URL, b"a", input_file=b"b"
-        )
-
-
 def test_raises_when_uploading_file_without_url():
     with pytest.raises(ValueError, match="upload_url must not be empty"):
         make_deepl_client().upload_translation_memory_file("", b"x")
@@ -793,18 +775,13 @@ def test_downloads_export_without_authorization_into_file_object(mocked):
     assert output.getvalue() == b"<tmx/>"
 
 
-def test_warns_and_returns_response_when_downloading_export_without_file(
-    mocked,
-):
-    mocked.get(DOWNLOAD_URL, body=b"<tmx/>", match=storage_request())
+def test_requires_output_file_when_downloading_export():
     job = TranslationMemoryJob.from_json(
         job_json("completed", "export", download_url=DOWNLOAD_URL)
     )
 
-    with pytest.warns(DeprecationWarning, match="pass output_file"):
-        response = make_deepl_client().download_translation_memory_export(job)
-
-    assert b"".join(response.iter_content(chunk_size=3)) == b"<tmx/>"
+    with pytest.raises(TypeError, match="output_file"):
+        make_deepl_client().download_translation_memory_export(job)
 
 
 @pytest.mark.parametrize("fail_after", [0, 2])
@@ -830,7 +807,9 @@ def test_raises_when_downloading_export_without_download_url():
     job = TranslationMemoryJob.from_json(job_json("processing", "export"))
 
     with pytest.raises(ValueError, match="has no download URL"):
-        make_deepl_client().download_translation_memory_export(job)
+        make_deepl_client().download_translation_memory_export(
+            job, io.BytesIO()
+        )
 
 
 def test_raises_with_body_when_storage_rejects_streamed_download(mocked):

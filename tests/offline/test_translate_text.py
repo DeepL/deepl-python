@@ -278,32 +278,12 @@ def test_accepts_target_language_without_regional_variant(mocked, target_lang):
     make_translator().translate_text("hello", target_lang=target_lang)
 
 
-def test_sends_language_enums_as_codes(mocked):
-    reply_with_translation(
-        mocked, {**BASE_BODY, "source_lang": "EN", "target_lang": "DE"}
-    )
-
-    make_translator().translate_text(
-        "hello",
-        source_lang=deepl.Language.ENGLISH,
-        target_lang=deepl.Language.GERMAN,
-    )
-
-
 def test_sends_iterable_text_as_list(mocked):
     reply_with_translation(mocked, {**BASE_BODY, "text": ["a", "b"]})
 
     make_translator().translate_text(
         (text for text in ["a", "b"]), target_lang="DE"
     )
-
-
-def test_accepts_skip_language_check_without_effect(mocked):
-    reply_with_translation(mocked, BASE_BODY)
-
-    with pytest.warns(DeprecationWarning):
-        translator = make_translator(skip_language_check=True)
-    translator.translate_text("hello", target_lang="DE")
 
 
 def test_parses_single_text_into_one_result(mocked):
@@ -429,71 +409,6 @@ def test_returns_list_for_single_item_list(mocked):
     results = make_translator().translate_text(["x"], target_lang="DE")
 
     assert isinstance(results, list)
-
-
-def test_warns_that_translate_text_with_glossary_is_deprecated(mocked):
-    reply_with_translation(
-        mocked,
-        {
-            **BASE_BODY,
-            "source_lang": "EN",
-            "target_lang": "DE",
-            "glossary_id": "g-v2",
-        },
-    )
-
-    with pytest.warns(
-        DeprecationWarning, match="translate_text_with_glossary is deprecated"
-    ):
-        make_translator().translate_text_with_glossary(
-            "hello", glossary_info(source_lang="EN", target_lang="DE")
-        )
-
-
-@pytest.mark.filterwarnings("ignore:translate_text_with_glossary")
-def test_sends_glossary_target_language_for_translate_with_glossary(mocked):
-    reply_with_translation(
-        mocked,
-        {
-            **BASE_BODY,
-            "source_lang": "EN",
-            "target_lang": "EN-GB",
-            "glossary_id": "g-v2",
-        },
-    )
-
-    make_translator().translate_text_with_glossary(
-        "hello", glossary_info(source_lang="EN", target_lang="EN")
-    )
-
-
-@pytest.mark.filterwarnings("ignore:translate_text_with_glossary")
-def test_sends_explicit_target_language_for_translate_with_glossary(mocked):
-    reply_with_translation(
-        mocked,
-        {
-            **BASE_BODY,
-            "source_lang": "EN",
-            "target_lang": "EN-US",
-            "glossary_id": "g-v2",
-            "formality": "less",
-        },
-    )
-
-    make_translator().translate_text_with_glossary(
-        "hello",
-        glossary_info(source_lang="EN", target_lang="EN"),
-        target_lang="EN-US",
-        formality="less",
-    )
-
-
-@pytest.mark.filterwarnings("ignore:translate_text_with_glossary")
-def test_raises_when_translating_with_glossary_id_string():
-    with pytest.raises(ValueError, match="instance of GlossaryInfo"):
-        make_translator().translate_text_with_glossary(
-            "hello", "g-str"  # type: ignore[arg-type]
-        )
 
 
 @pytest.mark.parametrize(

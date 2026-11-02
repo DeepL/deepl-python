@@ -110,7 +110,6 @@ class DocumentStatus:
         QUEUED = "queued"
         TRANSLATING = "translating"
         DONE = "done"
-        DOWNLOADED = "downloaded"
         ERROR = "error"
 
     def __init__(
@@ -208,18 +207,6 @@ class Usage:
             """True if this limit is valid and the amount used is greater than
             or equal to the amount allowed, otherwise False."""
             return self.valid and self.count >= self.limit  # type: ignore[operator] # noqa: E501
-
-        @property
-        def limit_exceeded(self) -> bool:
-            """Deprecated, use limit_reached instead."""
-            import warnings
-
-            warnings.warn(
-                "limit_exceeded is deprecated, use limit_reached",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            return self.limit_reached
 
         def __str__(self) -> str:
             return f"{self.count} of {self.limit}" if self.valid else "Unknown"
@@ -338,18 +325,6 @@ class Usage:
         )
 
     @property
-    def any_limit_exceeded(self) -> bool:
-        """Deprecated, use any_limit_reached instead."""
-        import warnings
-
-        warnings.warn(
-            "any_limit_exceeded is deprecated, use any_limit_reached",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.any_limit_reached
-
-    @property
     def character(self) -> Detail:
         """Returns usage details for characters, primarily associated with the
         translate_text (/translate) function."""
@@ -425,10 +400,9 @@ class Language:
     :param supports_formality: (Optional) Specifies whether the formality
         option is available for this language; target languages only.
 
-    Deprecated: the language code constants of this class, for example
-    Language.GERMAN, will be removed in the next major version. Use language
-    code strings instead, for example "de", or the languages returned by
-    get_source_languages() and get_target_languages().
+    Pass language codes as strings, for example "de", and use
+    get_source_languages() and get_target_languages() for the languages DeepL
+    supports.
     """
 
     def __init__(
@@ -449,135 +423,6 @@ class Language:
             return str(language).upper()[0:dash_index]
         else:
             return str(language).upper()
-
-    # Deprecated: these constants will be removed in the next major version.
-    # Use language code strings instead, for example "de".
-    ACEHNESE = "ace"
-    AFRIKAANS = "af"
-    ARAGONESE = "an"
-    ARABIC = "ar"
-    ASSAMESE = "as"
-    AYMARA = "ay"
-    AZERBAIJANI = "az"
-    BASHKIR = "ba"
-    BELARUSIAN = "be"
-    BULGARIAN = "bg"
-    BHOJPURI = "bho"
-    BENGALI = "bn"
-    BRETON = "br"
-    BOSNIAN = "bs"
-    CATALAN = "ca"
-    CEBUANO = "ceb"
-    KURDISH_SORANI = "ckb"
-    CZECH = "cs"
-    WELSH = "cy"
-    DANISH = "da"
-    GERMAN = "de"
-    GERMAN_SWISS = "de-CH"  # Only usable as a target language
-    GERMAN_GERMANY = "de-DE"  # Only usable as a target language
-    GREEK = "el"
-    ENGLISH = "en"  # Source or target; as target, translates to en-US
-    ENGLISH_BRITISH = "en-GB"  # Only usable as a target language
-    ENGLISH_AMERICAN = "en-US"  # Only usable as a target language
-    ESPERANTO = "eo"
-    SPANISH = "es"
-    SPANISH_LATIN_AMERICAN = "es-419"  # Only usable as a target language
-    SPANISH_EUROPEAN = "es-ES"  # Only usable as a target language
-    ESTONIAN = "et"
-    BASQUE = "eu"
-    PERSIAN = "fa"
-    FINNISH = "fi"
-    FRENCH = "fr"
-    FRENCH_CANADIAN = "fr-CA"  # Only usable as a target language
-    FRENCH_EUROPEAN = "fr-FR"  # Only usable as a target language
-    IRISH = "ga"
-    GALICIAN = "gl"
-    GUARANI = "gn"
-    KONKANI = "gom"
-    GUJARATI = "gu"
-    HAUSA = "ha"
-    HEBREW = "he"
-    HINDI = "hi"
-    CROATIAN = "hr"
-    HAITIAN_CREOLE = "ht"
-    HUNGARIAN = "hu"
-    ARMENIAN = "hy"
-    INDONESIAN = "id"
-    IGBO = "ig"
-    ICELANDIC = "is"
-    ITALIAN = "it"
-    JAPANESE = "ja"
-    JAVANESE = "jv"
-    GEORGIAN = "ka"
-    KAZAKH = "kk"
-    KURDISH_KURMANJI = "kmr"
-    KOREAN = "ko"
-    KYRGYZ = "ky"
-    LATIN = "la"
-    LUXEMBOURGISH = "lb"
-    LOMBARD = "lmo"
-    LINGALA = "ln"
-    LITHUANIAN = "lt"
-    LATVIAN = "lv"
-    MAITHILI = "mai"
-    MALAGASY = "mg"
-    MAORI = "mi"
-    MACEDONIAN = "mk"
-    MALAYALAM = "ml"
-    MONGOLIAN = "mn"
-    MARATHI = "mr"
-    MALAY = "ms"
-    MALTESE = "mt"
-    BURMESE = "my"
-    NORWEGIAN = "nb"
-    NEPALI = "ne"
-    DUTCH = "nl"
-    OCCITAN = "oc"
-    OROMO = "om"
-    PUNJABI = "pa"
-    PANGASINAN = "pag"
-    KAPAMPANGAN = "pam"
-    POLISH = "pl"
-    DARI = "prs"
-    PASHTO = "ps"
-    PORTUGUESE = "pt"  # Source or target; as target, translates to pt-PT
-    PORTUGUESE_BRAZILIAN = "pt-BR"  # Only usable as a target language
-    PORTUGUESE_EUROPEAN = "pt-PT"  # Only usable as a target language
-    QUECHUA = "qu"
-    ROMANIAN = "ro"
-    RUSSIAN = "ru"
-    SANSKRIT = "sa"
-    SICILIAN = "scn"
-    SLOVAK = "sk"
-    SLOVENIAN = "sl"
-    ALBANIAN = "sq"
-    SERBIAN = "sr"
-    SESOTHO = "st"
-    SUNDANESE = "su"
-    SWEDISH = "sv"
-    SWAHILI = "sw"
-    TAMIL = "ta"
-    TELUGU = "te"
-    TAJIK = "tg"
-    THAI = "th"
-    TURKMEN = "tk"
-    TAGALOG = "tl"
-    TSWANA = "tn"
-    TURKISH = "tr"
-    TSONGA = "ts"
-    TATAR = "tt"
-    UKRAINIAN = "uk"
-    URDU = "ur"
-    UZBEK = "uz"
-    VIETNAMESE = "vi"
-    WOLOF = "wo"
-    XHOSA = "xh"
-    YIDDISH = "yi"
-    CANTONESE = "yue"
-    CHINESE = "zh"
-    CHINESE_SIMPLIFIED = "zh-Hans"  # Only usable as a target language
-    CHINESE_TRADITIONAL = "zh-Hant"  # Only usable as a target language
-    ZULU = "zu"
 
 
 class GlossaryLanguagePair:
@@ -1164,14 +1009,11 @@ class SplitSentences(Enum):
         prevent the engine from splitting the sentence unintentionally.
     - ALL: (default) splits on punctuation and on newlines.
     - NO_NEWLINES: splits on punctuation only, ignoring newlines.
-    - DEFAULT: deprecated alias of ALL, use ALL instead.
     """
 
     OFF = "0"
     ALL = "1"
     NO_NEWLINES = "nonewlines"
-    DEFAULT = ALL
-    """Deprecated alias of ALL, use ALL instead."""
 
     def __str__(self):
         return self.value

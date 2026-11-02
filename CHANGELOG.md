@@ -5,6 +5,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- `translate_document_download()` and `download_translation_memory_export()`
+  require `output_file` and return `None`. They no longer return the
+  streaming `requests.Response`; pass a file-like object opened in binary mode
+  to receive the downloaded file.
+- The `dictionaries` argument of `create_multilingual_glossary()`, the
+  `dictionary` argument of `update_multilingual_glossary_dictionary()` and
+  `replace_multilingual_glossary_dictionary()`, the `csv` argument of the
+  `*_from_csv()` multilingual glossary functions, the `glossary` argument of
+  `get_multilingual_glossary()` and the `content` argument of
+  `upload_translation_memory_file()` are required in their type annotations;
+  they are no longer `Optional`.
+
+### Removed
+- Removed the language code constants of `Language` (`Language.GERMAN`,
+  `Language.ENGLISH_AMERICAN`, ...). Pass language codes as strings, for
+  example `"de"`, or use the codes returned by `get_source_languages()` and
+  `get_target_languages()`.
+- Removed `translate_text_with_glossary()`. Call `translate_text()` with the
+  `glossary` argument and the glossary's `source_lang` and `target_lang`; for
+  an `EN` glossary pass `target_lang="EN-GB"` or `"EN-US"`.
+- Removed `get_multilingual_glossary_entries()`. Use
+  `get_multilingual_glossary_dictionary_entries()`, which returns the
+  `MultilingualGlossaryDictionaryEntries` directly instead of a
+  `MultilingualGlossaryDictionaryEntriesResponse`.
+- Removed the deprecated keyword names of the multilingual glossary
+  functions: use `dictionaries` instead of `glossary_dicts`, `dictionary`
+  instead of `glossary_dict`, `csv` instead of `csv_data` and `glossary`
+  instead of `glossary_id`.
+- Removed the `input_file` keyword of `upload_translation_memory_file()`; use
+  `content`.
+- Removed the `style` keyword of `rephrase_text()`; use `writing_style`.
+- Removed the `skip_language_check` argument of `Translator()` and
+  `DeepLClient()`, and the `skip_cache` argument of `get_source_languages()`
+  and `get_target_languages()`. Both had no effect; delete them from calls.
+- Removed `auth_key_is_free_account()`; use `is_free_account_auth_key()`,
+  which also ignores leading and trailing whitespace of the key.
+- Removed `Usage.Detail.limit_exceeded` and `Usage.any_limit_exceeded`; use
+  `limit_reached` and `any_limit_reached`.
+- Removed `SplitSentences.DEFAULT`; use `SplitSentences.ALL`, which it was an
+  alias of.
+- Removed `DocumentTranslationException.document_request`; use
+  `document_handle`.
+- Removed `DocumentStatus.Status.DOWNLOADED`, which is not a status the API
+  returns. A `downloaded` status from the API would be kept as the string
+  `"downloaded"`, like any status this version does not know.
 
 ## [1.33.0] - 2026-11-02
 TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.
