@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.
+Translation memories, style rules and multilingual glossaries gained many options and fixes.
+Read Changed and Deprecated before upgrading; nothing is removed in this release.
+
 ### Added
 - Added the `headers` option to the `Translator`, `DeepLClient` and
   `DeepLAdminClient` constructors: extra HTTP headers sent with every request
