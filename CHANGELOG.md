@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
+- The library is tested with Python 3.9 to 3.15. Python 3.9 remains the
+  minimum supported version.
 - `translate_document_download()` and `download_translation_memory_export()`
   require `output_file` and return `None`. They no longer return the
   streaming `requests.Response`; pass a file-like object opened in binary mode

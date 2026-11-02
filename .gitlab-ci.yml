@@ -172,6 +172,8 @@ package:
       - DOCKER_IMAGE: "python:3.11"
       - DOCKER_IMAGE: "python:3.12"
       - DOCKER_IMAGE: "python:3.13"
+      - DOCKER_IMAGE: "python:3.14"
+      - DOCKER_IMAGE: "python:3.15"
   image: ${DOCKER_IMAGE}
   script:
     - >

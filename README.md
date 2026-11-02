@@ -42,7 +42,8 @@ explained in this [bug report][bug-report-ubuntu-2204].
 
 ### Requirements
 
-The library is tested with Python versions 3.9 to 3.13.
+The library supports Python 3.9 and later, and is tested with Python versions
+3.9 to 3.15.
 
 The `requests` module is used to perform HTTP requests; the minimum is version
 2.32.4.
