@@ -8,7 +8,7 @@ import io
 import deepl
 import pytest
 
-from .client import make_deepl_client, make_translator, url
+from .client import make_deepl_client, url
 from .matchers import bodyless_request, json_request
 
 GLOSSARY_JSON = {
@@ -39,7 +39,7 @@ def test_sends_tsv_entries_when_creating_glossary(mocked):
         match=json_request(create_body("tsv", "Hello\tHallo\nA\tB")),
     )
 
-    make_translator().create_glossary(
+    make_deepl_client().create_glossary(
         "glossary", "EN", "DE", {"Hello": "Hallo", " A ": "B "}
     )
 
@@ -51,7 +51,7 @@ def test_sends_base_languages_when_creating_glossary(mocked):
         match=json_request(create_body("tsv", "a\tb", "EN", "PT")),
     )
 
-    make_translator().create_glossary(
+    make_deepl_client().create_glossary(
         "glossary",
         "en-US",
         "pt-br",
@@ -73,7 +73,7 @@ def test_sends_csv_data_when_creating_glossary_from_csv(mocked, csv_data):
         match=json_request(create_body("csv", "a,b\n")),
     )
 
-    make_translator().create_glossary_from_csv(
+    make_deepl_client().create_glossary_from_csv(
         "glossary", "EN", "DE", csv_data
     )
 
@@ -86,7 +86,7 @@ def test_sends_csv_bytes_when_creating_glossary_from_csv(mocked, csv_data):
         match=json_request(create_body("csv", "a,b\n")),
     )
 
-    make_translator().create_glossary_from_csv(
+    make_deepl_client().create_glossary_from_csv(
         "glossary", "EN", "DE", csv_data
     )
 
@@ -96,13 +96,13 @@ def test_raises_when_glossary_csv_is_not_text():
     reader.read = lambda: 5  # type: ignore[assignment,method-assign]
 
     with pytest.raises(ValueError, match="Entries of the glossary"):
-        make_translator().create_glossary_from_csv(
+        make_deepl_client().create_glossary_from_csv(
             "glossary", "EN", "DE", reader
         )
 
 
 def test_raises_when_creating_glossary_with_invalid_input():
-    translator = make_translator()
+    translator = make_deepl_client()
 
     with pytest.raises(ValueError, match="name must not be empty"):
         translator.create_glossary("", "EN", "DE", {"a": "b"})
@@ -117,7 +117,7 @@ def test_raises_when_creating_glossary_with_invalid_input():
 def test_parses_glossary_info(mocked):
     mocked.post(url("v2/glossaries"), json=GLOSSARY_JSON)
 
-    glossary = make_translator().create_glossary(
+    glossary = make_deepl_client().create_glossary(
         "glossary", "EN", "DE", {"a": "b"}
     )
 
@@ -139,7 +139,7 @@ def test_parses_glossary_creation_time_with_nanoseconds(mocked):
         match=bodyless_request(),
     )
 
-    glossary = make_translator().get_glossary("g-1")
+    glossary = make_deepl_client().get_glossary("g-1")
 
     assert glossary.creation_time.microsecond == 123456
 
@@ -151,7 +151,7 @@ def test_sends_get_when_getting_glossary(mocked):
         match=bodyless_request(),
     )
 
-    make_translator().get_glossary("g-1")
+    make_deepl_client().get_glossary("g-1")
 
 
 def test_parses_glossary_list(mocked):
@@ -161,7 +161,7 @@ def test_parses_glossary_list(mocked):
         match=bodyless_request(),
     )
 
-    glossaries = make_translator().list_glossaries()
+    glossaries = make_deepl_client().list_glossaries()
 
     assert len(glossaries) == 2
 
@@ -169,7 +169,7 @@ def test_parses_glossary_list(mocked):
 def test_returns_empty_list_when_no_glossaries(mocked):
     mocked.get(url("v2/glossaries"), json={})
 
-    assert make_translator().list_glossaries() == []
+    assert make_deepl_client().list_glossaries() == []
 
 
 @pytest.mark.parametrize(
@@ -186,7 +186,7 @@ def test_sends_tsv_accept_header_when_getting_entries(mocked, glossary):
         ],
     )
 
-    entries = make_translator().get_glossary_entries(glossary)
+    entries = make_deepl_client().get_glossary_entries(glossary)
 
     assert entries == {"Hello": "Hallo", "A%=&": "B&=%"}
 
@@ -211,7 +211,7 @@ def test_raises_when_glossary_entries_have_no_separator(mocked):
     mocked.get(url("v2/glossaries/g-1/entries"), body="no separator")
 
     with pytest.raises(ValueError, match="does not contain separator"):
-        make_translator().get_glossary_entries("g-1")
+        make_deepl_client().get_glossary_entries("g-1")
 
 
 @pytest.mark.parametrize(
@@ -223,7 +223,7 @@ def test_sends_delete_when_deleting_glossary(mocked, glossary):
         url("v2/glossaries/g-1"), status=204, match=bodyless_request()
     )
 
-    assert make_translator().delete_glossary(glossary) is None
+    assert make_deepl_client().delete_glossary(glossary) is None
 
 
 @pytest.mark.parametrize(
@@ -252,7 +252,7 @@ def test_raises_glossary_not_found_when_server_returns_404(
     with pytest.raises(
         deepl.GlossaryNotFoundException, match="Glossary not found.*gone"
     ) as exc_info:
-        call(make_translator())
+        call(make_deepl_client())
 
     assert isinstance(exc_info.value, deepl.NotFoundException)
     assert exc_info.value.http_status_code == 404

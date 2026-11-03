@@ -7,7 +7,7 @@ import io
 import deepl
 import pytest
 
-from .client import StreamedBody, make_translator, url
+from .client import StreamedBody, make_deepl_client, url
 from .matchers import json_request, multipart_request
 
 HANDLE = deepl.DocumentHandle("doc-1", "key-1")
@@ -48,7 +48,7 @@ def test_sends_file_object_as_multipart(mocked, tmp_path):
     )
 
     with open(path, "rb") as input_file:
-        make_translator().translate_document_upload(
+        make_deepl_client().translate_document_upload(
             input_file, target_lang="de"
         )
 
@@ -59,7 +59,7 @@ def test_sends_string_and_bytes_content_with_filename(mocked, content):
         mocked, {"file": ("a.txt", content)}, {"target_lang": "DE"}
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         content, target_lang="DE", filename="a.txt"
     )
 
@@ -69,14 +69,16 @@ def test_sends_binary_file_content_unchanged(mocked):
         mocked, {"file": ("a.docx", BINARY_CONTENT)}, {"target_lang": "DE"}
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         BINARY_CONTENT, target_lang="DE", filename="a.docx"
     )
 
 
 def test_raises_when_uploading_content_without_filename():
     with pytest.raises(ValueError, match="filename is required"):
-        make_translator().translate_document_upload(b"hello", target_lang="DE")
+        make_deepl_client().translate_document_upload(
+            b"hello", target_lang="DE"
+        )
 
 
 @pytest.mark.parametrize(
@@ -92,7 +94,7 @@ def test_raises_when_upload_response_lacks_document_handle(mocked, body):
     mocked.post(url("v2/document"), json=body)
 
     with pytest.raises(deepl.DeepLException, match="document_id"):
-        make_translator().translate_document_upload(
+        make_deepl_client().translate_document_upload(
             b"hello", target_lang="DE", filename="a.txt"
         )
 
@@ -104,7 +106,7 @@ def test_accepts_source_and_target_lang_positionally_on_upload(mocked):
         {"target_lang": "DE", "source_lang": "EN"},
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         b"hello", "en", "de", filename="a.txt"
     )
 
@@ -118,7 +120,7 @@ def test_accepts_source_and_target_lang_positionally(mocked):
     reply_with_status(mocked, "done")
     reply_with_result(mocked)
 
-    make_translator().translate_document(
+    make_deepl_client().translate_document(
         b"hello", io.BytesIO(), "EN", "DE", filename="a.txt"
     )
 
@@ -136,7 +138,7 @@ def test_accepts_source_and_target_lang_positionally_from_filepath(
     reply_with_status(mocked, "done")
     reply_with_result(mocked)
 
-    make_translator().translate_document_from_filepath(
+    make_deepl_client().translate_document_from_filepath(
         input_path, tmp_path / "output.txt", None, "DE"
     )
 
@@ -165,7 +167,7 @@ def test_raises_when_target_lang_is_missing(method, call, tmp_path):
         TypeError,
         match=rf"^{method}\(\) missing required argument: 'target_lang'$",
     ):
-        call(make_translator(), tmp_path)
+        call(make_deepl_client(), tmp_path)
 
 
 def test_sends_all_options_as_form_fields(mocked):
@@ -186,7 +188,7 @@ def test_sends_all_options_as_form_fields(mocked):
         },
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         b"hello",
         filename="a.txt",
         source_lang="de",
@@ -223,7 +225,7 @@ def test_sends_style_profile_id_as_form_field(mocked, profile):
         {"target_lang": "DE", "style_profile_id": "sp-1"},
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         b"hello", filename="a.txt", target_lang="DE", style_profile=profile
     )
 
@@ -244,7 +246,7 @@ def test_sends_enable_watermark_with_output_format(
         },
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         BINARY_CONTENT,
         filename="a.docx",
         target_lang="DE",
@@ -258,7 +260,7 @@ def test_omits_enable_watermark_when_unset(mocked):
         mocked, {"file": ("a.docx", BINARY_CONTENT)}, {"target_lang": "DE"}
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         BINARY_CONTENT, filename="a.docx", target_lang="DE"
     )
 
@@ -280,7 +282,7 @@ def test_sends_enable_watermark_when_translating_from_filepath(
     reply_with_status(mocked, "done")
     reply_with_result(mocked)
 
-    make_translator().translate_document_from_filepath(
+    make_deepl_client().translate_document_from_filepath(
         input_path, output_path, target_lang="DE", enable_watermark=True
     )
 
@@ -292,7 +294,7 @@ def test_sends_glossary_id_as_form_field(mocked):
         {"target_lang": "DE", "source_lang": "EN", "glossary_id": "g1"},
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         b"hello",
         filename="a.txt",
         source_lang="EN",
@@ -306,7 +308,7 @@ def test_sends_extra_body_parameters_over_form_fields(mocked):
         mocked, {"file": ("a.txt", b"hello")}, {"target_lang": "FR"}
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         b"hello",
         filename="a.txt",
         target_lang="DE",
@@ -316,7 +318,7 @@ def test_sends_extra_body_parameters_over_form_fields(mocked):
 
 def test_raises_when_uploading_with_invalid_glossary_options():
     with pytest.raises(ValueError, match="source_lang is required"):
-        make_translator().translate_document_upload(
+        make_deepl_client().translate_document_upload(
             b"hello", filename="a.txt", target_lang="DE", glossary_ids=["g"]
         )
 
@@ -332,7 +334,7 @@ def test_raises_when_uploading_with_invalid_glossary_options():
 def test_parses_document_status(mocked, fields, status):
     reply_with_status(mocked, status.value, **fields)
 
-    result = make_translator().translate_document_get_status(HANDLE)
+    result = make_deepl_client().translate_document_get_status(HANDLE)
 
     assert result.status == status
     assert result.ok == (status != deepl.DocumentStatus.Status.ERROR)
@@ -347,7 +349,7 @@ def test_parses_document_id_from_status_response(mocked):
         match=json_request(KEY_BODY),
     )
 
-    result = make_translator().translate_document_get_status(HANDLE)
+    result = make_deepl_client().translate_document_get_status(HANDLE)
 
     assert result.document_id == "doc-from-api"
 
@@ -360,7 +362,7 @@ def test_falls_back_to_handle_document_id(mocked, document_id):
         match=json_request(KEY_BODY),
     )
 
-    result = make_translator().translate_document_get_status(HANDLE)
+    result = make_deepl_client().translate_document_get_status(HANDLE)
 
     assert result.document_id == "doc-1"
     assert result.status == deepl.DocumentStatus.Status.QUEUED
@@ -369,7 +371,7 @@ def test_falls_back_to_handle_document_id(mocked, document_id):
 def test_keeps_unknown_document_status_as_string(mocked):
     reply_with_status(mocked, "postprocessing")
 
-    result = make_translator().translate_document_get_status(HANDLE)
+    result = make_deepl_client().translate_document_get_status(HANDLE)
 
     assert result.status == "postprocessing"
     assert str(result) == "postprocessing"
@@ -381,7 +383,7 @@ def test_keeps_polling_while_document_status_is_unknown(mocked, no_sleep):
     reply_with_status(mocked, "postprocessing")
     reply_with_status(mocked, "done")
 
-    status = make_translator().translate_document_wait_until_done(HANDLE)
+    status = make_deepl_client().translate_document_wait_until_done(HANDLE)
 
     assert status.done
 
@@ -398,7 +400,7 @@ def test_url_encodes_document_id_in_status_and_download_paths(mocked):
         body=b"translated",
         match=json_request(KEY_BODY),
     )
-    translator = make_translator()
+    translator = make_deepl_client()
 
     translator.translate_document_get_status(handle)
     translator.translate_document_download(handle, io.BytesIO())
@@ -412,7 +414,7 @@ def test_raises_when_document_status_is_empty(mocked):
     with pytest.raises(
         deepl.DocumentTranslationException, match="empty response"
     ) as exc_info:
-        make_translator().translate_document_get_status(HANDLE)
+        make_deepl_client().translate_document_get_status(HANDLE)
 
     assert exc_info.value.document_handle is HANDLE
 
@@ -421,7 +423,7 @@ def test_polls_status_until_document_is_done(mocked):
     reply_with_status(mocked, "translating", seconds_remaining=1)
     reply_with_status(mocked, "done", billed_characters=3)
 
-    status = make_translator().translate_document_wait_until_done(HANDLE)
+    status = make_deepl_client().translate_document_wait_until_done(HANDLE)
 
     assert status.done
 
@@ -429,7 +431,7 @@ def test_polls_status_until_document_is_done(mocked):
 def test_returns_failed_status_when_waited_document_fails(mocked):
     reply_with_status(mocked, "error", error_message="bad file")
 
-    status = make_translator().translate_document_wait_until_done(HANDLE)
+    status = make_deepl_client().translate_document_wait_until_done(HANDLE)
 
     assert not status.ok
     assert status.error_message == "bad file"
@@ -440,7 +442,7 @@ def test_raises_when_waiting_exceeds_timeout(mocked):
 
     # A negative timeout is exceeded on the first check without any sleep.
     with pytest.raises(deepl.DeepLException, match="Manual timeout of -1s"):
-        make_translator().translate_document_wait_until_done(
+        make_deepl_client().translate_document_wait_until_done(
             HANDLE, timeout_s=-1
         )
 
@@ -455,7 +457,7 @@ def test_translates_document_through_upload_status_and_download(mocked):
     reply_with_result(mocked, b"translated")
     output = io.BytesIO()
 
-    make_translator().translate_document(
+    make_deepl_client().translate_document(
         b"hello",
         output,
         target_lang="DE",
@@ -476,7 +478,7 @@ def test_raises_with_handle_when_document_translation_fails(mocked):
     with pytest.raises(
         deepl.DocumentTranslationException, match="bad file"
     ) as exc_info:
-        make_translator().translate_document(
+        make_deepl_client().translate_document(
             b"hello",
             io.BytesIO(),
             target_lang="DE",
@@ -491,7 +493,7 @@ def test_raises_original_exception_when_upload_fails(
     mocked, tmp_path, from_filepath
 ):
     mocked.post(url("v2/document"), status=456, json={"message": "limit"})
-    translator = make_translator()
+    translator = make_deepl_client()
 
     with pytest.raises(deepl.QuotaExceededException) as exc_info:
         if from_filepath:
@@ -522,7 +524,7 @@ def test_raises_with_handle_when_document_status_fails(mocked):
     )
 
     with pytest.raises(deepl.DocumentTranslationException) as exc_info:
-        make_translator().translate_document(
+        make_deepl_client().translate_document(
             b"hello",
             io.BytesIO(),
             target_lang="DE",
@@ -541,7 +543,7 @@ def test_raises_when_downloading_document_that_is_not_ready(
     reply_with_result(mocked, b"", status=503)
 
     with pytest.raises(deepl.DocumentNotReadyException) as exc_info:
-        make_translator().translate_document_download(HANDLE, io.BytesIO())
+        make_deepl_client().translate_document_download(HANDLE, io.BytesIO())
 
     assert exc_info.value.should_retry
     assert exc_info.value.http_status_code == 503
@@ -549,14 +551,14 @@ def test_raises_when_downloading_document_that_is_not_ready(
 
 def test_requires_output_file_when_downloading_document():
     with pytest.raises(TypeError, match="output_file"):
-        make_translator().translate_document_download(HANDLE)
+        make_deepl_client().translate_document_download(HANDLE)
 
 
 def test_writes_download_into_file_object_in_chunks(mocked):
     reply_with_result(mocked, BINARY_CONTENT)
     output = io.BytesIO()
 
-    result = make_translator().translate_document_download(
+    result = make_deepl_client().translate_document_download(
         HANDLE, output, chunk_size=64
     )
 
@@ -569,7 +571,9 @@ def test_streams_download_without_reading_the_whole_document(mocked):
     reply_with_result(mocked, body)
     output = io.BytesIO()
 
-    make_translator().translate_document_download(HANDLE, output, chunk_size=4)
+    make_deepl_client().translate_document_download(
+        HANDLE, output, chunk_size=4
+    )
 
     assert output.getvalue() == BINARY_CONTENT
     assert all(size == 4 for size in body.read_sizes)
@@ -584,7 +588,7 @@ def test_raises_connection_exception_when_download_connection_breaks(
     with pytest.raises(
         deepl.ConnectionException, match="reset by peer"
     ) as exc_info:
-        make_translator().translate_document_download(
+        make_deepl_client().translate_document_download(
             HANDLE, io.BytesIO(), chunk_size=4
         )
 
@@ -597,7 +601,7 @@ def test_retries_upload_when_rate_limited(mocked):
         mocked, {"file": ("a.txt", b"hello")}, {"target_lang": "DE"}
     )
 
-    make_translator().translate_document_upload(
+    make_deepl_client().translate_document_upload(
         b"hello", filename="a.txt", target_lang="DE"
     )
 
@@ -614,7 +618,7 @@ def test_translates_document_between_file_paths(mocked, tmp_path):
     reply_with_status(mocked, "done", billed_characters=5)
     reply_with_result(mocked, b"translated")
 
-    make_translator().translate_document_from_filepath(
+    make_deepl_client().translate_document_from_filepath(
         input_path, output_path, source_lang="EN", target_lang="DE"
     )
 
@@ -633,7 +637,7 @@ def test_sends_output_format_from_different_output_extension(mocked, tmp_path):
     reply_with_status(mocked, "done")
     reply_with_result(mocked, b"%PDF")
 
-    make_translator().translate_document_from_filepath(
+    make_deepl_client().translate_document_from_filepath(
         input_path, output_path, target_lang="DE"
     )
 
@@ -651,7 +655,7 @@ def test_overwrites_existing_output_file(mocked, tmp_path):
     reply_with_status(mocked, "done")
     reply_with_result(mocked, b"new")
 
-    make_translator().translate_document_from_filepath(
+    make_deepl_client().translate_document_from_filepath(
         input_path, output_path, target_lang="DE"
     )
 
@@ -670,7 +674,7 @@ def test_removes_output_file_when_document_translation_fails(mocked, tmp_path):
     reply_with_status(mocked, "error", error_message="bad file")
 
     with pytest.raises(deepl.DocumentTranslationException):
-        make_translator().translate_document_from_filepath(
+        make_deepl_client().translate_document_from_filepath(
             input_path, output_path, target_lang="DE"
         )
 
@@ -699,7 +703,7 @@ def test_sends_glossary_style_and_memory_when_translating_from_filepath(
     reply_with_status(mocked, "done")
     reply_with_result(mocked)
 
-    make_translator().translate_document_from_filepath(
+    make_deepl_client().translate_document_from_filepath(
         input_path,
         output_path,
         source_lang="EN",
@@ -733,7 +737,7 @@ def test_raises_with_api_message_when_document_download_fails(
     )
 
     with pytest.raises(error, match=message) as exc_info:
-        make_translator().translate_document_download(HANDLE, io.BytesIO())
+        make_deepl_client().translate_document_download(HANDLE, io.BytesIO())
 
     assert exc_info.value.http_status_code == status
 
@@ -747,7 +751,7 @@ def test_copies_status_code_and_retry_flag_into_document_exception(
     mocked.post(url("v2/document/doc-1"), status=500, body="")
 
     with pytest.raises(deepl.DocumentTranslationException) as exc_info:
-        make_translator().translate_document(
+        make_deepl_client().translate_document(
             b"hello", io.BytesIO(), target_lang="DE", filename="a.txt"
         )
 
@@ -759,7 +763,7 @@ def test_raises_file_not_found_before_any_request_when_input_file_is_missing(
     mocked, tmp_path
 ):
     with pytest.raises(FileNotFoundError) as exc_info:
-        make_translator().translate_document_from_filepath(
+        make_deepl_client().translate_document_from_filepath(
             tmp_path / "missing.txt", tmp_path / "out.txt", target_lang="DE"
         )
 
@@ -781,7 +785,7 @@ def test_raises_os_error_when_file_cannot_be_opened(tmp_path, bad):
         output_path = directory
 
     with pytest.raises(OSError) as exc_info:
-        make_translator().translate_document_from_filepath(
+        make_deepl_client().translate_document_from_filepath(
             input_path, output_path, target_lang="DE"
         )
 
@@ -796,14 +800,14 @@ def test_cuts_last_status_poll_sleep_to_timeout(mocked, monkeypatch):
         sleeps.append(secs)
         clock[0] += secs
 
-    monkeypatch.setattr(deepl.translator.time, "time", lambda: clock[0])
-    monkeypatch.setattr(deepl.translator.time, "sleep", sleep)
+    monkeypatch.setattr(deepl.deepl_client.time, "time", lambda: clock[0])
+    monkeypatch.setattr(deepl.deepl_client.time, "sleep", sleep)
     reply_with_status(mocked, "translating")
     reply_with_status(mocked, "translating")
     reply_with_status(mocked, "translating")
 
     with pytest.raises(deepl.DeepLException, match="Manual timeout of 7s"):
-        make_translator().translate_document_wait_until_done(
+        make_deepl_client().translate_document_wait_until_done(
             HANDLE, timeout_s=7
         )
 

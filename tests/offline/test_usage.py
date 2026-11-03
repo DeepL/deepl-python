@@ -8,7 +8,7 @@ import pytest
 
 import deepl
 
-from .client import make_translator, url
+from .client import make_deepl_client, url
 from .matchers import bodyless_request
 
 
@@ -19,7 +19,7 @@ def test_sends_get_to_usage(mocked):
         match=bodyless_request(),
     )
 
-    make_translator().get_usage()
+    make_deepl_client().get_usage()
 
 
 def test_parses_usage_counts_and_limits(mocked):
@@ -35,7 +35,7 @@ def test_parses_usage_counts_and_limits(mocked):
         },
     )
 
-    usage = make_translator().get_usage()
+    usage = make_deepl_client().get_usage()
 
     assert usage.character.count == 20
     assert usage.team_document.count == 3
@@ -54,7 +54,7 @@ def test_parses_usage_counts_and_limits(mocked):
 def test_parses_usage_without_limits(mocked):
     mocked.get(url("v2/usage"), json={"character_count": 4})
 
-    usage = make_translator().get_usage()
+    usage = make_deepl_client().get_usage()
 
     assert not usage.character.valid
     assert not usage.any_limit_reached
@@ -96,7 +96,7 @@ def test_parses_api_pro_usage(mocked):
         },
     )
 
-    usage = make_translator().get_usage()
+    usage = make_deepl_client().get_usage()
 
     assert usage.character.count == 180118
     assert usage.character.limit == 1250000
@@ -139,7 +139,7 @@ def test_parses_free_usage_without_api_pro_fields(mocked):
         json={"character_count": 20, "character_limit": 500000},
     )
 
-    usage = make_translator().get_usage()
+    usage = make_deepl_client().get_usage()
 
     assert usage.character.count == 20
     assert usage.character.limit == 500000
@@ -164,7 +164,7 @@ def test_skips_non_object_product_entries(mocked):
         },
     )
 
-    usage = make_translator().get_usage()
+    usage = make_deepl_client().get_usage()
 
     assert usage.products is not None
     assert [
@@ -179,7 +179,7 @@ def test_rejects_non_object_usage_response(mocked, body):
     with pytest.raises(
         deepl.DeepLException, match="^Usage response is not a JSON object$"
     ):
-        make_translator().get_usage()
+        make_deepl_client().get_usage()
 
 
 def test_ignores_unparseable_billing_period(mocked):
@@ -193,7 +193,7 @@ def test_ignores_unparseable_billing_period(mocked):
         },
     )
 
-    usage = make_translator().get_usage()
+    usage = make_deepl_client().get_usage()
 
     assert usage.character.count == 20
     assert usage.start_time is None

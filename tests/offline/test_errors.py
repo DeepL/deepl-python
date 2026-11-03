@@ -5,7 +5,7 @@
 import deepl
 import pytest
 
-from .client import make_translator, url
+from .client import make_deepl_client, url
 
 
 @pytest.mark.parametrize(
@@ -47,7 +47,7 @@ def test_raises_exception_for_status_code(
     mocked.get(url("v2/usage"), status=status)
 
     with pytest.raises(error, match=message) as exc_info:
-        make_translator().get_usage()
+        make_deepl_client().get_usage()
 
     assert type(exc_info.value) is error
     assert exc_info.value.http_status_code == status
@@ -62,7 +62,7 @@ def test_appends_message_and_detail_of_error_reply(mocked):
     )
 
     with pytest.raises(deepl.DeepLException) as exc_info:
-        make_translator().get_usage()
+        make_deepl_client().get_usage()
 
     assert str(exc_info.value) == (
         "Bad request, message: bad value, detail: field x"
@@ -85,7 +85,7 @@ def test_formats_non_string_message_and_detail_of_error_reply(
     mocked.get(url("v2/usage"), status=400, json=reply)
 
     with pytest.raises(deepl.DeepLException) as exc_info:
-        make_translator().get_usage()
+        make_deepl_client().get_usage()
 
     assert str(exc_info.value) == expected
 
@@ -94,7 +94,7 @@ def test_ignores_error_reply_that_is_not_json(mocked):
     mocked.get(url("v2/usage"), status=400, body="<html>nope</html>")
 
     with pytest.raises(deepl.DeepLException) as exc_info:
-        make_translator().get_usage()
+        make_deepl_client().get_usage()
 
     assert str(exc_info.value) == "Bad request"
 
@@ -103,20 +103,4 @@ def test_includes_reply_content_for_unexpected_status(mocked):
     mocked.get(url("v2/usage"), status=418, body="teapot")
 
     with pytest.raises(deepl.DeepLException, match="content: teapot"):
-        make_translator().get_usage()
-
-
-def test_exceptions_import_from_translator_module():
-    from deepl.translator import (
-        AuthorizationException,
-        DocumentNotReadyException,
-        GlossaryNotFoundException,
-        QuotaExceededException,
-        TooManyRequestsException,
-    )
-
-    assert AuthorizationException is deepl.AuthorizationException
-    assert DocumentNotReadyException is deepl.DocumentNotReadyException
-    assert GlossaryNotFoundException is deepl.GlossaryNotFoundException
-    assert QuotaExceededException is deepl.QuotaExceededException
-    assert TooManyRequestsException is deepl.TooManyRequestsException
+        make_deepl_client().get_usage()

@@ -4,11 +4,11 @@
 
 import deepl
 
-from .client import make_translator
+from .client import make_deepl_client
 
 
 def test_parses_usage():
-    usage = make_translator().get_usage()
+    usage = make_deepl_client().get_usage()
 
     assert isinstance(usage, deepl.Usage)
     assert "Usage this billing period" in str(usage)

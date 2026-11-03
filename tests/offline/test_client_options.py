@@ -3,7 +3,6 @@
 # license that can be found in the LICENSE file.
 
 import re
-import warnings
 from unittest.mock import patch
 
 import deepl
@@ -14,7 +13,6 @@ from .client import (
     AUTH_HEADER,
     make_admin_client,
     make_deepl_client,
-    make_translator,
     url,
 )
 from .matchers import bodyless_request
@@ -38,13 +36,13 @@ def reply_with_usage(mocked, user_agent):
 def test_sends_platform_information_in_user_agent(mocked):
     reply_with_usage(mocked, PLATFORM_USER_AGENT)
 
-    make_translator().get_usage()
+    make_deepl_client().get_usage()
 
 
 def test_sends_only_library_version_in_user_agent_when_opted_out(mocked):
     reply_with_usage(mocked, LIBRARY_USER_AGENT)
 
-    make_translator(send_platform_info=False).get_usage()
+    make_deepl_client(send_platform_info=False).get_usage()
 
 
 @pytest.mark.parametrize(
@@ -60,13 +58,12 @@ def test_sends_only_library_version_in_user_agent_when_opted_out(mocked):
 def test_appends_app_info_to_user_agent(mocked, kwargs, user_agent):
     reply_with_usage(mocked, user_agent)
 
-    make_translator(**kwargs).set_app_info("my_plugin", "1.0").get_usage()
+    make_deepl_client(**kwargs).set_app_info("my_plugin", "1.0").get_usage()
 
 
 @pytest.mark.parametrize(
     "make_client, path, body, call",
     [
-        (make_translator, "v2/usage", {}, lambda c: c.get_usage()),
         (make_deepl_client, "v2/usage", {}, lambda c: c.get_usage()),
         (
             make_admin_client,
@@ -119,7 +116,6 @@ def test_keeps_library_technical_headers_over_caller_headers(mocked):
 @pytest.mark.parametrize(
     "make_client, path, body, call",
     [
-        (make_translator, "v2/usage", {}, lambda c: c.get_usage()),
         (make_deepl_client, "v2/usage", {}, lambda c: c.get_usage()),
         (
             make_admin_client,
@@ -153,15 +149,11 @@ def test_sends_library_version_when_platform_lookup_fails(mocked):
     reply_with_usage(mocked, f"{LIBRARY_USER_AGENT} failing_platform/1.0")
 
     with patch("platform.platform", side_effect=OSError("no platform")):
-        make_translator().set_app_info("failing_platform", "1.0").get_usage()
+        make_deepl_client().set_app_info("failing_platform", "1.0").get_usage()
 
 
 @pytest.mark.parametrize("auth_key", ["", " \t\n"])
 def test_raises_for_empty_auth_key(auth_key):
-    with pytest.raises(ValueError, match="auth_key must not be empty"):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            deepl.Translator(auth_key)
     with pytest.raises(ValueError, match="auth_key must not be empty"):
         deepl.DeepLClient(auth_key)
 
@@ -194,21 +186,6 @@ def test_keeps_path_prefix_of_server_url(mocked):
     make_deepl_client(server_url="http://localhost:3000/prefix").get_usage()
 
 
-def test_warns_when_translator_is_created():
-    with pytest.warns(
-        DeprecationWarning, match="^Translator is deprecated, use DeepLClient"
-    ) as w:
-        deepl.Translator("k")
-
-    assert w[0].filename == __file__
-
-
-def test_does_not_warn_when_deepl_client_is_created():
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
-        deepl.DeepLClient("k")
-
-
 def test_sends_requests_to_free_server_for_free_auth_key(mocked):
     mocked.get(
         "https://api-free.deepl.com/v2/usage",
@@ -226,26 +203,18 @@ def test_sends_requests_to_given_server_url(mocked):
         "http://localhost:3000/v2/usage", json={}, match=bodyless_request()
     )
 
-    make_translator(server_url="http://localhost:3000").get_usage()
+    make_deepl_client(server_url="http://localhost:3000").get_usage()
 
 
 def test_raises_for_malformed_server_url():
     with pytest.raises(deepl.DeepLException, match="preparing request"):
-        make_translator(server_url="http:/api.deepl.com").get_usage()
-
-
-def test_deepl_client_applies_the_same_options(mocked):
-    mocked.get(
-        "http://localhost:3000/v2/usage", json={}, match=bodyless_request()
-    )
-
-    make_deepl_client(server_url="http://localhost:3000").get_usage()
+        make_deepl_client(server_url="http:/api.deepl.com").get_usage()
 
 
 def test_passes_verify_ssl_to_requests(mocked):
     mocked.get(url("v2/usage"), json={})
 
-    make_translator(verify_ssl=False).get_usage()
+    make_deepl_client(verify_ssl=False).get_usage()
 
     assert mocked.calls[0].request.req_kwargs["verify"] is False
 
@@ -253,7 +222,7 @@ def test_passes_verify_ssl_to_requests(mocked):
 def test_passes_proxy_url_to_requests_for_http_and_https(mocked):
     mocked.get(url("v2/usage"), json={})
 
-    make_translator(proxy="http://proxy.example.com:8080").get_usage()
+    make_deepl_client(proxy="http://proxy.example.com:8080").get_usage()
 
     assert mocked.calls[0].request.req_kwargs["proxies"] == {
         "http": "http://proxy.example.com:8080",
@@ -265,11 +234,11 @@ def test_passes_proxy_dictionary_to_requests(mocked):
     mocked.get(url("v2/usage"), json={})
     proxies = {"https": "http://proxy.example.com:8080"}
 
-    make_translator(proxy=proxies).get_usage()
+    make_deepl_client(proxy=proxies).get_usage()
 
     assert mocked.calls[0].request.req_kwargs["proxies"] == proxies
 
 
 def test_raises_for_proxy_of_invalid_type():
     with pytest.raises(ValueError, match="proxy may be specified"):
-        make_translator(proxy=["http://proxy.example.com"])
+        make_deepl_client(proxy=["http://proxy.example.com"])

@@ -8,7 +8,7 @@ import deepl
 import proxy
 import pytest
 
-from .client import make_translator
+from .client import make_deepl_client
 
 
 def test_sends_requests_through_proxy(tmp_path):
@@ -26,7 +26,7 @@ def test_sends_requests_through_proxy(tmp_path):
         num_workers=1,
         num_acceptors=1,
     ) as local_proxy:
-        translator = make_translator(
+        translator = make_deepl_client(
             proxy=f"http://127.0.0.1:{local_proxy.flags.port}", max_retries=0
         )
 

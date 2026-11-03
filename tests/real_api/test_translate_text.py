@@ -5,11 +5,11 @@
 import deepl
 
 from ..fixtures import example_text
-from .client import make_translator
+from .client import make_deepl_client
 
 
 def test_parses_translation():
-    result = make_translator().translate_text(
+    result = make_deepl_client().translate_text(
         example_text["EN"], target_lang="DE"
     )
 

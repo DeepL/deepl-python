@@ -2,12 +2,12 @@
 # Use of this source code is governed by an MIT
 # license that can be found in the LICENSE file.
 
-from .client import make_translator
+from .client import make_deepl_client
 from .helpers import get_unique_name, get_when_visible
 
 
 def test_sends_glossary_requests_create_get_list_entries_and_delete():
-    translator = make_translator()
+    translator = make_deepl_client()
     name = get_unique_name("glossary")
     entries = {"Hello": "Hallo"}
 

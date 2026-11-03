@@ -5,7 +5,7 @@
 import deepl
 import pytest
 
-from .client import make_translator, url
+from .client import make_deepl_client, url
 from .matchers import json_request
 
 BASE_BODY = {
@@ -100,7 +100,7 @@ def translation_memory_info():
 def test_sends_text_and_target_language(mocked):
     reply_with_translation(mocked, BASE_BODY)
 
-    make_translator().translate_text("hello", target_lang="de")
+    make_deepl_client().translate_text("hello", target_lang="de")
 
 
 @pytest.mark.parametrize(
@@ -168,7 +168,7 @@ def test_sends_text_and_target_language(mocked):
 def test_sends_option(mocked, kwargs, extra_body):
     reply_with_translation(mocked, {**BASE_BODY, **extra_body})
 
-    make_translator().translate_text("hello", target_lang="DE", **kwargs)
+    make_deepl_client().translate_text("hello", target_lang="DE", **kwargs)
 
 
 @pytest.mark.parametrize(
@@ -182,7 +182,7 @@ def test_sends_option(mocked, kwargs, extra_body):
 def test_sends_glossary_id(mocked, glossary, body):
     reply_with_translation(mocked, {**BASE_BODY, **body, "source_lang": "EN"})
 
-    make_translator().translate_text(
+    make_deepl_client().translate_text(
         "hello", source_lang="EN", target_lang="DE", glossary=glossary
     )
 
@@ -197,7 +197,7 @@ def test_sends_glossary_ids_in_order(mocked):
         },
     )
 
-    make_translator().translate_text(
+    make_deepl_client().translate_text(
         "hello",
         source_lang="EN",
         target_lang="DE",
@@ -217,7 +217,7 @@ def test_sends_glossary_ids_in_order(mocked):
 def test_sends_glossary_without_source_lang(mocked, kwargs, body):
     reply_with_translation(mocked, {**BASE_BODY, **body})
 
-    make_translator().translate_text("hello", target_lang="DE", **kwargs)
+    make_deepl_client().translate_text("hello", target_lang="DE", **kwargs)
 
 
 @pytest.mark.parametrize("style_rule", ["style-1", style_rule_info()])
@@ -226,7 +226,7 @@ def test_sends_style_rule_id(mocked, style_rule):
         mocked, {**BASE_BODY, "target_lang": "EN-US", "style_id": "style-1"}
     )
 
-    make_translator().translate_text(
+    make_deepl_client().translate_text(
         "hello", target_lang="EN-US", style_rule=style_rule
     )
 
@@ -235,7 +235,7 @@ def test_sends_style_rule_id(mocked, style_rule):
 def test_sends_style_profile_id_without_source_lang(mocked, profile):
     reply_with_translation(mocked, {**BASE_BODY, "style_profile_id": "sp-1"})
 
-    make_translator().translate_text(
+    make_deepl_client().translate_text(
         "hello", target_lang="DE", style_profile=profile
     )
 
@@ -251,7 +251,7 @@ def test_sends_translation_memory_id_and_threshold(mocked, memory):
         },
     )
 
-    make_translator().translate_text(
+    make_deepl_client().translate_text(
         "hello",
         target_lang="DE",
         translation_memory=memory,
@@ -264,7 +264,7 @@ def test_sends_translation_memory_without_threshold(mocked):
         mocked, {**BASE_BODY, "translation_memory_id": "tm-1"}
     )
 
-    make_translator().translate_text(
+    make_deepl_client().translate_text(
         "hello", target_lang="DE", translation_memory="tm-1"
     )
 
@@ -275,13 +275,13 @@ def test_accepts_target_language_without_regional_variant(mocked, target_lang):
         mocked, {**BASE_BODY, "target_lang": target_lang.upper()}
     )
 
-    make_translator().translate_text("hello", target_lang=target_lang)
+    make_deepl_client().translate_text("hello", target_lang=target_lang)
 
 
 def test_sends_iterable_text_as_list(mocked):
     reply_with_translation(mocked, {**BASE_BODY, "text": ["a", "b"]})
 
-    make_translator().translate_text(
+    make_deepl_client().translate_text(
         (text for text in ["a", "b"]), target_lang="DE"
     )
 
@@ -300,7 +300,7 @@ def test_parses_single_text_into_one_result(mocked):
         },
     )
 
-    result = make_translator().translate_text("hello", target_lang="DE")
+    result = make_deepl_client().translate_text("hello", target_lang="DE")
 
     assert isinstance(result, deepl.TextResult)
     assert result.billed_characters == 5
@@ -316,12 +316,12 @@ def test_parses_single_text_into_one_result(mocked):
 def test_sends_positional_source_and_target_language(mocked, args, body):
     reply_with_translation(mocked, body)
 
-    make_translator().translate_text("hello", *args)
+    make_deepl_client().translate_text("hello", *args)
 
 
 def test_raises_when_target_language_is_missing():
     with pytest.raises(TypeError, match="target_lang"):
-        make_translator().translate_text("hello", "EN")
+        make_deepl_client().translate_text("hello", "EN")
 
 
 def test_parses_missing_billed_characters_as_none(mocked):
@@ -330,7 +330,7 @@ def test_parses_missing_billed_characters_as_none(mocked):
         json={"translations": [{"text": "hallo"}]},
     )
 
-    result = make_translator().translate_text("hello", target_lang="DE")
+    result = make_deepl_client().translate_text("hello", target_lang="DE")
 
     assert result.billed_characters is None
 
@@ -363,7 +363,7 @@ def test_parses_tag_handling_version(mocked, translation, expected):
         json={"translations": [translation]},
     )
 
-    result = make_translator().translate_text("hello", target_lang="DE")
+    result = make_deepl_client().translate_text("hello", target_lang="DE")
 
     assert result.tag_handling_version == expected
 
@@ -380,7 +380,7 @@ def test_raises_when_response_has_too_few_translations(mocked, text, response):
     mocked.post(url("v2/translate"), json=response)
 
     with pytest.raises(deepl.DeepLException, match="translations"):
-        make_translator().translate_text(text, target_lang="DE")
+        make_deepl_client().translate_text(text, target_lang="DE")
 
 
 def test_parses_text_list_into_list_of_results(mocked):
@@ -394,7 +394,7 @@ def test_parses_text_list_into_list_of_results(mocked):
         },
     )
 
-    results = make_translator().translate_text(["x", "y"], target_lang="DE")
+    results = make_deepl_client().translate_text(["x", "y"], target_lang="DE")
 
     assert len(results) == 2
     assert all(isinstance(result, deepl.TextResult) for result in results)
@@ -406,7 +406,7 @@ def test_returns_list_for_single_item_list(mocked):
         json={"translations": [{"text": "a", "billed_characters": 1}]},
     )
 
-    results = make_translator().translate_text(["x"], target_lang="DE")
+    results = make_deepl_client().translate_text(["x"], target_lang="DE")
 
     assert isinstance(results, list)
 
@@ -420,7 +420,7 @@ def test_returns_list_for_single_item_list(mocked):
 )
 def test_raises_for_invalid_text(text, error, match):
     with pytest.raises(error, match=match):
-        make_translator().translate_text(text, target_lang="DE")
+        make_deepl_client().translate_text(text, target_lang="DE")
 
 
 @pytest.mark.parametrize(
@@ -469,4 +469,4 @@ def test_raises_for_invalid_text(text, error, match):
 )
 def test_raises_for_invalid_options(kwargs, match):
     with pytest.raises(ValueError, match=match):
-        make_translator().translate_text("hello", target_lang="DE", **kwargs)
+        make_deepl_client().translate_text("hello", target_lang="DE", **kwargs)

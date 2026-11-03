@@ -77,11 +77,6 @@ configuration file or environment variable.
 `DeepLClient` accepts additional options, see [Configuration](#configuration)
 for more information.
 
-The `Translator` class is deprecated: it receives no new features and will be
-removed in the next major version. Creating a `Translator` emits a
-`DeprecationWarning`. `DeepLClient` supports all of its functions, so replace
-`deepl.Translator(...)` with `deepl.DeepLClient(...)`.
-
 `deepl.is_free_account_auth_key(auth_key)` returns `True` if the key belongs
 to a DeepL API Free account (it ends with `:fx`). Leading and trailing
 whitespace of the key is ignored.
@@ -441,7 +436,7 @@ editing functionality plus support for multilingual glossaries. New methods and
 objects have been created to support interacting with these new glossaries. 
 Due to this  new functionality, users are recommended to utilize these 
 multilingual glossary methods. However, to continue using the `v2` glossary API 
-endpoints, please continue to use the existing endpoints in the `translator.py` 
+endpoints, please continue to use the existing `DeepLClient` methods for them
 (e.g. `create_glossary()`, `get_glossary()`, etc).
 
 To migrate to use the new multilingual glossary methods from the current 
@@ -1571,8 +1566,8 @@ case-insensitively, including `User-Agent` and `Authorization`. `Content-Type`,
 library builds, and so does an `Accept` header the library sets for a call
 (for example when retrieving v2 glossary entries). Requests to the pre-signed
 translation memory upload and download URLs get no `Authorization` and none of
-these headers, except your `User-Agent` if you set one. `deepl.Translator` and
-`deepl.DeepLAdminClient` accept the option too.
+these headers, except your `User-Agent` if you set one. `deepl.DeepLAdminClient`
+accepts the option too.
 
 ```python
 deepl_client = deepl.DeepLClient(..., headers={"X-My-Header": "value"})
@@ -1623,8 +1618,7 @@ deepl_client = deepl.DeepLClient(..., max_retries=3, timeout_s=30.0)
 
 `max_retries` is the maximum number of retries after the first attempt (0
 disables retries), and `timeout_s` is the minimum timeout in seconds for each
-attempt. Both options are also accepted by `deepl.Translator` and
-`deepl.DeepLAdminClient`.
+attempt. Both options are also accepted by `deepl.DeepLAdminClient`.
 
 `DeepLAdminClient.create_developer_key()` is only retried when the request was
 not sent: after an HTTP 429 status code, a DNS resolution failure, a refused

@@ -19,13 +19,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `get_multilingual_glossary()` and the `content` argument of
   `upload_translation_memory_file()` are required in their type annotations;
   they are no longer `Optional`.
-- The `max_retries` and `timeout_s` options of `Translator`, `DeepLClient`
-  and `DeepLAdminClient` default to `5` and `10.0` for each client instead of
+- The `max_retries` and `timeout_s` options of `DeepLClient` and
+  `DeepLAdminClient` default to `5` and `10.0` for each client instead of
   `None`, and no longer accept `None`. Clients no longer read any
   module-level setting; pass the options to every client that needs other
   values.
 
+- `DeepLClient` no longer extends `Translator`; it extends no public class.
+  All functions of `Translator` are now defined on `DeepLClient` with the same
+  arguments and behaviour. Code that checks `isinstance(client,
+  deepl.Translator)` or annotates clients as `Translator` must use
+  `DeepLClient`.
+
 ### Removed
+- Removed the deprecated `Translator` class; use `DeepLClient`, which
+  supports all of its functions with the same constructor arguments. Replace
+  `deepl.Translator(...)` with `deepl.DeepLClient(...)`.
+- Removed the module `deepl.translator`. Import the classes it provided from
+  `deepl` instead: the exceptions (`AuthorizationException`,
+  `DocumentNotReadyException`, `GlossaryNotFoundException`,
+  `QuotaExceededException`, `TooManyRequestsException`, ...) from `deepl` or
+  `deepl.exceptions`, and the result and option types (`TextResult`,
+  `DocumentHandle`, `Usage`, `Formality`, ...) from `deepl` or
+  `deepl.api_data`.
 - Removed the public module `deepl.http_client`; it is now the internal
   `deepl._http_client`. Code that used `HttpClient`, `read_response_text()` or
   `iter_response_content()` from it must use the client classes instead.
@@ -51,8 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the `input_file` keyword of `upload_translation_memory_file()`; use
   `content`.
 - Removed the `style` keyword of `rephrase_text()`; use `writing_style`.
-- Removed the `skip_language_check` argument of `Translator()` and
-  `DeepLClient()`, and the `skip_cache` argument of `get_source_languages()`
+- Removed the `skip_language_check` argument of `DeepLClient()`, and the `skip_cache` argument of `get_source_languages()`
   and `get_target_languages()`. Both had no effect; delete them from calls.
 - Removed `auth_key_is_free_account()`; use `is_free_account_auth_key()`,
   which also ignores leading and trailing whitespace of the key.

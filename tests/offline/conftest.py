@@ -32,4 +32,4 @@ def no_retries(monkeypatch):
 @pytest.fixture
 def no_sleep(monkeypatch):
     """Skips the sleep between document status polls."""
-    monkeypatch.setattr(deepl.translator.time, "sleep", lambda secs: None)
+    monkeypatch.setattr(deepl.deepl_client.time, "sleep", lambda secs: None)

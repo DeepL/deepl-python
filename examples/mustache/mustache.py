@@ -2,7 +2,7 @@
 # Use of this source code is governed by an MIT
 # license that can be found in the LICENSE file.
 
-from deepl.translator import TextResult
+from deepl import TextResult
 from html_parsing import TagReplacerHTMLParser
 import deepl
 import logging

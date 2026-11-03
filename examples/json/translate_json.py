@@ -8,7 +8,7 @@ import logging
 from typing import Any, Callable, List, Tuple
 from collections.abc import Iterable
 
-from deepl.translator import TextResult
+from deepl import TextResult
 
 
 def batch_translate(

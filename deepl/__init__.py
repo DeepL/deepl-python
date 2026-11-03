@@ -48,7 +48,7 @@ from .api_data import (  # noqa
     TranslationMemoryJobStatus,
 )
 
-from .translator import (  # noqa
+from .api_data import (  # noqa
     DocumentHandle,
     DocumentStatus,
     Formality,
@@ -59,7 +59,6 @@ from .translator import (  # noqa
     TagHandlingMode,
     TagHandlingVersion,
     TextResult,
-    Translator,
     Usage,
 )
 
@@ -104,7 +103,6 @@ __all__ = [
     "TagHandlingVersion",
     "TextResult",
     "TranslationMemoryJobStatus",
-    "Translator",
     "Usage",
     "AuthorizationException",
     "ConnectionException",
