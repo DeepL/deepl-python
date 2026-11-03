@@ -47,7 +47,6 @@ from deepl.exceptions import (
 )
 from deepl import _http_client, util
 from deepl._base_client import BaseClient
-import errno
 import json as json_module
 import os
 import pathlib
@@ -114,18 +113,12 @@ def _tm_job_error_message(job: TranslationMemoryJob) -> str:
     ) or "unknown error"
 
 
-def _raise_for_failed_tm_job(job: TranslationMemoryJob, action: str) -> None:
-    if not job.ok:
-        raise DeepLException(
-            f"Error occurred while {action} translation memory: "
-            f"{_tm_job_error_message(job)}",
-            should_retry=False,
-        )
-
-
-def _open_error(path: pathlib.Path, err: int) -> OSError:
-    """Builds the OSError that open() raises for the given errno."""
-    return OSError(err, os.strerror(err), str(path))
+def _tm_job_action(job: TranslationMemoryJob) -> str:
+    if job.operation == TranslationMemoryJob.OPERATION_IMPORT:
+        return "importing"
+    if job.operation == TranslationMemoryJob.OPERATION_EXPORT:
+        return "exporting"
+    return "processing"
 
 
 def _parse_improvements(json: Any, text_count: int) -> List[WriteResult]:
@@ -654,15 +647,13 @@ class DeepLClient(BaseClient):
         :return: DocumentStatus when document translation completed, this
             allows the number of billed characters to be queried.
 
-        :raises FileNotFoundError: If the input file does not exist, before
-            any request is sent.
-        :raises OSError: If opening the input or output file fails, for
-            example PermissionError or IsADirectoryError.
-        :raises DeepLException: If the upload fails, the exception raised by
-            translate_document_upload(), for example QuotaExceededException.
-        :raises DocumentTranslationException: If an error occurs after the
-            upload, during translation or download, or the translation fails.
-            The exception includes the document handle.
+        :raises ValueError: If the input file does not exist, before any
+            request is sent.
+        :raises DocumentTranslationException: If opening the input or output
+            file fails, or an error occurs during upload, translation or
+            download, or the translation fails. The exception includes the
+            document handle if the document was already uploaded, otherwise
+            the handle is None.
         """
         _check_target_lang_given(
             "translate_document_from_filepath", target_lang
@@ -673,12 +664,18 @@ class DeepLClient(BaseClient):
         output_format = None if in_ext == out_ext else out_ext[1:]
 
         if not pathlib.Path(input_path).exists():
-            raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), str(input_path)
-            )
+            raise ValueError(f"file does not exist: {input_path}")
 
-        with open(input_path, "rb") as in_file:
-            with open(output_path, "wb") as out_file:
+        try:
+            in_file = open(input_path, "rb")
+        except OSError as e:
+            raise DocumentTranslationException(str(e), None) from e
+        with in_file:
+            try:
+                out_file = open(output_path, "wb")
+            except OSError as e:
+                raise DocumentTranslationException(str(e), None) from e
+            with out_file:
                 try:
                     return self.translate_document(
                         in_file,
@@ -773,46 +770,41 @@ class DeepLClient(BaseClient):
         :return: DocumentStatus when document translation completed, this
             allows the number of billed characters to be queried.
 
-        :raises DeepLException: If the upload fails, the exception raised by
-            translate_document_upload(), for example QuotaExceededException.
-        :raises DocumentTranslationException: If an error occurs after the
-            upload, during translation or download, or the translation fails.
-            The exception includes the document handle.
+        :raises DocumentTranslationException: If an error occurs during
+            upload, translation or download, or the translation fails. The
+            exception includes the document handle if the document was
+            already uploaded, otherwise the handle is None.
         """
         _check_target_lang_given("translate_document", target_lang)
 
-        # Upload errors are raised unwrapped; only errors after a handle
-        # exists become a DocumentTranslationException.
-        handle = self.translate_document_upload(
-            input_document,
-            target_lang=target_lang,
-            source_lang=source_lang,
-            formality=formality,
-            glossary=glossary,
-            glossary_ids=glossary_ids,
-            style_rule=style_rule,
-            style_profile=style_profile,
-            translation_memory=translation_memory,
-            translation_memory_threshold=translation_memory_threshold,
-            filename=filename,
-            output_format=output_format,
-            enable_watermark=enable_watermark,
-            extra_body_parameters=extra_body_parameters,
-        )
+        try:
+            handle = self.translate_document_upload(
+                input_document,
+                target_lang=target_lang,
+                source_lang=source_lang,
+                formality=formality,
+                glossary=glossary,
+                glossary_ids=glossary_ids,
+                style_rule=style_rule,
+                style_profile=style_profile,
+                translation_memory=translation_memory,
+                translation_memory_threshold=translation_memory_threshold,
+                filename=filename,
+                output_format=output_format,
+                enable_watermark=enable_watermark,
+                extra_body_parameters=extra_body_parameters,
+            )
+        except (TypeError, ValueError):
+            # Invalid arguments, rejected before anything is sent.
+            raise
+        except Exception as e:
+            raise _document_translation_exception(e, None) from e
 
         try:
             status = self.translate_document_wait_until_done(handle, timeout_s)
-            if status.ok:
-                self.translate_document_download(handle, output_document)
+            self.translate_document_download(handle, output_document)
         except Exception as e:
             raise _document_translation_exception(e, handle) from e
-
-        if not status.ok:
-            error_message = status.error_message or "unknown error"
-            raise DocumentTranslationException(
-                f"Error occurred while translating document: {error_message}",
-                handle,
-            )
         return status
 
     def translate_document_upload(
@@ -1009,17 +1001,16 @@ class DeepLClient(BaseClient):
         """
         Continually polls the status of the document translation associated
         with the given handle, sleeping in between requests, and returns the
-        final status when the translation completes or fails. Check
-        DocumentStatus.ok on the result. An unknown status keeps polling, so
-        pass timeout_s to bound the wait.
+        final status when the translation completes successfully. An unknown
+        status keeps polling, so pass timeout_s to bound the wait.
         :param handle: DocumentHandle to the document translation to wait on.
         :param timeout_s: (beta) (Optional) Maximum time to wait before
             the call raises an error. The status is polled every 5 seconds;
             the last wait is shortened so the call does not run past it.
-        :return: DocumentStatus containing the final status, with ok False
-            and error_message set if the translation failed.
+        :return: DocumentStatus containing the status when done.
 
-        :raises DeepLException: If timeout_s is exceeded.
+        :raises DeepLException: If the document translation fails, with the
+            API's error message, or if timeout_s is exceeded.
         """
         deadline_s = None if timeout_s is None else time.time() + timeout_s
         status = self.translate_document_get_status(handle)
@@ -1043,6 +1034,12 @@ class DeepLClient(BaseClient):
                 )
                 time.sleep(secs)
                 status = self.translate_document_get_status(handle)
+        if not status.ok:
+            error_message = status.error_message or "unknown error"
+            raise DeepLException(
+                f"Error occurred while translating document: {error_message}",
+                should_retry=False,
+            )
         return status
 
     def translate_document_download(
@@ -3225,9 +3222,9 @@ class DeepLClient(BaseClient):
         job: Union[str, TranslationMemoryJob],
         timeout_s: Optional[int] = None,
     ) -> TranslationMemoryJob:
-        """Polls a translation memory job until it is done, sleeping 5 seconds
-        between requests, and returns the job when it is completed, failed or
-        expired. Check TranslationMemoryJob.ok on the result.
+        """Polls a translation memory job until it completes, sleeping 5
+        seconds between requests, and returns the completed job. An unknown
+        status keeps polling.
 
         Note that an import job keeps reporting "awaiting_input" for a while
         after its file has been uploaded, because the API detects the upload
@@ -3239,16 +3236,22 @@ class DeepLClient(BaseClient):
         :param timeout_s: (Optional) Maximum time in seconds to wait before
             raising an error. The last sleep is cut short so that the wait
             does not run past the timeout.
-        :return: TranslationMemoryJob containing the final status; ok is
-            False if the job failed or expired.
+        :return: TranslationMemoryJob containing the completed status.
 
-        :raises DeepLException: If timeout_s is exceeded.
+        :raises DeepLException: If the job fails or expires, with the API's
+            error message, or if timeout_s is exceeded.
         """
         # Validates the reference; get_translation_memory_job() encodes it.
         self._job_id(job)
         start_time_s = time.time()
         status = self.get_translation_memory_job(job)
         while True:
+            if not status.ok:
+                raise DeepLException(
+                    f"Error occurred while {_tm_job_action(status)} "
+                    f"translation memory: {_tm_job_error_message(status)}",
+                    should_retry=False,
+                )
             if status.done:
                 return status
             secs = 5.0
@@ -3333,9 +3336,8 @@ class DeepLClient(BaseClient):
             carries the new translation memory ID.
 
         :raises ValueError: If input_path does not exist.
-        :raises OSError: If the file cannot be read, before the import job is
-            created, for example PermissionError or IsADirectoryError.
-        :raises DeepLException: If the upload is rejected, the import job
+        :raises DeepLException: If the file cannot be read (checked before the
+            import job is created), the upload is rejected, the import job
             fails or expires, or timeout_s is exceeded.
         """
         file_path = pathlib.Path(input_path)
@@ -3343,8 +3345,13 @@ class DeepLClient(BaseClient):
             raise ValueError(f"file does not exist: {input_path}")
         # Read the file before creating the job, so an unreadable file fails
         # without leaving an import job waiting for its upload.
-        with open(file_path, "rb") as input_file:
-            content = input_file.read()
+        try:
+            with open(file_path, "rb") as input_file:
+                content = input_file.read()
+        except OSError as e:
+            raise DeepLException(
+                f"Error reading translation memory file {input_path}: {e}"
+            ) from e
 
         created = self.create_translation_memory_import(
             file_name=file_path.name,
@@ -3359,11 +3366,9 @@ class DeepLClient(BaseClient):
             content_type=content_type or "application/xml",
         )
 
-        job = self.wait_until_translation_memory_job_done(
+        return self.wait_until_translation_memory_job_done(
             created.job_id, timeout_s
         )
-        _raise_for_failed_tm_job(job, "importing")
-        return job
 
     def export_translation_memory_to_filepath(
         self,
@@ -3383,46 +3388,46 @@ class DeepLClient(BaseClient):
             cut short so that the wait does not run past the timeout.
         :return: TranslationMemoryJob for the completed export.
 
-        :raises OSError: If output_path cannot be written, checked before the
-            export job is created: FileNotFoundError if its directory does
-            not exist, IsADirectoryError if it is a directory, PermissionError
-            if it is not writable. An OSError while writing the file is
-            raised as is.
-        :raises DeepLException: If the export job fails or expires, the
-            download fails, or timeout_s is exceeded.
-
-        A partially written output file is removed.
+        :raises DeepLException: If output_path cannot be written (checked
+            before the export job is created), writing the file fails, the
+            export job fails or expires, the download fails, or timeout_s is
+            exceeded. A partially written output file is removed.
         """
         path = pathlib.Path(output_path)
         # Check the output path before creating the job, so a path that
         # cannot be written fails without exporting first.
-        # Raises the OSError subclass that open(path, "wb") would raise.
         directory = path.parent
         if not directory.is_dir():
-            raise _open_error(path, errno.ENOENT)
+            raise DeepLException(
+                f"Output directory does not exist: {directory}"
+            )
         if path.is_dir():
-            raise _open_error(path, errno.EISDIR)
+            raise DeepLException(f"Output path is a directory: {output_path}")
         if not os.access(path if path.exists() else directory, os.W_OK):
-            raise _open_error(path, errno.EACCES)
+            raise DeepLException(f"Output path is not writable: {output_path}")
 
         created = self.create_translation_memory_export(translation_memory)
+        # Raises before the output file is opened, so none is created.
         job = self.wait_until_translation_memory_job_done(
             created.job_id, timeout_s
         )
-        # Raised before the output file is opened, so none is created.
-        _raise_for_failed_tm_job(job, "exporting")
 
         try:
             with open(path, "wb") as output_file:
                 self.download_translation_memory_export(
                     job, output_file, chunk_size=8192
                 )
-        except BaseException:
+        except BaseException as e:
             # Do not leave a partial file behind.
             try:
                 path.unlink()
             except OSError:
                 pass
+            if isinstance(e, OSError):
+                raise DeepLException(
+                    "Error writing translation memory export to "
+                    f"{output_path}: {e}"
+                ) from e
             raise
         return job
 

@@ -37,6 +37,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of `None`; `None` still means the response omitted the field.
   Replace attribute access such as `rule.configured_rules.numbers` with
   `rule.configured_rules.get("numbers", {})`.
+- `translate_document()` and `translate_document_from_filepath()` raise
+  `DocumentTranslationException` with `document_handle` `None` when the upload
+  fails, copying `http_status_code` and `should_retry`; the original
+  exception (for example `QuotaExceededException`) is its `__cause__`.
+  Catch `DocumentTranslationException` instead of the upload exception.
+  Invalid arguments still raise `ValueError` or `TypeError`.
+- `translate_document_from_filepath()` raises `ValueError` instead of
+  `FileNotFoundError` if the input file does not exist, and
+  `DocumentTranslationException` with `document_handle` `None` instead of the
+  `OSError` of `open()` if the input or output file cannot be opened.
+- `translate_document_wait_until_done()` raises `DeepLException` with the
+  API's error message when the translation fails, instead of returning the
+  `DocumentStatus` with `ok` `False`. Catch `DeepLException` instead of
+  checking `status.ok`.
+- `wait_until_translation_memory_job_done()` raises `DeepLException` with the
+  API's error message when the job fails or expires, instead of returning
+  the job with `ok` `False`. Catch `DeepLException` instead of checking
+  `job.ok`.
+- `TranslationMemoryJob.done` and `TranslationMemoryJobResult.done` are
+  `True` only for a completed job, as `DocumentStatus.done`; a failed or
+  expired job is no longer done. Use `ok` to detect failure.
+- `import_translation_memory_from_filepath()` raises `DeepLException`
+  instead of the `OSError` of `open()` if the input file cannot be read, and
+  `export_translation_memory_to_filepath()` raises `DeepLException` instead
+  of `FileNotFoundError`, `IsADirectoryError` or `PermissionError` for an
+  unusable output path, and for an `OSError` while writing the file. The
+  `OSError`, where there is one, is the `__cause__`. Catch `DeepLException`
+  instead of `OSError`.
+- `TranslationMemoryJob.creation_time` and `updated_time` are typed
+  `datetime.datetime`, no longer `Optional`; they are required constructor
+  arguments, placed after `results`. A job response without them raises
+  `DeepLException`.
 
 ### Removed
 - Removed the `ConfiguredRules` class of `deepl.api_data`.
@@ -91,6 +123,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `DocumentStatus.Status.DOWNLOADED`, which is not a status the API
   returns. A `downloaded` status from the API would be kept as the string
   `"downloaded"`, like any status this version does not know.
+- Removed `TranslationMemoryJobResult.STATUS_DOWNLOADED`, which is not a job
+  status the API returns. A `downloaded` status from the API is kept as the
+  string `"downloaded"` and no longer counts as done, so
+  `wait_until_translation_memory_job_done()` keeps polling on it.
 
 ## [1.33.0] - 2026-11-02
 TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.

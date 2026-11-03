@@ -428,13 +428,13 @@ def test_polls_status_until_document_is_done(mocked):
     assert status.done
 
 
-def test_returns_failed_status_when_waited_document_fails(mocked):
+def test_raises_with_error_message_when_waited_document_fails(mocked):
     reply_with_status(mocked, "error", error_message="bad file")
 
-    status = make_deepl_client().translate_document_wait_until_done(HANDLE)
+    with pytest.raises(deepl.DeepLException, match="bad file") as exc_info:
+        make_deepl_client().translate_document_wait_until_done(HANDLE)
 
-    assert not status.ok
-    assert status.error_message == "bad file"
+    assert not isinstance(exc_info.value, deepl.DocumentTranslationException)
 
 
 def test_raises_when_waiting_exceeds_timeout(mocked):
@@ -489,13 +489,11 @@ def test_raises_with_handle_when_document_translation_fails(mocked):
 
 
 @pytest.mark.parametrize("from_filepath", [False, True])
-def test_raises_original_exception_when_upload_fails(
-    mocked, tmp_path, from_filepath
-):
+def test_wraps_upload_failure_without_handle(mocked, tmp_path, from_filepath):
     mocked.post(url("v2/document"), status=456, json={"message": "limit"})
     translator = make_deepl_client()
 
-    with pytest.raises(deepl.QuotaExceededException) as exc_info:
+    with pytest.raises(deepl.DocumentTranslationException) as exc_info:
         if from_filepath:
             input_path = tmp_path / "a.txt"
             input_path.write_text("hello")
@@ -507,7 +505,9 @@ def test_raises_original_exception_when_upload_fails(
                 b"hello", io.BytesIO(), target_lang="DE", filename="a.txt"
             )
 
-    assert not isinstance(exc_info.value, deepl.DocumentTranslationException)
+    assert exc_info.value.document_handle is None
+    assert exc_info.value.http_status_code == 456
+    assert isinstance(exc_info.value.__cause__, deepl.QuotaExceededException)
 
 
 def test_raises_with_handle_when_document_status_fails(mocked):
@@ -759,21 +759,20 @@ def test_copies_status_code_and_retry_flag_into_document_exception(
     assert exc_info.value.should_retry
 
 
-def test_raises_file_not_found_before_any_request_when_input_file_is_missing(
+def test_raises_value_error_before_any_request_when_input_file_is_missing(
     mocked, tmp_path
 ):
-    with pytest.raises(FileNotFoundError) as exc_info:
+    with pytest.raises(ValueError, match="file does not exist"):
         make_deepl_client().translate_document_from_filepath(
             tmp_path / "missing.txt", tmp_path / "out.txt", target_lang="DE"
         )
 
-    assert exc_info.value.filename == str(tmp_path / "missing.txt")
     assert len(mocked.calls) == 0
     assert not (tmp_path / "out.txt").exists()
 
 
 @pytest.mark.parametrize("bad", ["input", "output"])
-def test_raises_os_error_when_file_cannot_be_opened(tmp_path, bad):
+def test_wraps_os_error_when_file_cannot_be_opened(tmp_path, bad):
     input_path = tmp_path / "input.txt"
     input_path.write_text("hello")
     output_path = tmp_path / "output.txt"
@@ -784,12 +783,13 @@ def test_raises_os_error_when_file_cannot_be_opened(tmp_path, bad):
     else:
         output_path = directory
 
-    with pytest.raises(OSError) as exc_info:
+    with pytest.raises(deepl.DocumentTranslationException) as exc_info:
         make_deepl_client().translate_document_from_filepath(
             input_path, output_path, target_lang="DE"
         )
 
-    assert not isinstance(exc_info.value, deepl.DocumentTranslationException)
+    assert exc_info.value.document_handle is None
+    assert isinstance(exc_info.value.__cause__, IsADirectoryError)
 
 
 def test_cuts_last_status_poll_sleep_to_timeout(mocked, monkeypatch):

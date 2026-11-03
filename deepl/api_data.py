@@ -1870,7 +1870,6 @@ class TranslationMemoryJobResult:
     STATUS_AWAITING_INPUT = "awaiting_input"
     STATUS_PROCESSING = "processing"
     STATUS_COMPLETED = "completed"
-    STATUS_DOWNLOADED = "downloaded"
     STATUS_FAILED = "failed"
     STATUS_EXPIRED = "expired"
 
@@ -1919,13 +1918,8 @@ class TranslationMemoryJobResult:
 
     @property
     def done(self) -> bool:
-        """True if the job has finished, successfully or not."""
-        return self._status in (
-            self.STATUS_COMPLETED,
-            self.STATUS_DOWNLOADED,
-            self.STATUS_FAILED,
-            self.STATUS_EXPIRED,
-        )
+        """True if the job has completed successfully."""
+        return self._status == self.STATUS_COMPLETED
 
     @property
     def ok(self) -> bool:
@@ -1990,9 +1984,9 @@ class TranslationMemoryJob:
         job_id: str,
         operation: str,
         results: List[TranslationMemoryJobResult],
+        creation_time: datetime.datetime,
+        updated_time: datetime.datetime,
         product: str = "translation_memory",
-        creation_time: Optional[datetime.datetime] = None,
-        updated_time: Optional[datetime.datetime] = None,
         translation_memory_id: Optional[str] = None,
         display_name: Optional[str] = None,
         source_content_type: Optional[str] = None,
@@ -2027,9 +2021,9 @@ class TranslationMemoryJob:
                 TranslationMemoryJobResult.from_json(result)
                 for result in json.get("results", [])
             ],
+            creation_time=parse_timestamp(json["creation_time"]),
+            updated_time=parse_timestamp(json["updated_time"]),
             product=json.get("product", "translation_memory"),
-            creation_time=parse_optional_timestamp(json.get("creation_time")),
-            updated_time=parse_optional_timestamp(json.get("updated_time")),
             translation_memory_id=parameters.get("translation_memory_id"),
             display_name=parameters.get("display_name"),
             source_content_type=source_file.get("content_type"),
@@ -2069,7 +2063,7 @@ class TranslationMemoryJob:
 
     @property
     def done(self) -> bool:
-        """True if the job has finished, successfully or not."""
+        """True if the job has completed successfully."""
         return self.result.done if self.result else False
 
     @property
@@ -2078,12 +2072,12 @@ class TranslationMemoryJob:
         return self.result.ok if self.result else True
 
     @property
-    def creation_time(self) -> Optional[datetime.datetime]:
+    def creation_time(self) -> datetime.datetime:
         """Returns the creation timestamp."""
         return self._creation_time
 
     @property
-    def updated_time(self) -> Optional[datetime.datetime]:
+    def updated_time(self) -> datetime.datetime:
         """Returns the last update timestamp."""
         return self._updated_time
 

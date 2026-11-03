@@ -883,6 +883,8 @@ def test_imports_translation_memory_and_prints_job(mocked, runner, tmp_path):
         json={
             "job_id": "job-1",
             "operation": "import",
+            "creation_time": "2021-08-03T14:16:18Z",
+            "updated_time": "2021-08-03T14:16:18Z",
             "results": [
                 {
                     "status": "completed",
@@ -930,6 +932,8 @@ def test_exports_translation_memory_to_file(mocked, runner, tmp_path):
         json={
             "job_id": "job-1",
             "operation": "export",
+            "creation_time": "2021-08-03T14:16:18Z",
+            "updated_time": "2021-08-03T14:16:18Z",
             "results": [{"status": "completed", "download_url": DOWNLOAD_URL}],
         },
     )
@@ -951,6 +955,8 @@ def test_prints_translation_memory_job(mocked, runner):
         json={
             "job_id": "job-1",
             "operation": "import",
+            "creation_time": "2021-08-03T14:16:18Z",
+            "updated_time": "2021-08-03T14:16:18Z",
             "results": [
                 {
                     "status": "failed",

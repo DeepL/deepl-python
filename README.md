@@ -349,27 +349,30 @@ try:
         )
 
 except deepl.DocumentTranslationException as error:
-    # If an error occurs during document translation after the document was
-    # already uploaded, a DocumentTranslationException is raised. The
-    # document_handle property contains the document handle that may be used to
-    # later retrieve the document from the server, or contact DeepL support.
-    doc_id = error.document_handle.document_id
-    doc_key = error.document_handle.document_key
-    print(f"Error after uploading {error}, id: {doc_id} key: {doc_key}")
-except deepl.DeepLException as error:
-    # Errors during upload raise a DeepLException
-    print(error)
+    # Any error during document translation raises a
+    # DocumentTranslationException. If the document was already uploaded, the
+    # document_handle property contains the document handle that may be used
+    # to later retrieve the document from the server, or contact DeepL
+    # support; otherwise it is None.
+    if error.document_handle is not None:
+        doc_id = error.document_handle.document_id
+        doc_key = error.document_handle.document_key
+        print(f"Error after uploading {error}, id: {doc_id} key: {doc_key}")
+    else:
+        print(f"Error before uploading: {error}")
 ```
 
-Errors during upload raise the underlying `DeepLException` subclass, for
-example `AuthorizationException` or `QuotaExceededException`.
-`DocumentTranslationException` copies `http_status_code` and `should_retry`
-from the underlying `DeepLException`, if there is one. If the translation
-fails, it carries the API's error message.
-`translate_document_from_filepath()` raises `FileNotFoundError` before any
-request if the input file does not exist, and the `OSError` that `open()`
-raises (for example `PermissionError` or `IsADirectoryError`) if the input or
-output file cannot be opened.
+`translate_document()` and `translate_document_from_filepath()` raise a
+`DocumentTranslationException` for every failure, including a failed upload
+(for example an authorization or quota error), with `document_handle` set to
+`None` if the document was not uploaded. The underlying exception is its
+`__cause__`. `DocumentTranslationException` copies `http_status_code` and
+`should_retry` from the underlying `DeepLException`, if there is one. If the
+translation fails, it carries the API's error message. Invalid arguments raise
+`ValueError` or `TypeError` before any request.
+`translate_document_from_filepath()` raises `ValueError` before any request if
+the input file does not exist, and a `DocumentTranslationException` with
+`document_handle` `None` if the input or output file cannot be opened.
 
 `translate_document()` and `translate_document_from_filepath()` are convenience
 functions that wrap multiple API calls: uploading, polling status until the
@@ -387,9 +390,9 @@ these steps individually, you can instead use the following functions directly:
 `ok` (translation has not failed) properties. A status value this library
 version does not know is kept as a string in `status`.
 `translate_document_wait_until_done()` polls the status every 5 seconds until
-the translation is done or has failed and returns the final `DocumentStatus`;
-check its `ok` property, and `error_message` if the translation failed. An
-unknown status keeps polling, so pass `timeout_s` to bound the wait. With
+the translation is done and returns the final `DocumentStatus`. If the
+translation fails, it raises a `DeepLException` with the API's error message.
+An unknown status keeps polling, so pass `timeout_s` to bound the wait. With
 `timeout_s` it raises a `DeepLException` once the timeout expires; the last
 wait is shortened so it does not run past `timeout_s`.
 
@@ -1229,10 +1232,9 @@ the job keeps reporting `awaiting_input` for roughly half a minute after the
 upload before completing. Pass `timeout_s` to bound how long to wait.
 
 The file is read before the import job is created: a missing file raises
-`ValueError`, and a file that cannot be read raises the `OSError` that `open()`
-raises (for example `PermissionError` or `IsADirectoryError`), in both cases
-without sending a request. A failed or expired import job raises
-`DeepLException` with the API's error message.
+`ValueError`, and a file that cannot be read raises `DeepLException` with the
+`OSError` as its `__cause__`, in both cases without sending a request. A failed
+or expired import job raises `DeepLException` with the API's error message.
 
 The three steps are also available separately, for example to upload the file
 yourself or to poll for progress. `create_translation_memory_import()` returns
@@ -1263,9 +1265,9 @@ job = deepl_client.wait_until_translation_memory_job_done(
 ```
 
 `wait_until_translation_memory_job_done()` polls every 5 seconds and returns
-the final job once it is completed, failed or expired; check its `ok` property,
-and `job.result.error_message` if it failed. An unknown status keeps polling,
-so pass `timeout_s` to bound the wait. With `timeout_s` it raises
+the job once it is completed. If the job fails or expires, it raises
+`DeepLException` with the API's error message. An unknown status keeps
+polling, so pass `timeout_s` to bound the wait. With `timeout_s` it raises
 `DeepLException` once the timeout is exceeded, cutting the last sleep short so
 the wait does not run past the timeout.
 
@@ -1297,14 +1299,13 @@ job = deepl_client.export_translation_memory_to_filepath(
 )
 ```
 
-The output path is checked before the export job is created, raising the
-`OSError` that `open()` would raise without sending a request:
-`FileNotFoundError` if its directory does not exist, `IsADirectoryError` if the
-path is a directory and `PermissionError` if it is not writable. If the export
-job fails or expires, `DeepLException` is raised with the API's error message
-and no file is created. If the download fails, `DeepLException` is raised; an
-`OSError` while writing the file is raised as is. In both cases a partially
-written file is removed.
+The output path is checked before the export job is created: if its directory
+does not exist, the path is a directory or it is not writable,
+`DeepLException` is raised without sending a request. If the export job fails
+or expires, `DeepLException` is raised with the API's error message and no
+file is created. If the download or writing the file fails, `DeepLException`
+is raised, with the `OSError` of a write failure as its `__cause__`, and a
+partially written file is removed.
 
 As with import, the individual steps are available separately. Note that the
 API may reuse a previously completed export of an unchanged translation memory,

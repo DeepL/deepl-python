@@ -19,6 +19,7 @@ from ..fixtures import example_tmx
 from .client import StreamedBody, make_deepl_client, url
 from .matchers import bodyless_request, json_request, storage_request
 
+NOW = datetime.datetime(2021, 8, 3, tzinfo=datetime.timezone.utc)
 UPLOAD_URL = "https://storage.example.com/tm/upload?signature=abc"
 DOWNLOAD_URL = "https://storage.example.com/tm/download?signature=def"
 TM_JSON = {
@@ -44,6 +45,8 @@ def job_json(status, operation="import", **result):
         "product": "translation_memory",
         "parameters": {"translation_memory_id": "tm-1"},
         "source_file": {"content_type": "application/xml"},
+        "creation_time": "2021-08-03T14:16:18.329Z",
+        "updated_time": "2021-08-03T14:16:19Z",
         "results": [{"status": status, **result}],
     }
 
@@ -394,7 +397,7 @@ def test_marks_export_as_reused_when_server_returns_200(
 
 
 @pytest.mark.parametrize(
-    "job", ["job-1", TranslationMemoryJob("job-1", "", [])]
+    "job", ["job-1", TranslationMemoryJob("job-1", "", [], NOW, NOW)]
 )
 def test_parses_translation_memory_job(mocked, job):
     mocked.get(
@@ -429,15 +432,24 @@ def test_parses_translation_memory_job(mocked, job):
     assert str(result) == "TranslationMemoryJob import (job-1): completed"
 
 
+@pytest.mark.parametrize("field", ["creation_time", "updated_time"])
+def test_raises_when_job_lacks_required_timestamp(mocked, no_retries, field):
+    body = job_json("completed")
+    del body[field]
+    mocked.get(url("v3/translation_memories/jobs/job-1"), json=body)
+
+    with pytest.raises(deepl.DeepLException, match=field):
+        make_deepl_client().get_translation_memory_job("job-1")
+
+
 @pytest.mark.parametrize(
     "status, done, ok",
     [
         ("awaiting_input", False, True),
         ("processing", False, True),
         ("completed", True, True),
-        ("downloaded", True, True),
-        ("failed", True, False),
-        ("expired", True, False),
+        ("failed", False, False),
+        ("expired", False, False),
     ],
 )
 def test_derives_job_progress_from_status(mocked, status, done, ok):
@@ -510,12 +522,16 @@ def test_raises_when_waiting_for_job_exceeds_timeout(mocked):
 
 
 @pytest.mark.parametrize("status", ["failed", "expired"])
-def test_returns_job_when_waited_job_fails_or_expires(mocked, status):
-    reply_with_job(mocked, status, error={"message": "broken"})
+def test_raises_with_error_message_when_waited_job_fails(mocked, status):
+    reply_with_job(
+        mocked, status, operation="export", error={"message": "broken"}
+    )
 
-    job = make_deepl_client().wait_until_translation_memory_job_done("job-1")
-
-    assert not job.ok
+    with pytest.raises(
+        deepl.DeepLException,
+        match="Error occurred while exporting translation memory: broken",
+    ):
+        make_deepl_client().wait_until_translation_memory_job_done("job-1")
 
 
 class FakeClock:
@@ -614,10 +630,10 @@ def test_raises_for_unreadable_import_file_before_creating_job(
     mocked, no_retries, tmp_path
 ):
     # A directory exists but cannot be opened as a file.
-    with pytest.raises(OSError) as exc_info:
+    with pytest.raises(deepl.DeepLException) as exc_info:
         make_deepl_client().import_translation_memory_from_filepath(tmp_path)
 
-    assert not isinstance(exc_info.value, deepl.DeepLException)
+    assert isinstance(exc_info.value.__cause__, OSError)
     assert len(mocked.calls) == 0
 
 
@@ -692,23 +708,20 @@ def test_raises_with_error_message_when_export_job_fails(mocked, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "path, error",
+    "path, message",
     [
-        ("missing/exported.tmx", FileNotFoundError),
-        (".", IsADirectoryError),
+        ("missing/exported.tmx", "Output directory does not exist"),
+        (".", "Output path is a directory"),
     ],
 )
-def test_raises_os_error_for_unusable_export_path_before_creating_job(
-    mocked, no_retries, tmp_path, path, error
+def test_raises_for_unusable_export_path_before_creating_job(
+    mocked, no_retries, tmp_path, path, message
 ):
-    output_path = tmp_path / path
-
-    with pytest.raises(error) as exc_info:
+    with pytest.raises(deepl.DeepLException, match=message):
         make_deepl_client().export_translation_memory_to_filepath(
-            "tm-1", output_path
+            "tm-1", tmp_path / path
         )
 
-    assert exc_info.value.filename == str(output_path)
     assert len(mocked.calls) == 0
 
 
