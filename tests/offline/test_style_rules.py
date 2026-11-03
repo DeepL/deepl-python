@@ -6,7 +6,7 @@ import datetime
 
 import pytest
 from deepl import DeepLException
-from deepl.api_data import ConfiguredRules, CustomInstruction, StyleRuleInfo
+from deepl.api_data import CustomInstruction, StyleRuleInfo
 
 from .client import make_deepl_client, url
 from .matchers import bodyless_request, json_request
@@ -55,6 +55,14 @@ def test_sends_query_when_listing_style_rules(mocked, kwargs, query):
     make_deepl_client().get_all_style_rules(**kwargs)
 
 
+# Includes a category the library has no name for; it must be kept.
+WIRE_RULES = {
+    "numbers": {"number_format": "x"},
+    "vocabulary": {"a": "b"},
+    "new_category": {"new_rule": "on"},
+}
+
+
 def test_parses_style_rule_list_with_details(mocked):
     mocked.get(
         url("v3/style_rules"),
@@ -62,27 +70,25 @@ def test_parses_style_rule_list_with_details(mocked):
             "style_rules": [
                 {
                     **STYLE_RULE_JSON,
-                    "configured_rules": {
-                        "numbers": {"number_format": "x"},
-                        "vocabulary": {"a": "b"},
-                    },
+                    "configured_rules": WIRE_RULES,
                     "custom_instructions": [
                         {**INSTRUCTION_JSON, "source_language": "de"}
                     ],
                 },
                 {**STYLE_RULE_JSON, "style_id": "style-2"},
+                {**STYLE_RULE_JSON, "configured_rules": {}},
             ]
         },
     )
 
     style_rules = make_deepl_client().get_all_style_rules(detailed=True)
 
-    first, second = style_rules
-    assert isinstance(first.configured_rules, ConfiguredRules)
-    assert first.configured_rules.formatting == {}
+    first, second, third = style_rules
+    assert first.configured_rules == WIRE_RULES
     assert isinstance(first.custom_instructions[0], CustomInstruction)
     assert second.configured_rules is None
     assert second.custom_instructions == []
+    assert third.configured_rules == {}
 
 
 def test_parses_style_rule(mocked):

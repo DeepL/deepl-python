@@ -29,8 +29,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   arguments and behaviour. Code that checks `isinstance(client,
   deepl.Translator)` or annotates clients as `Translator` must use
   `DeepLClient`.
+- `StyleRuleInfo.configured_rules` returns the configured rules as the API
+  sends them: a `dict` mapping category names to dicts of rule names and
+  values, the same shape `create_style_rule()` and
+  `update_style_rule_configured_rules()` take. Categories the library does
+  not know are kept, and an empty `{}` from the API is returned as `{}`
+  instead of `None`; `None` still means the response omitted the field.
+  Replace attribute access such as `rule.configured_rules.numbers` with
+  `rule.configured_rules.get("numbers", {})`.
 
 ### Removed
+- Removed the `ConfiguredRules` class of `deepl.api_data`.
+  `StyleRuleInfo.configured_rules` now returns a plain `dict`; code that
+  imported or constructed `ConfiguredRules` must use a `dict` instead.
 - Removed the deprecated `Translator` class; use `DeepLClient`, which
   supports all of its functions with the same constructor arguments. Replace
   `deepl.Translator(...)` with `deepl.DeepLClient(...)`.

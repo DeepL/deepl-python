@@ -925,7 +925,11 @@ corresponding to all of your stored style rules. The method accepts optional
 parameters: `page` (page number for pagination, 0-indexed), `page_size` (number
 of items per page), and `detailed`. When `True`, the response includes
 `configured_rules` and `custom_instructions` for each style rule. When `False`
-(default), these fields are omitted for faster responses.
+(default), these fields are omitted for faster responses. `configured_rules` is
+returned as the API sends it: a dict mapping category names (such as
+`"numbers"`) to dicts of rule names and values, the same shape that
+`create_style_rule()` and `update_style_rule_configured_rules()` take. It is
+`None` when the response omits it.
 
 ```python
 # Get a single style rule by ID
@@ -941,7 +945,7 @@ for rule in style_rules:
 style_rules = deepl_client.get_all_style_rules(detailed=True)
 for rule in style_rules:
     if rule.configured_rules:
-        print(f"  Number formatting: {rule.configured_rules.numbers}")
+        print(f"  Number formatting: {rule.configured_rules.get('numbers')}")
 ```
 
 #### Updating a style rule
