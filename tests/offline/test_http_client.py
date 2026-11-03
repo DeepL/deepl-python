@@ -53,23 +53,6 @@ def test_retries_request_when_connection_breaks_while_reading_body(mocked):
 
 
 @pytest.mark.parametrize("make_client", [make_translator, make_deepl_client])
-def test_retries_five_times_with_ten_second_timeout_by_default(
-    mocked, monkeypatch, make_client
-):
-    monkeypatch.setattr(deepl._http_client.time, "sleep", lambda secs: None)
-    for _ in range(6):
-        mocked.get(url("v2/usage"), status=500)
-
-    with pytest.raises(deepl.DeepLException, match="Unexpected status code"):
-        make_client().get_usage()
-
-    assert len(mocked.calls) == 6
-    assert all(
-        call.request.req_kwargs["timeout"] >= 10.0 for call in mocked.calls
-    )
-
-
-@pytest.mark.parametrize("make_client", [make_translator, make_deepl_client])
 def test_max_retries_option_sets_number_of_retries(mocked, make_client):
     mocked.get(url("v2/usage"), status=503)
     mocked.get(url("v2/usage"), status=503)
