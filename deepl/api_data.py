@@ -12,10 +12,10 @@ from typing import (
     Optional,
     Tuple,
     Union,
-    cast,
 )
 
 from deepl.util import (
+    convert_tsv_to_dict,
     get_float_safe,
     get_int_safe,
     parse_timestamp,
@@ -172,44 +172,39 @@ class Usage:
     """Holds the result of a usage request.
 
     The character, document and team_document properties provide details about
-    each corresponding usage type. These properties allow each usage type to be
-    checked individually.
+    each corresponding usage type, or None if the response does not contain
+    that usage type. These properties allow each usage type to be checked
+    individually.
     For API Pro accounts, api_key_character, speech_to_text_minutes,
     speech_to_speech_minutes, products, start_time and end_time provide
     further details; for other accounts they are None.
-    The any_limit_reached property checks if for any usage type the amount used
-    has reached the allowed amount.
+    The any_limit_reached property checks if for any character or document
+    usage type the amount used has reached the allowed amount.
     """
 
     class Detail:
-        def __init__(self, json: Optional[dict], prefix: str):
-            self._count = get_int_safe(json, f"{prefix}_count")
-            self._limit = get_int_safe(json, f"{prefix}_limit")
+        def __init__(self, count: int, limit: int):
+            self._count = count
+            self._limit = limit
 
         @property
-        def count(self) -> Optional[int]:
-            """Returns the amount used for this usage type, may be None."""
+        def count(self) -> int:
+            """Returns the amount used for this usage type."""
             return self._count
 
         @property
-        def limit(self) -> Optional[int]:
-            """Returns the maximum amount for this usage type, may be None."""
+        def limit(self) -> int:
+            """Returns the maximum amount for this usage type."""
             return self._limit
 
         @property
-        def valid(self) -> bool:
-            """True iff both the count and limit are set for this usage
-            type."""
-            return self._count is not None and self._limit is not None
-
-        @property
         def limit_reached(self) -> bool:
-            """True if this limit is valid and the amount used is greater than
-            or equal to the amount allowed, otherwise False."""
-            return self.valid and self.count >= self.limit  # type: ignore[operator] # noqa: E501
+            """True if the amount used is greater than or equal to the amount
+            allowed, otherwise False."""
+            return self.count >= self.limit
 
         def __str__(self) -> str:
-            return f"{self.count} of {self.limit}" if self.valid else "Unknown"
+            return f"{self.count} of {self.limit}"
 
     class Product:
         """Usage of one product (e.g. "translate", "write") in the current
@@ -271,9 +266,9 @@ class Usage:
             )
 
     def __init__(self, json: Optional[dict]):
-        self._character = self.Detail(json, "character")
-        self._document = self.Detail(json, "document")
-        self._team_document = self.Detail(json, "team_document")
+        self._character = self._optional_detail(json, "character")
+        self._document = self._optional_detail(json, "document")
+        self._team_document = self._optional_detail(json, "team_document")
         self._api_key_character = self._optional_detail(
             json, "api_key_character"
         )
@@ -304,40 +299,48 @@ class Usage:
     def _optional_detail(
         json: Optional[dict], prefix: str
     ) -> Optional["Usage.Detail"]:
-        """Returns the Detail for prefix, or None if the response contains
-        neither its count nor its limit."""
-        if not json or (
-            f"{prefix}_count" not in json and f"{prefix}_limit" not in json
-        ):
+        """Returns the Detail for prefix, or None if the response does not
+        contain both its count and its limit."""
+        count = get_int_safe(json, f"{prefix}_count")
+        limit = get_int_safe(json, f"{prefix}_limit")
+        if count is None or limit is None:
             return None
-        return Usage.Detail(json, prefix)
+        return Usage.Detail(count, limit)
 
     @property
     def any_limit_reached(self) -> bool:
-        """True if for the character, document or team document usage, the
-        amount used is greater than or equal to the amount allowed, otherwise
-        False. The API Pro usage types (api_key_character and the speech
-        minutes) are not considered; check their limit_reached directly."""
-        return (
-            self.character.limit_reached
-            or self.document.limit_reached
-            or self.team_document.limit_reached
+        """True if for the character, document, team document or API key
+        character usage, the amount used is greater than or equal to the
+        amount allowed, otherwise False. Usage types absent from the response
+        are skipped. The speech minutes are not considered; check their
+        limit_reached directly."""
+        return any(
+            detail is not None and detail.limit_reached
+            for detail in (
+                self.character,
+                self.document,
+                self.team_document,
+                self.api_key_character,
+            )
         )
 
     @property
-    def character(self) -> Detail:
+    def character(self) -> Optional[Detail]:
         """Returns usage details for characters, primarily associated with the
-        translate_text (/translate) function."""
+        translate_text (/translate) function, or None if the response does
+        not contain them."""
         return self._character
 
     @property
-    def document(self) -> Detail:
-        """Returns usage details for documents."""
+    def document(self) -> Optional[Detail]:
+        """Returns usage details for documents, or None if the response does
+        not contain them."""
         return self._document
 
     @property
-    def team_document(self) -> Detail:
-        """Returns usage details for documents shared among your team."""
+    def team_document(self) -> Optional[Detail]:
+        """Returns usage details for documents shared among your team, or None
+        if the response does not contain them."""
         return self._team_document
 
     @property
@@ -380,13 +383,17 @@ class Usage:
         return self._end_time
 
     def __str__(self) -> str:
-        details: List[Tuple[str, Usage.Detail]] = [
+        details: List[Tuple[str, Optional[Usage.Detail]]] = [
             ("Characters", self.character),
             ("Documents", self.document),
             ("Team documents", self.team_document),
         ]
         return "Usage this billing period:\n" + "\n".join(
-            [f"{label}: {detail}" for label, detail in details if detail.valid]
+            [
+                f"{label}: {detail}"
+                for label, detail in details
+                if detail is not None
+            ]
         )
 
 
@@ -581,8 +588,7 @@ class MultilingualGlossaryDictionaryEntries:
     def from_json(json) -> "MultilingualGlossaryDictionaryEntries":
         """Create MultilingualGlossaryDictionaryEntries from the given
         API JSON object. Entries in TSV format, as the API returns them, are
-        kept as the TSV string; use deepl.util.convert_tsv_to_dict() to parse
-        them.
+        parsed into a dictionary of source-target terms.
         """
         try:
             entries = json["entries"]
@@ -591,8 +597,11 @@ class MultilingualGlossaryDictionaryEntries:
             return MultilingualGlossaryDictionaryEntries(
                 str(json["source_lang"]),
                 str(json["target_lang"]),
-                # Released behaviour: API entries stay the raw TSV string.
-                cast(Dict[str, str], entries),
+                (
+                    convert_tsv_to_dict(entries, skip_checks=True)
+                    if isinstance(entries, str)
+                    else entries
+                ),
             )
         except (KeyError, TypeError, ValueError) as error:
             raise _malformed_response(
@@ -1196,7 +1205,7 @@ class StyleRuleInfo:
         """Create StyleRuleInfo from the given API JSON object."""
         custom_instructions_data = json.get("custom_instructions")
         custom_instructions = None
-        if custom_instructions_data:
+        if custom_instructions_data is not None:
             custom_instructions = [
                 CustomInstruction.from_json(instruction)
                 for instruction in custom_instructions_data
@@ -1250,9 +1259,11 @@ class StyleRuleInfo:
         return self._configured_rules
 
     @property
-    def custom_instructions(self) -> List[CustomInstruction]:
-        """Returns the list of custom instructions."""
-        return self._custom_instructions or []
+    def custom_instructions(self) -> Optional[List[CustomInstruction]]:
+        """Returns the list of custom instructions, or None if the response
+        omits them (for example get_all_style_rules() without
+        detailed=True)."""
+        return self._custom_instructions
 
 
 def parse_optional_timestamp(

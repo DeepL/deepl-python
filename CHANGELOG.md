@@ -69,8 +69,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `datetime.datetime`, no longer `Optional`; they are required constructor
   arguments, placed after `results`. A job response without them raises
   `DeepLException`.
+- `StyleRuleInfo.custom_instructions` is typed
+  `Optional[List[CustomInstruction]]` and returns `None` when the response
+  omits the field (for example `get_all_style_rules()` without
+  `detailed=True`), instead of `[]`. An empty list from the API is returned
+  as `[]`. Check for `None` before iterating.
+- `Usage.character`, `Usage.document` and `Usage.team_document` return `None`
+  when the response does not contain both the count and the limit of that
+  usage type, as the API Pro details already do, instead of a `Usage.Detail`
+  with `count` and `limit` `None`. `Usage.Detail.count` and `limit` are typed
+  `int`. Replace `usage.document.valid` with `usage.document is not None`.
+- `Usage.any_limit_reached` also considers `api_key_character`, the character
+  limit of the API key, so it can now return `True` when only the per-key
+  limit is reached. The speech minutes are still not considered.
+- `delete_multilingual_glossary_dictionary()` takes
+  `(glossary, source_lang, target_lang)`; the `dictionary` argument is
+  keyword-only. Replace `delete_multilingual_glossary_dictionary(glossary,
+  dictionary)` with `delete_multilingual_glossary_dictionary(glossary,
+  dictionary=dictionary)` or pass the language pair.
+- `MultilingualGlossaryDictionaryEntries.entries` read from the API (by
+  `get_multilingual_glossary_dictionary_entries()`) is a `dict` of source to
+  target terms, as its type annotation says, instead of the TSV string the
+  API returns. Remove calls of `convert_tsv_to_dict()` on it.
+- `create_multilingual_glossary()`, `update_multilingual_glossary()`,
+  `update_multilingual_glossary_dictionary()` and
+  `replace_multilingual_glossary_dictionary()` accept a dictionary read from
+  the API, and a `MultilingualGlossaryDictionaryEntries` whose `entries` is a
+  TSV string, which is sent as it is; they no longer raise `AttributeError`.
 
 ### Removed
+- Removed `Usage.Detail.valid`. Absent usage types are now `None`; check
+  `detail is not None` instead.
 - Removed the `ConfiguredRules` class of `deepl.api_data`.
   `StyleRuleInfo.configured_rules` now returns a plain `dict`; code that
   imported or constructed `ConfiguredRules` must use a `dict` instead.

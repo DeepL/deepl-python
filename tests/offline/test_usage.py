@@ -51,14 +51,34 @@ def test_parses_usage_counts_and_limits(mocked):
     )
 
 
-def test_parses_usage_without_limits(mocked):
+def test_parses_absent_usage_details_as_none(mocked):
     mocked.get(url("v2/usage"), json={"character_count": 4})
 
     usage = make_deepl_client().get_usage()
 
-    assert not usage.character.valid
+    assert usage.character is None
+    assert usage.document is None
+    assert usage.team_document is None
     assert not usage.any_limit_reached
     assert str(usage) == "Usage this billing period:\n"
+
+
+def test_any_limit_reached_considers_api_key_character_limit(mocked):
+    mocked.get(
+        url("v2/usage"),
+        json={
+            "character_count": 10,
+            "character_limit": 1000,
+            "api_key_character_count": 100,
+            "api_key_character_limit": 100,
+        },
+    )
+
+    usage = make_deepl_client().get_usage()
+
+    assert not usage.character.limit_reached
+    assert usage.api_key_character.limit_reached
+    assert usage.any_limit_reached
 
 
 def test_parses_api_pro_usage(mocked):

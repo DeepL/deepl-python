@@ -1940,9 +1940,8 @@ class DeepLClient(BaseClient):
             retrieve.
         :param source_lang: Language of source terms.
         :param target_lang: Language of target terms.
-        :return: MultilingualGlossaryDictionaryEntries whose entries are the
-            TSV string the API returns; use deepl.util.convert_tsv_to_dict()
-            to get a dictionary of source-target terms.
+        :return: MultilingualGlossaryDictionaryEntries whose entries are a
+            dictionary of source-target terms.
         :raises GlossaryNotFoundException: If the glossary or the dictionary
             is not found.
         """
@@ -1990,27 +1989,26 @@ class DeepLClient(BaseClient):
     def delete_multilingual_glossary_dictionary(
         self,
         glossary: Union[str, MultilingualGlossaryInfo],
-        dictionary: Optional[MultilingualGlossaryDictionaryInfo] = None,
         source_lang: Optional[str] = None,
         target_lang: Optional[str] = None,
+        *,
+        dictionary: Optional[MultilingualGlossaryDictionaryInfo] = None,
     ) -> None:
-        """Deletes specified glossary dictionary.
+        """Deletes the dictionary for the given language pair from the
+        specified glossary.
 
         :param glossary: MultilingualGlossaryInfo or ID of glossary
-            containing the dictionary to delete
-        :param dictionary: The dictionary to delete. Either the
-            MultilingualGlossaryDictionaryInfo or both the source_lang and
-            target_lang can be provided to identify the dictionary. However,
-            if both are provided, the dictionary takes precendence over
+            containing the dictionary to delete.
+        :param source_lang: Source language of the dictionary.
+        :param target_lang: Target language of the dictionary.
+        :param dictionary: (Optional, keyword-only) The
+            MultilingualGlossaryDictionaryInfo to delete, instead of
+            source_lang and target_lang. If given, it takes precedence over
             source_lang and target_lang.
-        :param source_lang: Optional parameter representing the source language
-            of the dictionary
-        :param target_lang: Optional parameter representing the target language
-            of the dictionary
         :raises GlossaryNotFoundException: If no glossary with given ID is
             found.
-        :raises ValueError: If the dictionary or both the source_lang and
-            target_lang were not provided
+        :raises ValueError: If neither the dictionary nor both source_lang and
+            target_lang were provided.
         """
         glossary_id = self._multilingual_glossary_id(glossary)
 
@@ -2056,6 +2054,8 @@ class DeepLClient(BaseClient):
     def _dictionary_json(
         dictionary: MultilingualGlossaryDictionaryEntries,
     ) -> Dict[str, Any]:
+        # Entries given as a TSV string are sent as they are.
+        entries: Union[Dict[str, str], str] = dictionary.entries
         # glossaries are only supported for base language types
         return {
             "source_lang": Language.remove_regional_variant(
@@ -2064,7 +2064,11 @@ class DeepLClient(BaseClient):
             "target_lang": Language.remove_regional_variant(
                 dictionary.target_lang
             ),
-            "entries": util.convert_dict_to_tsv(dictionary.entries),
+            "entries": (
+                entries
+                if isinstance(entries, str)
+                else util.convert_dict_to_tsv(entries)
+            ),
             "entries_format": "tsv",
         }
 

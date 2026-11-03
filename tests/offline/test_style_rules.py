@@ -76,7 +76,11 @@ def test_parses_style_rule_list_with_details(mocked):
                     ],
                 },
                 {**STYLE_RULE_JSON, "style_id": "style-2"},
-                {**STYLE_RULE_JSON, "configured_rules": {}},
+                {
+                    **STYLE_RULE_JSON,
+                    "configured_rules": {},
+                    "custom_instructions": [],
+                },
             ]
         },
     )
@@ -87,8 +91,9 @@ def test_parses_style_rule_list_with_details(mocked):
     assert first.configured_rules == WIRE_RULES
     assert isinstance(first.custom_instructions[0], CustomInstruction)
     assert second.configured_rules is None
-    assert second.custom_instructions == []
+    assert second.custom_instructions is None
     assert third.configured_rules == {}
+    assert third.custom_instructions == []
 
 
 def test_parses_style_rule(mocked):

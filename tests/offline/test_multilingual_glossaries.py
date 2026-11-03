@@ -285,7 +285,7 @@ def test_sends_delete_when_deleting_glossary(mocked, glossary):
     assert make_deepl_client().delete_multilingual_glossary(glossary) is None
 
 
-def test_sends_language_pair_when_deleting_dictionary(mocked):
+def test_sends_positional_language_pair_when_deleting_dictionary(mocked):
     mocked.delete(
         url("v3/glossaries/g-1/dictionaries"),
         status=204,
@@ -293,7 +293,7 @@ def test_sends_language_pair_when_deleting_dictionary(mocked):
     )
 
     make_deepl_client().delete_multilingual_glossary_dictionary(
-        glossary_info(), source_lang="EN", target_lang="DE"
+        glossary_info(), "EN", "DE"
     )
 
 
@@ -306,7 +306,7 @@ def test_prefers_dictionary_over_languages_when_deleting_dictionary(mocked):
     dictionary = glossary_info().dictionaries[1]
 
     make_deepl_client().delete_multilingual_glossary_dictionary(
-        "g-1", dictionary, source_lang="EN", target_lang="DE"
+        "g-1", "EN", "DE", dictionary=dictionary
     )
 
 
@@ -573,7 +573,7 @@ def test_accepts_glossary_info_when_getting_glossary(mocked, call):
 
 
 @pytest.mark.parametrize("glossary", ["g-1", glossary_info()])
-def test_returns_raw_tsv_entries_of_one_dictionary(mocked, glossary):
+def test_parses_tsv_entries_of_one_dictionary(mocked, glossary):
     mocked.get(
         url("v3/glossaries/g-1/entries"),
         json={
@@ -595,7 +595,84 @@ def test_returns_raw_tsv_entries_of_one_dictionary(mocked, glossary):
 
     assert isinstance(result, MultilingualGlossaryDictionaryEntries)
     assert (result.source_lang, result.target_lang) == ("en", "de")
-    assert result.entries == "Hello\tHallo\nA\tB"
+    assert result.entries == {"Hello": "Hallo", "A": "B"}
+
+
+@pytest.mark.parametrize("method", ["create", "update", "replace"])
+def test_sends_dictionary_read_from_api_back(mocked, method):
+    mocked.get(
+        url("v3/glossaries/g-1/entries"),
+        json={
+            "dictionaries": [
+                {
+                    "source_lang": "en",
+                    "target_lang": "de",
+                    "entries": "Hello\tHallo\nA\tB",
+                    "entries_format": "tsv",
+                }
+            ]
+        },
+    )
+    sent_dictionary = {
+        "source_lang": "EN",
+        "target_lang": "DE",
+        "entries": "Hello\tHallo\nA\tB",
+        "entries_format": "tsv",
+    }
+    client = make_deepl_client()
+    dictionary = client.get_multilingual_glossary_dictionary_entries(
+        "g-1", "EN", "DE"
+    )
+
+    if method == "create":
+        mocked.post(
+            url("v3/glossaries"),
+            json=GLOSSARY_JSON,
+            match=json_request(
+                {"name": "copy", "dictionaries": [sent_dictionary]}
+            ),
+        )
+        client.create_multilingual_glossary("copy", [dictionary])
+    elif method == "update":
+        mocked.patch(
+            url("v3/glossaries/g-2"),
+            json=GLOSSARY_JSON,
+            match=json_request({"dictionaries": [sent_dictionary]}),
+        )
+        client.update_multilingual_glossary_dictionary("g-2", dictionary)
+    else:
+        mocked.put(
+            url("v3/glossaries/g-2/dictionaries"),
+            json=DICTIONARY_JSON,
+            match=json_request(sent_dictionary),
+        )
+        client.replace_multilingual_glossary_dictionary("g-2", dictionary)
+
+
+def test_sends_tsv_string_entries_as_they_are(mocked):
+    mocked.patch(
+        url("v3/glossaries/g-1"),
+        json=GLOSSARY_JSON,
+        match=json_request(
+            {
+                "dictionaries": [
+                    {
+                        "source_lang": "EN",
+                        "target_lang": "DE",
+                        "entries": "Hello\tHallo",
+                        "entries_format": "tsv",
+                    }
+                ]
+            }
+        ),
+    )
+
+    make_deepl_client().update_multilingual_glossary_dictionary(
+        "g-1",
+        MultilingualGlossaryDictionaryEntries(
+            "EN", "DE", "Hello\tHallo"  # type: ignore[arg-type]
+        ),
+    )
 
 
 def test_raises_not_found_when_entries_response_has_no_dictionary(mocked):

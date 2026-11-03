@@ -524,10 +524,13 @@ Functions to get, list, and delete stored glossaries are also provided:
 - `delete_multilingual_glossary()` takes a glossary ID or `MultilingualGlossaryInfo` 
   object and deletes the stored glossary from the server, or raises an 
   exception if no such glossary is found.
-- `delete_multilingual_glossary_dictionary()` takes a glossary ID or `GlossaryInfo` object to 
-  identify the glossary. Additionally takes in a source and target language or a 
-  `MultilingualGlossaryDictionaryInfo` object and deletes the stored dictionary
-   from the server, or raises an exception if no such glossary dictionary is found.
+- `delete_multilingual_glossary_dictionary()` takes a glossary ID or
+  `MultilingualGlossaryInfo` object to identify the glossary, followed by the
+  source and target language of the dictionary, and deletes the stored
+  dictionary from the server, or raises an exception if no such glossary
+  dictionary is found. Instead of the languages, you can pass a
+  `MultilingualGlossaryDictionaryInfo` object as the keyword argument
+  `dictionary`.
 
 ```python
 # Retrieve a stored glossary using the ID
@@ -535,7 +538,11 @@ glossary_id = "559192ed-8e23-..."
 my_glossary = deepl_client.get_multilingual_glossary(glossary_id)
 
 # Delete a glossary dictionary from a stored glossary
-deepl_client.delete_multilingual_glossary_dictionary(my_glossary, my_glossary.dictionaries[0])
+deepl_client.delete_multilingual_glossary_dictionary(my_glossary, "en", "de")
+# or, with a dictionary object
+deepl_client.delete_multilingual_glossary_dictionary(
+    my_glossary, dictionary=my_glossary.dictionaries[0]
+)
 
 # Find and delete glossaries named 'Old glossary'
 glossaries = deepl_client.list_multilingual_glossaries()
@@ -553,16 +560,16 @@ To list the entries of one dictionary within a stored glossary, use
 `get_multilingual_glossary_dictionary_entries()` providing either the
 `MultilingualGlossaryInfo` object or glossary ID, and the source and target
 language. It returns a `MultilingualGlossaryDictionaryEntries` object whose
-`entries` is the TSV string the API returns, and raises a
+`entries` is a dictionary of source-target terms, and raises a
 `GlossaryNotFoundException` if the glossary has no dictionary for that language
-pair. Use `deepl.util.convert_tsv_to_dict()` to get a dictionary of
-source-target terms:
+pair. The returned object can be passed back to the functions that create,
+update or replace glossaries and dictionaries:
 
 ```python
 dictionary = deepl_client.get_multilingual_glossary_dictionary_entries(
     my_glossary, "EN", "DE"
 )
-print(deepl.util.convert_tsv_to_dict(dictionary.entries))  # "{'artist': 'Maler', 'prize': 'Gewinn'}"
+print(dictionary.entries)  # "{'artist': 'Maler', 'prize': 'Gewinn'}"
 ```
 
 #### Editing a glossary
@@ -617,7 +624,7 @@ updated_glossary = deepl_client.update_multilingual_glossary_dictionary(
 )
 
 dictionary = deepl_client.get_multilingual_glossary_dictionary_entries(my_glossary, "EN", "DE")
-print(deepl.util.convert_tsv_to_dict(dictionary.entries))  # "{'artist': 'Maler', 'hello': 'hallo', 'prize': 'Gewinn'}"
+print(dictionary.entries)  # "{'artist': 'Maler', 'hello': 'hallo', 'prize': 'Gewinn'}"
 
 # Update a glossary dictionary from CSV
 # Open the CSV file assuming UTF-8 encoding. If your file contains a BOM,
@@ -638,7 +645,7 @@ updated_glossary = deepl_client.replace_multilingual_glossary_dictionary(
   my_glossary,
   glossary_dict)
 dictionary = deepl_client.get_multilingual_glossary_dictionary_entries(my_glossary, "EN", "DE")
-print(deepl.util.convert_tsv_to_dict(dictionary.entries))  # "{'goodbye': 'Auf Wiedersehen'}"
+print(dictionary.entries)  # "{'goodbye': 'Auf Wiedersehen'}"
 
 # Replace a glossary dictionary from CSV
 # Open the CSV file assuming UTF-8 encoding. If your file contains a BOM,
@@ -756,27 +763,26 @@ To check account usage, use the `get_usage()` function.
 
 The returned `Usage` object contains three usage subtypes: `character`,
 `document` and `team_document`. Depending on your account type, some usage
-subtypes may be invalid; this can be checked using the `valid` property. For API
-accounts:
+subtypes are not returned; these properties are then `None`. For API accounts,
+`usage.character` is set and `usage.document` and `usage.team_document` are
+`None`.
 
-- `usage.character.valid` is `True`,
-- `usage.document.valid` and `usage.team_document.valid` are `False`.
-
-Each usage subtype (if valid) has `count` and `limit` properties giving the
-amount used and maximum amount respectively, and the `limit_reached` property
-that checks if the usage has reached the limit. The top level `Usage` object has
-the `any_limit_reached` property to check the `character`, `document` and
-`team_document` subtypes. It does not consider the API Pro subtypes described
-below; check `limit_reached` on those directly.
+Each usage subtype has `count` and `limit` properties giving the amount used
+and maximum amount respectively, and the `limit_reached` property that checks
+if the usage has reached the limit. The top level `Usage` object has the
+`any_limit_reached` property to check the `character`, `document`,
+`team_document` and `api_key_character` subtypes that are present. It does not
+consider the speech subtypes described below; check `limit_reached` on those
+directly.
 
 ```python
 usage = deepl_client.get_usage()
 if usage.any_limit_reached:
     print('Translation limit reached.')
-if usage.character.valid:
+if usage.character:
     print(
         f"Character usage: {usage.character.count} of {usage.character.limit}")
-if usage.document.valid:
+if usage.document:
     print(f"Document usage: {usage.document.count} of {usage.document.limit}")
 ```
 
@@ -798,8 +804,9 @@ the response does not contain them, these properties are `None`:
 usage = deepl_client.get_usage()
 if usage.start_time and usage.end_time:
     print(f"Billing period: {usage.start_time} to {usage.end_time}")
-print(f"Account characters: {usage.character.count} of {usage.character.limit}")
-if usage.api_key_character and usage.api_key_character.valid:
+if usage.character:
+    print(f"Account characters: {usage.character.count} of {usage.character.limit}")
+if usage.api_key_character:
     print(
         f"API key characters: {usage.api_key_character.count} of "
         f"{usage.api_key_character.limit}"
@@ -931,8 +938,9 @@ of items per page), and `detailed`. When `True`, the response includes
 (default), these fields are omitted for faster responses. `configured_rules` is
 returned as the API sends it: a dict mapping category names (such as
 `"numbers"`) to dicts of rule names and values, the same shape that
-`create_style_rule()` and `update_style_rule_configured_rules()` take. It is
-`None` when the response omits it.
+`create_style_rule()` and `update_style_rule_configured_rules()` take.
+`configured_rules` and `custom_instructions` are `None` when the response omits
+them; an empty dict or list means the style rule has none.
 
 ```python
 # Get a single style rule by ID
