@@ -24,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `None`, and no longer accept `None`. Clients no longer read any
   module-level setting; pass the options to every client that needs other
   values.
-
 - `DeepLClient` no longer extends `Translator`; it extends no public class.
   All functions of `Translator` are now defined on `DeepLClient` with the same
   arguments and behaviour. Code that checks `isinstance(client,
@@ -67,8 +66,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the `input_file` keyword of `upload_translation_memory_file()`; use
   `content`.
 - Removed the `style` keyword of `rephrase_text()`; use `writing_style`.
-- Removed the `skip_language_check` argument of `DeepLClient()`, and the `skip_cache` argument of `get_source_languages()`
-  and `get_target_languages()`. Both had no effect; delete them from calls.
+- Removed the `skip_language_check` argument of `DeepLClient()`, and the
+  `skip_cache` argument of `get_source_languages()` and
+  `get_target_languages()`. Both had no effect; delete them from calls.
 - Removed `auth_key_is_free_account()`; use `is_free_account_auth_key()`,
   which also ignores leading and trailing whitespace of the key.
 - Removed `Usage.Detail.limit_exceeded` and `Usage.any_limit_exceeded`; use
