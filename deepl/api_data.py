@@ -171,15 +171,13 @@ class DocumentStatus:
 class Usage:
     """Holds the result of a usage request.
 
-    The character, document and team_document properties provide details about
-    each corresponding usage type, or None if the response does not contain
-    that usage type. These properties allow each usage type to be checked
-    individually.
+    The character property provides the account's character usage, or None
+    if the response does not contain it.
     For API Pro accounts, api_key_character, speech_to_text_minutes,
     speech_to_speech_minutes, products, start_time and end_time provide
     further details; for other accounts they are None.
-    The any_limit_reached property checks if for any character or document
-    usage type the amount used has reached the allowed amount.
+    The any_character_limit_reached property checks the account's and this
+    API key's character limits; the speech minutes have their own details.
     """
 
     class Detail:
@@ -267,8 +265,6 @@ class Usage:
 
     def __init__(self, json: Optional[dict]):
         self._character = self._optional_detail(json, "character")
-        self._document = self._optional_detail(json, "document")
-        self._team_document = self._optional_detail(json, "team_document")
         self._api_key_character = self._optional_detail(
             json, "api_key_character"
         )
@@ -308,20 +304,13 @@ class Usage:
         return Usage.Detail(count, limit)
 
     @property
-    def any_limit_reached(self) -> bool:
-        """True if for the character, document, team document or API key
-        character usage, the amount used is greater than or equal to the
-        amount allowed, otherwise False. Usage types absent from the response
-        are skipped. The speech minutes are not considered; check their
-        limit_reached directly."""
+    def any_character_limit_reached(self) -> bool:
+        """True if the account's character limit or this API key's character
+        limit is reached; the speech minutes have their own details. A usage
+        type absent from the response counts as not reached."""
         return any(
             detail is not None and detail.limit_reached
-            for detail in (
-                self.character,
-                self.document,
-                self.team_document,
-                self.api_key_character,
-            )
+            for detail in (self.character, self.api_key_character)
         )
 
     @property
@@ -330,18 +319,6 @@ class Usage:
         translate_text (/translate) function, or None if the response does
         not contain them."""
         return self._character
-
-    @property
-    def document(self) -> Optional[Detail]:
-        """Returns usage details for documents, or None if the response does
-        not contain them."""
-        return self._document
-
-    @property
-    def team_document(self) -> Optional[Detail]:
-        """Returns usage details for documents shared among your team, or None
-        if the response does not contain them."""
-        return self._team_document
 
     @property
     def api_key_character(self) -> Optional[Detail]:
@@ -385,8 +362,6 @@ class Usage:
     def __str__(self) -> str:
         details: List[Tuple[str, Optional[Usage.Detail]]] = [
             ("Characters", self.character),
-            ("Documents", self.document),
-            ("Team documents", self.team_document),
         ]
         return "Usage this billing period:\n" + "\n".join(
             [

@@ -761,29 +761,25 @@ deepl_client.delete_spoken_terms(spoken_terms)
 
 To check account usage, use the `get_usage()` function.
 
-The returned `Usage` object contains three usage subtypes: `character`,
-`document` and `team_document`. Depending on your account type, some usage
-subtypes are not returned; these properties are then `None`. For API accounts,
-`usage.character` is set and `usage.document` and `usage.team_document` are
-`None`.
+The returned `Usage` object has the `character` usage subtype, the account's
+character usage. If the response does not contain it, the property is `None`.
 
 Each usage subtype has `count` and `limit` properties giving the amount used
 and maximum amount respectively, and the `limit_reached` property that checks
 if the usage has reached the limit. The top level `Usage` object has the
-`any_limit_reached` property to check the `character`, `document`,
-`team_document` and `api_key_character` subtypes that are present. It does not
-consider the speech subtypes described below; check `limit_reached` on those
-directly.
+`any_character_limit_reached` property: `True` if the account's character
+limit or this API key's character limit (`api_key_character`, below) is
+reached. A subtype absent from the response counts as not reached. The speech
+minutes have their own subtypes, described below; check `limit_reached` on
+those directly.
 
 ```python
 usage = deepl_client.get_usage()
-if usage.any_limit_reached:
-    print('Translation limit reached.')
+if usage.any_character_limit_reached:
+    print('Character limit reached.')
 if usage.character:
     print(
         f"Character usage: {usage.character.count} of {usage.character.limit}")
-if usage.document:
-    print(f"Document usage: {usage.document.count} of {usage.document.limit}")
 ```
 
 API Pro accounts also receive the following; for other accounts, and whenever

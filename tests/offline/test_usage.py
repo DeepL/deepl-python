@@ -25,30 +25,14 @@ def test_sends_get_to_usage(mocked):
 def test_parses_usage_counts_and_limits(mocked):
     mocked.get(
         url("v2/usage"),
-        json={
-            "character_count": 20,
-            "character_limit": 20,
-            "document_count": 0,
-            "document_limit": 1,
-            "team_document_count": "3",
-            "team_document_limit": 5,
-        },
+        json={"character_count": "20", "character_limit": 20},
     )
 
     usage = make_deepl_client().get_usage()
 
     assert usage.character.count == 20
-    assert usage.team_document.count == 3
     assert usage.character.limit_reached
-    assert not usage.document.limit_reached
-    assert not usage.team_document.limit_reached
-    assert usage.any_limit_reached
-    assert (
-        str(usage) == "Usage this billing period:\n"
-        "Characters: 20 of 20\n"
-        "Documents: 0 of 1\n"
-        "Team documents: 3 of 5"
-    )
+    assert str(usage) == "Usage this billing period:\nCharacters: 20 of 20"
 
 
 def test_parses_absent_usage_details_as_none(mocked):
@@ -57,28 +41,74 @@ def test_parses_absent_usage_details_as_none(mocked):
     usage = make_deepl_client().get_usage()
 
     assert usage.character is None
-    assert usage.document is None
-    assert usage.team_document is None
-    assert not usage.any_limit_reached
+    assert not usage.any_character_limit_reached
     assert str(usage) == "Usage this billing period:\n"
 
 
-def test_any_limit_reached_considers_api_key_character_limit(mocked):
+@pytest.mark.parametrize(
+    "character_count,api_key_character_count",
+    [(1000, 10), (10, 100)],
+    ids=["account", "api_key"],
+)
+def test_any_character_limit_reached_checks_account_and_api_key(
+    mocked, character_count, api_key_character_count
+):
     mocked.get(
         url("v2/usage"),
         json={
-            "character_count": 10,
+            "character_count": character_count,
             "character_limit": 1000,
-            "api_key_character_count": 100,
+            "api_key_character_count": api_key_character_count,
             "api_key_character_limit": 100,
         },
     )
 
     usage = make_deepl_client().get_usage()
 
-    assert not usage.character.limit_reached
-    assert usage.api_key_character.limit_reached
-    assert usage.any_limit_reached
+    assert usage.any_character_limit_reached
+
+
+def test_any_character_limit_reached_ignores_speech_minutes(mocked):
+    mocked.get(
+        url("v2/usage"),
+        json={
+            "character_count": 10,
+            "character_limit": 1000,
+            "api_key_character_count": 10,
+            "api_key_character_limit": 100,
+            "speech_to_text_minutes_count": 600,
+            "speech_to_text_minutes_limit": 600,
+            "speech_to_speech_minutes_count": 600,
+            "speech_to_speech_minutes_limit": 600,
+        },
+    )
+
+    usage = make_deepl_client().get_usage()
+
+    assert usage.speech_to_text_minutes.limit_reached
+    assert usage.speech_to_speech_minutes.limit_reached
+    assert not usage.any_character_limit_reached
+
+
+def test_ignores_document_usage_fields(mocked):
+    mocked.get(
+        url("v2/usage"),
+        json={
+            "character_count": 20,
+            "character_limit": 500000,
+            "document_count": 1,
+            "document_limit": 1,
+            "team_document_count": 5,
+            "team_document_limit": 5,
+        },
+    )
+
+    usage = make_deepl_client().get_usage()
+
+    assert not hasattr(usage, "document")
+    assert not hasattr(usage, "team_document")
+    assert not usage.any_character_limit_reached
+    assert str(usage) == "Usage this billing period:\nCharacters: 20 of 500000"
 
 
 def test_parses_api_pro_usage(mocked):
@@ -146,7 +176,7 @@ def test_parses_api_pro_usage(mocked):
         ("write", "characters", 0, 5643),
         ("speechToText", "minutes", 30, 45),
     ]
-    assert not usage.any_limit_reached
+    assert not usage.any_character_limit_reached
     assert (
         str(usage)
         == "Usage this billing period:\nCharacters: 180118 of 1250000"

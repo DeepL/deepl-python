@@ -98,6 +98,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   TSV string, which is sent as it is; they no longer raise `AttributeError`.
 
 ### Removed
+- Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,
+  which is `True` if `character` or `api_key_character` has reached its limit.
+  Like before, the speech minutes are not considered.
+- Removed `Usage.document` and `Usage.team_document`; the API no longer
+  returns document usage. `document_*` and `team_document_*` fields in a usage
+  response are ignored.
 - Removed `Usage.Detail.valid`. Absent usage types are now `None`; check
   `detail is not None` instead.
 - Removed the `ConfiguredRules` class of `deepl.api_data`.
@@ -144,7 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `auth_key_is_free_account()`; use `is_free_account_auth_key()`,
   which also ignores leading and trailing whitespace of the key.
 - Removed `Usage.Detail.limit_exceeded` and `Usage.any_limit_exceeded`; use
-  `limit_reached` and `any_limit_reached`.
+  `limit_reached` and `any_character_limit_reached`.
 - Removed `SplitSentences.DEFAULT`; use `SplitSentences.ALL`, which it was an
   alias of.
 - Removed `DocumentTranslationException.document_request`; use
