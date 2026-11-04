@@ -471,3 +471,16 @@ def test_raises_for_invalid_text(text, error, match):
 def test_raises_for_invalid_options(kwargs, match):
     with pytest.raises(ValueError, match=match):
         make_deepl_client().translate_text("hello", target_lang="DE", **kwargs)
+
+
+@pytest.mark.parametrize(
+    "source_lang, target_lang, match",
+    [("", "DE", "source_lang"), (None, "", "target_lang")],
+)
+def test_raises_for_empty_language_code(
+    no_retries, source_lang, target_lang, match
+):
+    with pytest.raises(ValueError, match=f"{match} must not be empty"):
+        make_deepl_client().translate_text(
+            "a", source_lang=source_lang, target_lang=target_lang
+        )

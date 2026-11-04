@@ -844,3 +844,19 @@ def test_failed_upload_is_not_marked_retryable_in_document_exception(mocked):
 
     assert exc_info.value.http_status_code == 500
     assert exc_info.value.should_retry is False
+
+
+@pytest.mark.parametrize(
+    "source_lang, target_lang, match",
+    [("", "DE", "source_lang"), (None, "", "target_lang")],
+)
+def test_upload_raises_for_empty_language_code(
+    no_retries, source_lang, target_lang, match
+):
+    with pytest.raises(ValueError, match=f"{match} must not be empty"):
+        make_deepl_client().translate_document_upload(
+            io.BytesIO(b"x"),
+            filename="a.txt",
+            source_lang=source_lang,
+            target_lang=target_lang,
+        )

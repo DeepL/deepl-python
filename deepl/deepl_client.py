@@ -238,8 +238,12 @@ class DeepLClient(BaseClient):
     ) -> dict:
         # target_lang and source_lang are case insensitive
         target_lang = str(target_lang).upper()
+        if not target_lang:
+            raise ValueError("target_lang must not be empty")
         if source_lang is not None:
             source_lang = str(source_lang).upper()
+            if not source_lang:
+                raise ValueError("source_lang must not be empty")
 
         if (
             glossary_requires_source_lang
