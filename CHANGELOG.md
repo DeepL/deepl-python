@@ -96,6 +96,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `replace_multilingual_glossary_dictionary()` accept a dictionary read from
   the API, and a `MultilingualGlossaryDictionaryEntries` whose `entries` is a
   TSV string, which is sent as it is; they no longer raise `AttributeError`.
+- **Breaking:** a connection that breaks off while a streamed response body
+  is read (`translate_document_download()`,
+  `download_translation_memory_export()` and the error body of a streamed
+  request) raises `ConnectionException` with `should_retry` `True` instead of
+  `False`. The download is still not retried automatically, because part of
+  the file may already be written to `output_file`.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

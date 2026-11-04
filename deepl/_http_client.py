@@ -287,10 +287,10 @@ def iter_response_content(
 def _body_read_exception(
     e: requests.exceptions.RequestException,
 ) -> ConnectionException:
-    # Not retried; should_retry False until the next major version.
+    # Not retried automatically: part of the body may already be consumed.
     return ConnectionException(
         f"Connection failed while reading response: {e}",
-        should_retry=False,
+        should_retry=True,
     )
 
 

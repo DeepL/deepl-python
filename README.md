@@ -1629,6 +1629,12 @@ deepl_client = deepl.DeepLClient(..., max_retries=3, timeout_s=30.0)
 disables retries), and `timeout_s` is the minimum timeout in seconds for each
 attempt. Both options are also accepted by `deepl.DeepLAdminClient`.
 
+A connection that breaks off while `translate_document_download()` or
+`download_translation_memory_export()` writes the file is not retried
+automatically, because part of the file may already be written. The
+`ConnectionException` has `should_retry` set to `True`; repeat the download
+with a fresh output file.
+
 `DeepLAdminClient.create_developer_key()` is only retried when the request was
 not sent: after an HTTP 429 status code, a DNS resolution failure, a refused
 connection or a connect timeout. A retry after any other failure could create
