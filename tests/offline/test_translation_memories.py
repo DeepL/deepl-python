@@ -16,7 +16,12 @@ from deepl.api_data import (
 )
 
 from ..fixtures import example_tmx
-from .client import StreamedBody, make_deepl_client, url
+from .client import (
+    StreamedBody,
+    failures_after_sending,
+    make_deepl_client,
+    url,
+)
 from .matchers import bodyless_request, json_request, storage_request
 
 NOW = datetime.datetime(2021, 8, 3, tzinfo=datetime.timezone.utc)
@@ -899,3 +904,23 @@ def test_raises_deepl_exception_for_malformed_response(
 
     with pytest.raises(deepl.DeepLException, match="Unexpected response"):
         call(make_deepl_client())
+
+
+@pytest.mark.parametrize("failure", failures_after_sending())
+def test_import_is_not_retried_after_possible_processing(mocked, failure):
+    mocked.post(url("v3/translation_memories/import"), **failure)
+
+    with pytest.raises(deepl.DeepLException):
+        make_deepl_client().create_translation_memory_import("a.tmx", 10)
+
+    assert len(mocked.calls) == 1
+
+
+@pytest.mark.parametrize("failure", failures_after_sending())
+def test_export_is_not_retried_after_possible_processing(mocked, failure):
+    mocked.post(url("v3/translation_memories/tm-id/export"), **failure)
+
+    with pytest.raises(deepl.DeepLException):
+        make_deepl_client().create_translation_memory_export("tm-id")
+
+    assert len(mocked.calls) == 1

@@ -6,6 +6,7 @@ import io
 from typing import List, Optional
 
 import deepl
+import requests  # type: ignore
 
 SERVER_URL = "https://api.deepl.com"
 AUTH_KEY = "k"
@@ -47,3 +48,13 @@ class StreamedBody(io.BufferedReader):
 
     def read1(self, size=-1):
         return self.read(size)
+
+
+def failures_after_sending():
+    """Failures after which the request may have been processed: a create
+    must not retry them."""
+    return [
+        {"status": 500},
+        {"body": requests.exceptions.ReadTimeout("slow")},
+        {"body": StreamedBody(b"{}", fail_after=0)},
+    ]

@@ -1635,10 +1635,22 @@ automatically, because part of the file may already be written. The
 `ConnectionException` has `should_retry` set to `True`; repeat the download
 with a fresh output file.
 
-`DeepLAdminClient.create_developer_key()` is only retried when the request was
-not sent: after an HTTP 429 status code, a DNS resolution failure, a refused
+Functions that create a resource are only retried when the request was not
+sent: after an HTTP 429 status code, a DNS resolution failure, a refused
 connection or a connect timeout. A retry after any other failure could create
-a second key.
+the resource twice. These are `create_glossary()`,
+`create_glossary_from_csv()`, `create_multilingual_glossary()`,
+`create_multilingual_glossary_from_csv()`, `create_spoken_terms()`,
+`create_style_rule()`, `create_style_rule_custom_instruction()`,
+`create_style_profile()`, `create_translation_memory_import()`,
+`create_translation_memory_export()`, the document upload of
+`translate_document_upload()`, `translate_document()` and
+`translate_document_from_filepath()`, the job creation of
+`import_translation_memory_from_filepath()` and
+`export_translation_memory_to_filepath()`, and
+`DeepLAdminClient.create_developer_key()`. All other requests, including
+`translate_text()`, `rephrase_text()` and `correct_text()`, are retried after
+every transient failure listed above.
 
 #### Anonymous platform information
 

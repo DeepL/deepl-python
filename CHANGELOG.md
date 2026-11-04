@@ -102,6 +102,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   request) raises `ConnectionException` with `should_retry` `True` instead of
   `False`. The download is still not retried automatically, because part of
   the file may already be written to `output_file`.
+- **Breaking:** functions that create a resource are only retried when the
+  request was not sent: after HTTP 429, a DNS resolution failure, a refused
+  connection or a connect timeout. They are no longer retried after HTTP 5xx,
+  a read timeout, a reset connection or a response body cut off mid-read,
+  which could create the resource twice. This applies to
+  `create_glossary()`, `create_glossary_from_csv()`,
+  `create_multilingual_glossary()`, `create_multilingual_glossary_from_csv()`,
+  `create_spoken_terms()`, `create_style_rule()`,
+  `create_style_rule_custom_instruction()`, `create_style_profile()`,
+  `create_translation_memory_import()`, `create_translation_memory_export()`,
+  the document upload of `translate_document_upload()`,
+  `translate_document()` and `translate_document_from_filepath()`, and the
+  job creation of `import_translation_memory_from_filepath()` and
+  `export_translation_memory_to_filepath()`. The error raised after the first
+  failure keeps its `should_retry` value, so callers can retry themselves
+  where a duplicate is acceptable.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

@@ -12,7 +12,7 @@ from deepl.api_data import (
     TranslationMemoryInfo,
 )
 
-from .client import make_deepl_client, url
+from .client import failures_after_sending, make_deepl_client, url
 from .matchers import bodyless_request, json_request
 
 PROFILE_ID = "5f1c2b7e-3a4d-4c8b-9e6f-0d2a7b3c9e14"
@@ -379,3 +379,13 @@ def test_raises_for_a_non_object_body(mocked, method, path, call, body):
 
     with pytest.raises(deepl.DeepLException):
         call(make_deepl_client())
+
+
+@pytest.mark.parametrize("failure", failures_after_sending())
+def test_create_is_not_retried_after_possible_processing(mocked, failure):
+    mocked.post(url("v3/style_profiles"), **failure)
+
+    with pytest.raises(deepl.DeepLException):
+        make_deepl_client().create_style_profile("profile")
+
+    assert len(mocked.calls) == 1

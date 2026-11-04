@@ -372,7 +372,7 @@ class DeepLClient(BaseClient):
         }
 
         status, content, json = self._api_call(
-            "v2/glossaries", json=request_data
+            "v2/glossaries", json=request_data, retry_only_unprocessed=True
         )
         self._raise_for_status(status, content, json, glossary=True)
         return GlossaryInfo.from_json(json)
@@ -611,6 +611,11 @@ class DeepLClient(BaseClient):
         """Upload document at given input path, translate it into the target
         language, and download result to given output path.
 
+        The upload request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could translate
+        the document twice.
+
         :param input_path: Path to document to be translated.
         :param output_path: Path to store translated document.
         :param source_lang: (Optional) Language code of input document, for
@@ -728,6 +733,11 @@ class DeepLClient(BaseClient):
         """Upload document, translate it into the target language, and download
         result.
 
+        The upload request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could translate
+        the document twice.
+
         :param input_document: Document to translate as a file-like object. It
             is recommended to open files in binary mode.
         :param output_document: File-like object to receive translated
@@ -832,6 +842,11 @@ class DeepLClient(BaseClient):
         """Upload document to be translated and return handle associated with
         request.
 
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could translate
+        the document twice.
+
         :param input_document: Document to translate as a file-like object, or
             string or bytes containing file content.
         :param source_lang: (Optional) Language code of input document, for
@@ -916,7 +931,10 @@ class DeepLClient(BaseClient):
         util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
-            "v2/document", data=request_data, files=files
+            "v2/document",
+            data=request_data,
+            files=files,
+            retry_only_unprocessed=True,
         )
         self._raise_for_status(status, content, json)
 
@@ -1204,6 +1222,11 @@ class DeepLClient(BaseClient):
         languages, containing the entries in dictionary. The glossary may be
         used in the translate_text functions.
 
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second glossary.
+
         Only certain language pairs are supported. The available language pairs
         can be queried using get_glossary_languages(). Glossaries are not
         regional specific: a glossary with target language EN may be used to
@@ -1246,6 +1269,11 @@ class DeepLClient(BaseClient):
         """Creates a glossary with given name for the source and target
         languages, containing the entries in the given CSV data.
         The glossary may be used in the translate_text functions.
+
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second glossary.
 
         Only certain language pairs are supported. The available language pairs
         can be queried using get_glossary_languages(). Glossaries are not
@@ -1482,6 +1510,11 @@ class DeepLClient(BaseClient):
         dictionaries, each with their own language pair and entries. The
         glossary may be used in the translate_text functions.
 
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second glossary.
+
         The available glossary language pairs can be queried using
         get_glossary_languages(). Glossaries apply to languages, not specific
         language variants. A glossary for a language applies to any variant
@@ -1526,6 +1559,11 @@ class DeepLClient(BaseClient):
         """Creates a glossary with given name for the source and target
         languages, containing the entries in the given CSV data.
         The glossary may be used in the translate_text functions.
+
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second glossary.
 
         The available glossary language pairs can be queried using
         get_glossary_languages(). Glossaries apply to languages, not specific
@@ -1582,7 +1620,7 @@ class DeepLClient(BaseClient):
         util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
-            "v3/glossaries", json=request_data
+            "v3/glossaries", json=request_data, retry_only_unprocessed=True
         )
         self._raise_for_status(status, content, json, glossary=True)
         return MultilingualGlossaryInfo.from_json(json)
@@ -2089,6 +2127,11 @@ class DeepLClient(BaseClient):
         lists, one per language. Spoken terms improve the transcription of
         the given terms.
 
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second collection.
+
         :param name: User-defined name to attach to the collection.
         :param term_lists: List of SpokenTermsEntries, each containing the
             terms of one language.
@@ -2109,7 +2152,7 @@ class DeepLClient(BaseClient):
         }
         util._add_extra_body_parameters(request_data, extra_body_parameters)
         status, content, json = self._api_call(
-            "v3/spoken-terms", json=request_data
+            "v3/spoken-terms", json=request_data, retry_only_unprocessed=True
         )
         self._raise_for_status(status, content, json)
         return self._parse_spoken_terms_response(SpokenTerms.from_json, json)
@@ -2409,6 +2452,11 @@ class DeepLClient(BaseClient):
     ) -> StyleRuleInfo:
         """Creates a new style rule.
 
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second style rule.
+
         :param name: Name for the style rule.
         :param language: Language code for the style rule.
         :param configured_rules: Optional dict of configured rules.
@@ -2434,6 +2482,7 @@ class DeepLClient(BaseClient):
         status, content, json = self._api_call(
             "v3/style_rules",
             json=request_data,
+            retry_only_unprocessed=True,
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(StyleRuleInfo.from_json, json)
@@ -2538,6 +2587,11 @@ class DeepLClient(BaseClient):
     ) -> CustomInstruction:
         """Creates a custom instruction for a style rule.
 
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second custom instruction.
+
         :param style_rule: Style rule ID string or StyleRuleInfo object.
         :param label: Label for the custom instruction.
         :param prompt: Prompt text for the custom instruction.
@@ -2560,6 +2614,7 @@ class DeepLClient(BaseClient):
         status, content, json = self._api_call(
             f"v3/style_rules/{style_id}/custom_instructions",
             json=request_data,
+            retry_only_unprocessed=True,
         )
         self._raise_for_status(status, content, json)
         return self._parse_style_rule_response(
@@ -2713,6 +2768,11 @@ class DeepLClient(BaseClient):
         component IDs cannot be used, the request fails and no style profile
         is created.
 
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second style profile.
+
         :param name: Name for the style profile.
         :param description: (Optional) Free-text description.
         :param industry: (Optional) Industry the style profile is written for.
@@ -2742,7 +2802,9 @@ class DeepLClient(BaseClient):
             extra_body_parameters=extra_body_parameters,
         )
         status, content, json = self._api_call(
-            "v3/style_profiles", json=request_data
+            "v3/style_profiles",
+            json=request_data,
+            retry_only_unprocessed=True,
         )
         self._raise_for_status(status, content, json)
         return StyleProfile.from_json(json)
@@ -3086,6 +3148,11 @@ class DeepLClient(BaseClient):
     ) -> TranslationMemoryImport:
         """Creates an import job for a new translation memory.
 
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second import job.
+
         The job only declares the file; upload the TMX file itself to the
         returned upload URL with upload_translation_memory_file(), then poll
         get_translation_memory_job() for the outcome. Use
@@ -3124,7 +3191,9 @@ class DeepLClient(BaseClient):
         util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(
-            "v3/translation_memories/import", json=request_data
+            "v3/translation_memories/import",
+            json=request_data,
+            retry_only_unprocessed=True,
         )
         self._raise_for_status(status, content, json)
         return self._parse_translation_memory_response(
@@ -3181,6 +3250,11 @@ class DeepLClient(BaseClient):
     ) -> TranslationMemoryExport:
         """Creates an export job for a translation memory.
 
+        The request is only retried if it was not sent (HTTP 429, a DNS
+        resolution failure, a refused connection or a connect timeout): a retry
+        after a server error, read timeout or lost connection could create a
+        second export job.
+
         Poll get_translation_memory_job() for the download URL of the
         exported TMX file. Use export_translation_memory_to_filepath() to do
         both steps and write the file at once.
@@ -3191,7 +3265,8 @@ class DeepLClient(BaseClient):
         """
         tm_id = self._translation_memory_id(translation_memory)
         status, content, json = self._api_call(
-            f"v3/translation_memories/{tm_id}/export"
+            f"v3/translation_memories/{tm_id}/export",
+            retry_only_unprocessed=True,
         )
         self._raise_for_status(status, content, json)
         # 200 means the API reused a previously completed export, 202 that it
@@ -3324,6 +3399,11 @@ class DeepLClient(BaseClient):
         """Imports a TMX file as a new translation memory: creates the import
         job, uploads the file, and waits for processing to finish.
 
+        The request that creates the import job is only retried if it was not
+        sent (HTTP 429, a DNS resolution failure, a refused connection or a
+        connect timeout): a retry after a server error, read timeout or lost
+        connection could create a second import job.
+
         :param input_path: Path to the TMX file to import.
         :param display_name: (Optional) Name for the resulting translation
             memory, defaults to the file name.
@@ -3383,6 +3463,11 @@ class DeepLClient(BaseClient):
     ) -> TranslationMemoryJob:
         """Exports a translation memory to a TMX file: creates the export job,
         waits for it to finish, and writes the result to output_path.
+
+        The request that creates the export job is only retried if it was not
+        sent (HTTP 429, a DNS resolution failure, a refused connection or a
+        connect timeout): a retry after a server error, read timeout or lost
+        connection could create a second export job.
 
         :param translation_memory: Translation memory ID string or
             TranslationMemoryInfo object.

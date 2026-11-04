@@ -7,7 +7,7 @@ import datetime
 import deepl
 import pytest
 
-from .client import make_deepl_client, url
+from .client import failures_after_sending, make_deepl_client, url
 from .matchers import bodyless_request, json_request
 
 SPOKEN_TERMS_JSON = {
@@ -177,3 +177,15 @@ def test_sends_extra_body_parameters_last(mocked):
         deepl.SpokenTermsEntries("en", ["a"]),
         extra_body_parameters={"lang": "de", "x": None},
     )
+
+
+@pytest.mark.parametrize("failure", failures_after_sending())
+def test_create_is_not_retried_after_possible_processing(mocked, failure):
+    mocked.post(url("v3/spoken-terms"), **failure)
+
+    with pytest.raises(deepl.DeepLException):
+        make_deepl_client().create_spoken_terms(
+            "terms", [deepl.SpokenTermsEntries("en", ["a"])]
+        )
+
+    assert len(mocked.calls) == 1

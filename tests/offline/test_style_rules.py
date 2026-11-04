@@ -8,7 +8,7 @@ import pytest
 from deepl import DeepLException
 from deepl.api_data import CustomInstruction, StyleRuleInfo
 
-from .client import make_deepl_client, url
+from .client import failures_after_sending, make_deepl_client, url
 from .matchers import bodyless_request, json_request
 
 STYLE_RULE_JSON = {
@@ -522,3 +522,27 @@ def test_merges_extra_body_parameters_last(
     mocked.add(method, url(path), json=response, match=json_request(body))
 
     call(make_deepl_client())
+
+
+@pytest.mark.parametrize("failure", failures_after_sending())
+def test_create_is_not_retried_after_possible_processing(mocked, failure):
+    mocked.post(url("v3/style_rules"), **failure)
+
+    with pytest.raises(DeepLException):
+        make_deepl_client().create_style_rule("style", "en")
+
+    assert len(mocked.calls) == 1
+
+
+@pytest.mark.parametrize("failure", failures_after_sending())
+def test_create_custom_instruction_is_not_retried_after_possible_processing(
+    mocked, failure
+):
+    mocked.post(url("v3/style_rules/rule-id/custom_instructions"), **failure)
+
+    with pytest.raises(DeepLException):
+        make_deepl_client().create_style_rule_custom_instruction(
+            "rule-id", "label", "prompt"
+        )
+
+    assert len(mocked.calls) == 1

@@ -7,7 +7,12 @@ import io
 import deepl
 import pytest
 
-from .client import StreamedBody, make_deepl_client, url
+from .client import (
+    StreamedBody,
+    failures_after_sending,
+    make_deepl_client,
+    url,
+)
 from .matchers import json_request, multipart_request
 
 HANDLE = deepl.DocumentHandle("doc-1", "key-1")
@@ -812,3 +817,15 @@ def test_cuts_last_status_poll_sleep_to_timeout(mocked, monkeypatch):
         )
 
     assert sleeps == [5.0, 2.0]
+
+
+@pytest.mark.parametrize("failure", failures_after_sending())
+def test_upload_is_not_retried_after_possible_processing(mocked, failure):
+    mocked.post(url("v2/document"), **failure)
+
+    with pytest.raises(deepl.DeepLException):
+        make_deepl_client().translate_document_upload(
+            b"hello", filename="a.txt", target_lang="DE"
+        )
+
+    assert len(mocked.calls) == 1
