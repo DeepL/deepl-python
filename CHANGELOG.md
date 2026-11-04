@@ -154,6 +154,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `output_path` already exists, instead of overwriting the file.
 - **Breaking:** `download_translation_memory_export()` raises
   `DeepLException` instead of `ValueError` if the job has no download URL.
+- **Breaking:** `create_multilingual_glossary()` raises `ValueError` if
+  `dictionaries` is empty, before any request is sent.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

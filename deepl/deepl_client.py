@@ -1576,11 +1576,13 @@ class DeepLClient(BaseClient):
         :return: MultilingualGlossaryInfo containing information about the
             created glossary.
 
-        :raises ValueError: If the glossary name is empty, or entries are
-            empty or invalid.
+        :raises ValueError: If the glossary name or dictionaries list is
+            empty, or entries are empty or invalid.
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
+        if not dictionaries:
+            raise ValueError("dictionaries must not be empty")
         if any(map(lambda d: not d.entries, dictionaries)):
             raise ValueError("glossary entries must not be empty")
 

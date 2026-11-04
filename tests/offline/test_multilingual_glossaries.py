@@ -118,6 +118,8 @@ def test_raises_when_creating_glossary_with_invalid_input():
 
     with pytest.raises(ValueError, match="name must not be empty"):
         client.create_multilingual_glossary("", [ENTRIES])
+    with pytest.raises(ValueError, match="dictionaries must not be empty"):
+        client.create_multilingual_glossary("glossary", [])
     with pytest.raises(ValueError, match="entries must not be empty"):
         client.create_multilingual_glossary(
             "glossary",
