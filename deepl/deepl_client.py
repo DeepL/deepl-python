@@ -661,15 +661,14 @@ class DeepLClient(BaseClient):
 
         :raises ValueError: If the input file does not exist, before any
             request is sent.
-        :raises DocumentTranslationException: If opening the input or output
-            file fails, or an error occurs during upload, translation or
-            download, or the translation fails. The exception includes the
-            document handle if the document was already uploaded, otherwise
-            the handle is None.
+        :raises DocumentTranslationException: If an argument is invalid
+            (TypeError or ValueError as the cause), the output file already
+            exists, opening the input or output file fails, or an error occurs
+            during upload, translation or download, or the translation fails.
+            The exception includes the document handle if the document was
+            already uploaded, otherwise the handle is None. An existing output
+            file is never overwritten.
         """
-        _check_target_lang_given(
-            "translate_document_from_filepath", target_lang
-        )
         # Determine output_format from output path
         in_ext = pathlib.PurePath(input_path).suffix.lower()
         out_ext = pathlib.PurePath(output_path).suffix.lower()
@@ -677,6 +676,16 @@ class DeepLClient(BaseClient):
 
         if not pathlib.Path(input_path).exists():
             raise ValueError(f"file does not exist: {input_path}")
+        try:
+            _check_target_lang_given(
+                "translate_document_from_filepath", target_lang
+            )
+        except TypeError as e:
+            raise _document_translation_exception(e, None) from e
+        if pathlib.Path(output_path).exists():
+            raise DocumentTranslationException(
+                f"Output file already exists: {output_path}", None
+            )
 
         try:
             in_file = open(input_path, "rb")
@@ -684,7 +693,8 @@ class DeepLClient(BaseClient):
             raise DocumentTranslationException(str(e), None) from e
         with in_file:
             try:
-                out_file = open(output_path, "wb")
+                # "x" fails if the file was created after the check above.
+                out_file = open(output_path, "xb")
             except OSError as e:
                 raise DocumentTranslationException(str(e), None) from e
             with out_file:
@@ -788,14 +798,14 @@ class DeepLClient(BaseClient):
         :return: DocumentStatus when document translation completed, this
             allows the number of billed characters to be queried.
 
-        :raises DocumentTranslationException: If an error occurs during
+        :raises DocumentTranslationException: If an argument is invalid
+            (TypeError or ValueError as the cause), or an error occurs during
             upload, translation or download, or the translation fails. The
             exception includes the document handle if the document was
             already uploaded, otherwise the handle is None.
         """
-        _check_target_lang_given("translate_document", target_lang)
-
         try:
+            _check_target_lang_given("translate_document", target_lang)
             handle = self.translate_document_upload(
                 input_document,
                 target_lang=target_lang,
@@ -812,9 +822,6 @@ class DeepLClient(BaseClient):
                 enable_watermark=enable_watermark,
                 extra_body_parameters=extra_body_parameters,
             )
-        except (TypeError, ValueError):
-            # Invalid arguments, rejected before anything is sent.
-            raise
         except Exception as e:
             raise _document_translation_exception(e, None) from e
 

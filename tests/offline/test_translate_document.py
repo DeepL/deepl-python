@@ -148,13 +148,18 @@ def test_accepts_source_and_target_lang_positionally_from_filepath(
     )
 
 
+def test_upload_raises_when_target_lang_is_missing():
+    with pytest.raises(
+        TypeError,
+        match=r"^translate_document_upload\(\) missing required argument: "
+        r"'target_lang'$",
+    ):
+        make_deepl_client().translate_document_upload(b"x", filename="a.txt")
+
+
 @pytest.mark.parametrize(
     "method, call",
     [
-        (
-            "translate_document_upload",
-            lambda t, tmp: t.translate_document_upload(b"x", filename="a.txt"),
-        ),
         (
             "translate_document",
             lambda t, tmp: t.translate_document(b"x", io.BytesIO(), "EN"),
@@ -167,12 +172,52 @@ def test_accepts_source_and_target_lang_positionally_from_filepath(
         ),
     ],
 )
-def test_raises_when_target_lang_is_missing(method, call, tmp_path):
-    with pytest.raises(
-        TypeError,
-        match=rf"^{method}\(\) missing required argument: 'target_lang'$",
-    ):
+def test_wraps_missing_target_lang_in_document_exception(
+    method, call, tmp_path
+):
+    (tmp_path / "in.txt").write_text("hello")
+
+    with pytest.raises(deepl.DocumentTranslationException) as exc_info:
         call(make_deepl_client(), tmp_path)
+
+    assert exc_info.value.document_handle is None
+    assert isinstance(exc_info.value.__cause__, TypeError)
+    assert str(exc_info.value) == (
+        f"{method}() missing required argument: 'target_lang'"
+    )
+    assert not (tmp_path / "out.txt").exists()
+
+
+def test_wraps_upload_argument_error_in_document_exception(no_retries):
+    with pytest.raises(deepl.DocumentTranslationException) as exc_info:
+        make_deepl_client().translate_document(
+            io.BytesIO(b"x"),
+            io.BytesIO(),
+            target_lang="DE",
+            filename="a.txt",
+            glossary="g",
+            glossary_ids=["h"],
+        )
+
+    assert exc_info.value.document_handle is None
+    assert isinstance(exc_info.value.__cause__, ValueError)
+
+
+def test_raises_before_any_request_when_output_file_exists(tmp_path):
+    input_path = tmp_path / "input.txt"
+    input_path.write_text("hello")
+    output_path = tmp_path / "output.txt"
+    output_path.write_text("keep me")
+
+    with pytest.raises(
+        deepl.DocumentTranslationException, match="already exists"
+    ) as exc_info:
+        make_deepl_client().translate_document_from_filepath(
+            input_path, output_path, target_lang="DE"
+        )
+
+    assert exc_info.value.document_handle is None
+    assert output_path.read_text() == "keep me"
 
 
 def test_sends_all_options_as_form_fields(mocked):
@@ -647,26 +692,6 @@ def test_sends_output_format_from_different_output_extension(mocked, tmp_path):
     )
 
 
-def test_overwrites_existing_output_file(mocked, tmp_path):
-    input_path = tmp_path / "input.txt"
-    input_path.write_text("hello")
-    output_path = tmp_path / "output.txt"
-    output_path.write_text("old content that is longer than the result")
-    reply_with_handle(
-        mocked,
-        {"file": ("input.txt", b"hello")},
-        {"target_lang": "DE"},
-    )
-    reply_with_status(mocked, "done")
-    reply_with_result(mocked, b"new")
-
-    make_deepl_client().translate_document_from_filepath(
-        input_path, output_path, target_lang="DE"
-    )
-
-    assert output_path.read_bytes() == b"new"
-
-
 def test_removes_output_file_when_document_translation_fails(mocked, tmp_path):
     input_path = tmp_path / "input.txt"
     input_path.write_text("hello")
@@ -786,7 +811,7 @@ def test_wraps_os_error_when_file_cannot_be_opened(tmp_path, bad):
     if bad == "input":
         input_path = directory
     else:
-        output_path = directory
+        output_path = tmp_path / "missing" / "output.txt"
 
     with pytest.raises(deepl.DocumentTranslationException) as exc_info:
         make_deepl_client().translate_document_from_filepath(
@@ -794,7 +819,7 @@ def test_wraps_os_error_when_file_cannot_be_opened(tmp_path, bad):
         )
 
     assert exc_info.value.document_handle is None
-    assert isinstance(exc_info.value.__cause__, IsADirectoryError)
+    assert isinstance(exc_info.value.__cause__, OSError)
 
 
 def test_cuts_last_status_poll_sleep_to_timeout(mocked, monkeypatch):

@@ -42,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fails, copying `http_status_code` and `should_retry`; the original
   exception (for example `QuotaExceededException`) is its `__cause__`.
   Catch `DocumentTranslationException` instead of the upload exception.
-  Invalid arguments still raise `ValueError` or `TypeError`.
 - `translate_document_from_filepath()` raises `ValueError` instead of
   `FileNotFoundError` if the input file does not exist, and
   `DocumentTranslationException` with `document_handle` `None` instead of the
@@ -131,6 +130,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `translate_text()`, `translate_document_upload()` and the
   document functions that call it raise `ValueError` if `target_lang` or a
   given `source_lang` is an empty string, before any request is sent.
+- **Breaking:** `translate_document()` and `translate_document_from_filepath()`
+  raise `DocumentTranslationException` with `document_handle` `None` for
+  invalid arguments, including a missing `target_lang`, with the `ValueError`
+  or `TypeError` as its `__cause__`, instead of raising it unwrapped. A missing
+  input file of `translate_document_from_filepath()` still raises
+  `ValueError`.
+- **Breaking:** `translate_document_from_filepath()` raises
+  `DocumentTranslationException` with `document_handle` `None` before any
+  request if `output_path` already exists, instead of overwriting the file.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

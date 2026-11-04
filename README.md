@@ -368,11 +368,13 @@ except deepl.DocumentTranslationException as error:
 `None` if the document was not uploaded. The underlying exception is its
 `__cause__`. `DocumentTranslationException` copies `http_status_code` and
 `should_retry` from the underlying `DeepLException`, if there is one. If the
-translation fails, it carries the API's error message. Invalid arguments raise
-`ValueError` or `TypeError` before any request.
+translation fails, it carries the API's error message. Invalid arguments also
+raise a `DocumentTranslationException` with `document_handle` `None` before any
+request, with the `ValueError` or `TypeError` as its `__cause__`.
 `translate_document_from_filepath()` raises `ValueError` before any request if
 the input file does not exist, and a `DocumentTranslationException` with
-`document_handle` `None` if the input or output file cannot be opened.
+`document_handle` `None` if the output file already exists (it is never
+overwritten) or the input or output file cannot be opened.
 
 `translate_document()` and `translate_document_from_filepath()` are convenience
 functions that wrap multiple API calls: uploading, polling status until the
