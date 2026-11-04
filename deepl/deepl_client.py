@@ -2384,6 +2384,8 @@ class DeepLClient(BaseClient):
     def _spoken_terms_id(spoken_terms: Union[str, SpokenTerms]) -> str:
         if isinstance(spoken_terms, SpokenTerms):
             spoken_terms = spoken_terms.spoken_terms_id
+        if not spoken_terms:
+            raise ValueError("spoken_terms must not be empty")
         return urllib.parse.quote(spoken_terms, safe="")
 
     def get_languages_for_resource(

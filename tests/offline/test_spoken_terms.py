@@ -192,3 +192,30 @@ def test_create_is_not_retried_after_possible_processing(
 
     assert len(mocked.calls) == 1
     assert exc_info.value.should_retry is should_retry
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c, st: c.get_spoken_terms(st),
+        lambda c, st: c.update_spoken_terms(st, name="terms"),
+        lambda c, st: c.delete_spoken_terms(st),
+        lambda c, st: c.get_spoken_terms_entries(st, "en"),
+        lambda c, st: c.replace_spoken_terms_list(
+            st, deepl.SpokenTermsEntries("en", ["a"])
+        ),
+        lambda c, st: c.delete_spoken_terms_list(st, "en"),
+    ],
+)
+@pytest.mark.parametrize(
+    "spoken_terms",
+    [
+        "",
+        deepl.SpokenTerms.from_json(
+            {**SPOKEN_TERMS_JSON, "spoken_terms_id": ""}
+        ),
+    ],
+)
+def test_raises_for_empty_spoken_terms_id(no_retries, call, spoken_terms):
+    with pytest.raises(ValueError, match="spoken_terms must not be empty"):
+        call(make_deepl_client(), spoken_terms)

@@ -156,6 +156,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `DeepLException` instead of `ValueError` if the job has no download URL.
 - **Breaking:** `create_multilingual_glossary()` raises `ValueError` if
   `dictionaries` is empty, before any request is sent.
+- **Breaking:** `get_spoken_terms()`, `update_spoken_terms()`,
+  `delete_spoken_terms()`, `get_spoken_terms_entries()`,
+  `replace_spoken_terms_list()` and `delete_spoken_terms_list()` raise
+  `ValueError` if `spoken_terms` is an empty ID or a `SpokenTerms` without an
+  ID, before any request is sent.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,
