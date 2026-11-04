@@ -342,15 +342,15 @@ def test_raises_when_deleting_dictionary_without_language_pair():
         ),
     ],
 )
-def test_raises_glossary_not_found_when_server_returns_404(
-    mocked, method, path, call
-):
+def test_raises_not_found_when_server_returns_404(mocked, method, path, call):
     mocked.add(method, url(path), status=404, json={"message": "gone"})
 
     with pytest.raises(
-        deepl.GlossaryNotFoundException, match="Glossary not found.*gone"
-    ):
+        deepl.NotFoundException, match="Not found.*gone"
+    ) as exc_info:
         call(make_deepl_client())
+
+    assert type(exc_info.value) is deepl.NotFoundException
 
 
 def test_exports_glossary_types_from_package():
@@ -678,10 +678,12 @@ def test_sends_tsv_string_entries_as_they_are(mocked):
 def test_raises_not_found_when_entries_response_has_no_dictionary(mocked):
     mocked.get(url("v3/glossaries/g-1/entries"), json={"dictionaries": []})
 
-    with pytest.raises(deepl.GlossaryNotFoundException, match="EN->DE"):
+    with pytest.raises(deepl.NotFoundException, match="EN->DE") as exc_info:
         make_deepl_client().get_multilingual_glossary_dictionary_entries(
             "g-1", "EN", "DE"
         )
+
+    assert type(exc_info.value) is deepl.NotFoundException
 
 
 ODD_ID = "a/b?c#d"

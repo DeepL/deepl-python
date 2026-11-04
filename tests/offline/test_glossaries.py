@@ -244,17 +244,15 @@ def test_sends_delete_when_deleting_glossary(mocked, glossary):
         ),
     ],
 )
-def test_raises_glossary_not_found_when_server_returns_404(
-    mocked, method, path, call
-):
+def test_raises_not_found_when_server_returns_404(mocked, method, path, call):
     mocked.add(method, url(path), status=404, json={"message": "gone"})
 
     with pytest.raises(
-        deepl.GlossaryNotFoundException, match="Glossary not found.*gone"
+        deepl.NotFoundException, match="Not found.*gone"
     ) as exc_info:
         call(make_deepl_client())
 
-    assert isinstance(exc_info.value, deepl.NotFoundException)
+    assert type(exc_info.value) is deepl.NotFoundException
     assert exc_info.value.http_status_code == 404
 
 

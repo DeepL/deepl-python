@@ -141,17 +141,6 @@ class TranslationMemoryJobException(DeepLException):
         return f"{super().__str__()}, job ID: {self.job_id}"
 
 
-class GlossaryNotFoundException(NotFoundException):
-    """The specified glossary was not found.
-
-    .. deprecated::
-        Catch NotFoundException instead, which is raised for every HTTP 404.
-        This subclass will be removed in the next major version.
-    """
-
-    pass
-
-
 class DocumentNotReadyException(DeepLException):
     """The translation of the specified document is not yet complete."""
 

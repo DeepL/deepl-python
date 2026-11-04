@@ -563,8 +563,7 @@ To list the entries of one dictionary within a stored glossary, use
 `MultilingualGlossaryInfo` object or glossary ID, and the source and target
 language. It returns a `MultilingualGlossaryDictionaryEntries` object whose
 `entries` is a dictionary of source-target terms, and raises a
-`GlossaryNotFoundException` if the glossary has no dictionary for that language
-pair. The returned object can be passed back to the functions that create,
+`NotFoundException` if the glossary has no dictionary for that language pair. The returned object can be passed back to the functions that create,
 update or replace glossaries and dictionaries:
 
 ```python
@@ -1558,9 +1557,6 @@ If invalid arguments are provided, they may raise the standard exceptions
 
 `should_retry` is `True` for HTTP 429 and 5xx errors, except for functions
 that create a resource (see [retries](#configure-automatic-retries-and-timeouts)).
-`GlossaryNotFoundException`, raised for a 404 on glossary functions, is
-deprecated: it is a subclass of `NotFoundException`, catch that instead. It
-will be removed in the next major version.
 
 ### Configuration
 

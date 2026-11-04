@@ -8,7 +8,6 @@ from .exceptions import (
     AuthorizationException,
     DeepLException,
     DocumentNotReadyException,
-    GlossaryNotFoundException,
     NotFoundException,
     QuotaExceededException,
     TooManyRequestsException,
@@ -164,7 +163,6 @@ class BaseClient:
         status_code: int,
         content: Union[str, requests.Response],
         json: Any,
-        glossary: bool = False,
         downloading_document: bool = False,
     ):
         message = ""
@@ -193,11 +191,6 @@ class BaseClient:
                 http_status_code=status_code,
             )
         elif status_code == http.HTTPStatus.NOT_FOUND:
-            if glossary:
-                raise GlossaryNotFoundException(
-                    f"Glossary not found{message}",
-                    http_status_code=status_code,
-                )
             raise NotFoundException(
                 f"Not found{message}",
                 http_status_code=status_code,

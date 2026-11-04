@@ -220,6 +220,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   status the API returns. A `downloaded` status from the API is kept as the
   string `"downloaded"` and no longer counts as done, so
   `wait_until_translation_memory_job_done()` keeps polling on it.
+- **Breaking:** Removed the deprecated `GlossaryNotFoundException`. Every
+  glossary function raises `NotFoundException` for HTTP 404, with the message
+  `Not found` instead of `Glossary not found`, and
+  `get_multilingual_glossary_dictionary_entries()` raises `NotFoundException`
+  if the glossary has no dictionary for the language pair. Catch
+  `NotFoundException` instead.
 
 ## [1.33.0] - 2026-11-02
 TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.

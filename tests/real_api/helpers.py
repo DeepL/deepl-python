@@ -34,6 +34,6 @@ def get_when_visible(get_resource: Callable[[], T]) -> T:
     for _ in range(9):
         try:
             return get_resource()
-        except deepl.GlossaryNotFoundException:
+        except deepl.NotFoundException:
             time.sleep(1)
     return get_resource()

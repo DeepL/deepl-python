@@ -43,7 +43,7 @@ from deepl.exceptions import (
     ConnectionException,
     DeepLException,
     DocumentTranslationException,
-    GlossaryNotFoundException,
+    NotFoundException,
     TranslationMemoryJobException,
 )
 from deepl import _http_client, util
@@ -396,7 +396,7 @@ class DeepLClient(BaseClient):
         status, content, json = self._api_call(
             "v2/glossaries", json=request_data, retry_only_unprocessed=True
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
         return GlossaryInfo.from_json(json)
 
     def translate_text(
@@ -1353,13 +1353,13 @@ class DeepLClient(BaseClient):
 
         :param glossary_id: ID of glossary to retrieve.
         :return: GlossaryInfo with information about specified glossary.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
+        :raises NotFoundException: If no glossary with given ID is
             found.
         """
         status, content, json = self._api_call(
             f"v2/glossaries/{glossary_id}", method="GET"
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
         return GlossaryInfo.from_json(json)
 
     def list_glossaries(self) -> List[GlossaryInfo]:
@@ -1368,7 +1368,7 @@ class DeepLClient(BaseClient):
         :return: list of GlossaryInfo for all available glossaries.
         """
         status, content, json = self._api_call("v2/glossaries", method="GET")
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
         glossaries = (
             json.get("glossaries", [])
             if (json and isinstance(json, dict))
@@ -1382,7 +1382,7 @@ class DeepLClient(BaseClient):
 
         :param glossary: GlossaryInfo or ID of glossary to retrieve.
         :return: dictionary of glossary entries.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
+        :raises NotFoundException: If no glossary with given ID is
             found.
         :raises DeepLException: If the glossary could not be retrieved
             in the right format.
@@ -1397,7 +1397,7 @@ class DeepLClient(BaseClient):
             method="GET",
             headers={"Accept": "text/tab-separated-values"},
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
         if not isinstance(content, str):
             raise DeepLException(
                 "Could not get the glossary content as a string",
@@ -1409,7 +1409,7 @@ class DeepLClient(BaseClient):
         """Deletes specified glossary.
 
         :param glossary: GlossaryInfo or ID of glossary to delete.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
+        :raises NotFoundException: If no glossary with given ID is
             found.
         """
         if isinstance(glossary, GlossaryInfo):
@@ -1421,7 +1421,7 @@ class DeepLClient(BaseClient):
             f"v2/glossaries/{glossary_id}",
             method="DELETE",
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
 
     def rephrase_text(
         self,
@@ -1664,7 +1664,7 @@ class DeepLClient(BaseClient):
         status, content, json = self._api_call(
             "v3/glossaries", json=request_data, retry_only_unprocessed=True
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
         return MultilingualGlossaryInfo.from_json(json)
 
     def update_multilingual_glossary(
@@ -1693,7 +1693,7 @@ class DeepLClient(BaseClient):
             last and replace fields with the same key.
         :return: MultilingualGlossaryInfo containing information about the
             updated glossary.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
+        :raises NotFoundException: If no glossary with given ID is
             found.
         """
         return self._update_multilingual_glossary(
@@ -1851,7 +1851,7 @@ class DeepLClient(BaseClient):
         status, content, json = self._api_call(
             f"v3/glossaries/{glossary_id}", method="PATCH", json=request_data
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
 
         return MultilingualGlossaryInfo.from_json(json)
 
@@ -1965,7 +1965,7 @@ class DeepLClient(BaseClient):
             method="PUT",
             json=request_data,
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
         return MultilingualGlossaryDictionaryInfo.from_json(json)
 
     def get_multilingual_glossary(
@@ -1978,14 +1978,14 @@ class DeepLClient(BaseClient):
             retrieve.
         :return: MultilingualGlossaryInfo with information about specified
             glossary.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
+        :raises NotFoundException: If no glossary with given ID is
             found.
         """
         status, content, json = self._api_call(
             f"v3/glossaries/{self._multilingual_glossary_id(glossary)}",
             method="GET",
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
         return MultilingualGlossaryInfo.from_json(json)
 
     def list_multilingual_glossaries(self) -> List[MultilingualGlossaryInfo]:
@@ -1996,7 +1996,7 @@ class DeepLClient(BaseClient):
             glossaries.
         """
         status, content, json = self._api_call("v3/glossaries", method="GET")
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
         glossaries = (
             json.get("glossaries", [])
             if (json and isinstance(json, dict))
@@ -2022,15 +2022,15 @@ class DeepLClient(BaseClient):
         :param target_lang: Language of target terms.
         :return: MultilingualGlossaryDictionaryEntries whose entries are a
             dictionary of source-target terms.
-        :raises GlossaryNotFoundException: If the glossary or the dictionary
+        :raises NotFoundException: If the glossary or the dictionary
             is not found.
         """
         dictionaries = self._get_multilingual_glossary_entries(
             glossary, source_lang, target_lang
         ).dictionaries
         if not dictionaries:
-            raise GlossaryNotFoundException(
-                "Glossary not found, message: no dictionary for "
+            raise NotFoundException(
+                "Not found, message: no dictionary for "
                 f"{source_lang}->{target_lang}"
             )
         return dictionaries[0]
@@ -2048,7 +2048,7 @@ class DeepLClient(BaseClient):
             f"v3/glossaries/{glossary_id}/entries?{query}",
             method="GET",
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
         return MultilingualGlossaryDictionaryEntriesResponse.from_json(json)
 
     def delete_multilingual_glossary(
@@ -2057,14 +2057,14 @@ class DeepLClient(BaseClient):
         """Deletes specified glossary.
 
         :param glossary: MultilingualGlossaryInfo or ID of glossary to delete.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
+        :raises NotFoundException: If no glossary with given ID is
             found.
         """
         status, content, json = self._api_call(
             f"v3/glossaries/{self._multilingual_glossary_id(glossary)}",
             method="DELETE",
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
 
     def delete_multilingual_glossary_dictionary(
         self,
@@ -2085,7 +2085,7 @@ class DeepLClient(BaseClient):
             MultilingualGlossaryDictionaryInfo to delete, instead of
             source_lang and target_lang. If given, it takes precedence over
             source_lang and target_lang.
-        :raises GlossaryNotFoundException: If no glossary with given ID is
+        :raises NotFoundException: If no glossary with given ID is
             found.
         :raises ValueError: If neither the dictionary nor both source_lang and
             target_lang were provided.
@@ -2108,7 +2108,7 @@ class DeepLClient(BaseClient):
             f"v3/glossaries/{glossary_id}/dictionaries?{query}",
             method="DELETE",
         )
-        self._raise_for_status(status, content, json, glossary=True)
+        self._raise_for_status(status, content, json)
 
     @staticmethod
     def _multilingual_glossary_id(
