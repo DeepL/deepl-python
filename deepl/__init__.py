@@ -35,6 +35,7 @@ from .exceptions import (  # noqa
     NotFoundException,
     TooManyRequestsException,
     QuotaExceededException,
+    TranslationMemoryJobException,
 )
 
 from .api_data import (  # noqa
@@ -113,6 +114,7 @@ __all__ = [
     "NotFoundException",
     "TooManyRequestsException",
     "QuotaExceededException",
+    "TranslationMemoryJobException",
     "convert_tsv_to_dict",
     "convert_dict_to_tsv",
     "is_free_account_auth_key",

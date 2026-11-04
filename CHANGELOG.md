@@ -139,6 +139,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `translate_document_from_filepath()` raises
   `DocumentTranslationException` with `document_handle` `None` before any
   request if `output_path` already exists, instead of overwriting the file.
+- **Breaking:** `import_translation_memory_from_filepath()` and
+  `export_translation_memory_to_filepath()` raise the new
+  `TranslationMemoryJobException` (a `DeepLException` subclass) for every
+  failure except a missing input file, which still raises `ValueError`. The
+  underlying exception (for example `QuotaExceededException`, or the
+  `DeepLException` of a failed job) is its `__cause__`; it copies
+  `http_status_code` and `should_retry`, and carries `job_id` once the job was
+  created and `job`, the last job status retrieved. Catch
+  `TranslationMemoryJobException` (or `DeepLException`) instead of the
+  underlying exception.
+- **Breaking:** `export_translation_memory_to_filepath()` raises
+  `TranslationMemoryJobException` before creating the export job if
+  `output_path` already exists, instead of overwriting the file.
+- **Breaking:** `download_translation_memory_export()` raises
+  `DeepLException` instead of `ValueError` if the job has no download URL.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

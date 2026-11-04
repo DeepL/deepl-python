@@ -1238,9 +1238,11 @@ the job keeps reporting `awaiting_input` for roughly half a minute after the
 upload before completing. Pass `timeout_s` to bound how long to wait.
 
 The file is read before the import job is created: a missing file raises
-`ValueError`, and a file that cannot be read raises `DeepLException` with the
-`OSError` as its `__cause__`, in both cases without sending a request. A failed
-or expired import job raises `DeepLException` with the API's error message.
+`ValueError` without sending a request. Every other failure raises a
+`TranslationMemoryJobException` (see [below](#translation-memory-file-errors)):
+a file that cannot be read (with the `OSError` as its `__cause__`, before any
+request), a failed upload, and a failed or expired import job (with the API's
+error message).
 
 The three steps are also available separately, for example to upload the file
 yourself or to poll for progress. `create_translation_memory_import()` returns
@@ -1306,12 +1308,35 @@ job = deepl_client.export_translation_memory_to_filepath(
 ```
 
 The output path is checked before the export job is created: if its directory
-does not exist, the path is a directory or it is not writable,
-`DeepLException` is raised without sending a request. If the export job fails
-or expires, `DeepLException` is raised with the API's error message and no
-file is created. If the download or writing the file fails, `DeepLException`
-is raised, with the `OSError` of a write failure as its `__cause__`, and a
-partially written file is removed.
+does not exist, the path already exists or is a directory, or it is not
+writable, `TranslationMemoryJobException` is raised without sending a request.
+An existing file is never overwritten. If the export job fails or expires,
+`TranslationMemoryJobException` is raised with the API's error message and no
+file is created. If the download or writing the file fails,
+`TranslationMemoryJobException` is raised, with the `OSError` of a write
+failure as its `__cause__`, and a partially written file is removed.
+
+##### Translation memory file errors
+
+`import_translation_memory_from_filepath()` and
+`export_translation_memory_to_filepath()` raise a
+`TranslationMemoryJobException` for every failure except a missing input file,
+like `DocumentTranslationException` for documents. The underlying exception is
+its `__cause__`, and it copies `http_status_code` and `should_retry` from an
+underlying `DeepLException`. `job_id` is the ID of the import or export job, or
+`None` if the job was not created; `job` is the last `TranslationMemoryJob`
+status retrieved, or `None` if none was retrieved yet. Use `job_id` to inspect
+the job with `get_translation_memory_job()`.
+
+```python
+try:
+    deepl_client.import_translation_memory_from_filepath("/path/to/memory.tmx")
+except deepl.TranslationMemoryJobException as error:
+    if error.job_id is not None:
+        print(f"Import job {error.job_id} failed: {error}")
+    else:
+        print(f"Failed before creating the import job: {error}")
+```
 
 As with import, the individual steps are available separately. Note that the
 API may reuse a previously completed export of an unchanged translation memory,
@@ -1328,7 +1353,8 @@ with open("/path/to/exported.tmx", "wb") as output_file:
 
 `download_translation_memory_export()` writes in chunks of `chunk_size` bytes
 (default 64 KiB); a network failure while it writes raises
-`ConnectionException`.
+`ConnectionException`. A job without a download URL (not completed, or not an
+export) raises `DeepLException` before any request.
 
 #### Deleting a translation memory
 

@@ -635,10 +635,12 @@ def test_raises_for_unreadable_import_file_before_creating_job(
     mocked, no_retries, tmp_path
 ):
     # A directory exists but cannot be opened as a file.
-    with pytest.raises(deepl.DeepLException) as exc_info:
+    with pytest.raises(deepl.TranslationMemoryJobException) as exc_info:
         make_deepl_client().import_translation_memory_from_filepath(tmp_path)
 
     assert isinstance(exc_info.value.__cause__, OSError)
+    assert exc_info.value.job_id is None
+    assert exc_info.value.job is None
     assert len(mocked.calls) == 0
 
 
@@ -650,11 +652,29 @@ def test_raises_with_error_message_when_import_job_fails(mocked, tmp_path):
     reply_with_job(mocked, "failed", error={"message": "invalid TMX"})
 
     with pytest.raises(
-        deepl.DeepLException,
+        deepl.exceptions.TranslationMemoryJobException,
         match="Error occurred while importing translation memory: "
         "invalid TMX",
-    ):
+    ) as exc_info:
         make_deepl_client().import_translation_memory_from_filepath(path)
+
+    assert exc_info.value.job_id == "job-1"
+    assert exc_info.value.job.status == "failed"
+    assert isinstance(exc_info.value.__cause__, deepl.DeepLException)
+
+
+def test_wraps_failed_import_upload_with_job_id(mocked, no_retries, tmp_path):
+    path = tmp_path / "example.tmx"
+    path.write_text(example_tmx)
+    mocked.post(url("v3/translation_memories/import"), json=IMPORT_JSON)
+    mocked.put(UPLOAD_URL, status=403, body="expired")
+
+    with pytest.raises(deepl.TranslationMemoryJobException) as exc_info:
+        make_deepl_client().import_translation_memory_from_filepath(path)
+
+    assert exc_info.value.job_id == "job-1"
+    assert exc_info.value.job is None
+    assert exc_info.value.http_status_code == 403
 
 
 def test_raises_with_unknown_error_when_failed_job_has_no_message(
@@ -702,13 +722,15 @@ def test_raises_with_error_message_when_export_job_fails(mocked, tmp_path):
     )
 
     with pytest.raises(
-        deepl.DeepLException,
+        deepl.exceptions.TranslationMemoryJobException,
         match="Error occurred while exporting translation memory: broken",
-    ):
+    ) as exc_info:
         make_deepl_client().export_translation_memory_to_filepath(
             "tm-1", tmp_path / "exported.tmx"
         )
 
+    assert exc_info.value.job_id == "job-1"
+    assert exc_info.value.job.status == "failed"
     assert not (tmp_path / "exported.tmx").exists()
 
 
@@ -717,17 +739,24 @@ def test_raises_with_error_message_when_export_job_fails(mocked, tmp_path):
     [
         ("missing/exported.tmx", "Output directory does not exist"),
         (".", "Output path is a directory"),
+        ("out.tmx", "Output path already exists"),
     ],
 )
 def test_raises_for_unusable_export_path_before_creating_job(
     mocked, no_retries, tmp_path, path, message
 ):
-    with pytest.raises(deepl.DeepLException, match=message):
+    (tmp_path / "out.tmx").write_text("keep me")
+
+    with pytest.raises(
+        deepl.exceptions.TranslationMemoryJobException, match=message
+    ) as exc_info:
         make_deepl_client().export_translation_memory_to_filepath(
             "tm-1", tmp_path / path
         )
 
+    assert exc_info.value.job_id is None
     assert len(mocked.calls) == 0
+    assert (tmp_path / "out.tmx").read_text() == "keep me"
 
 
 @pytest.mark.parametrize("operation", ["import", "export"])
@@ -770,11 +799,15 @@ def test_removes_partial_export_file_when_download_fails(
     )
     mocked.get(DOWNLOAD_URL, status=403, body="expired")
 
-    with pytest.raises(deepl.DeepLException, match="HTTP status: 403"):
+    with pytest.raises(
+        deepl.TranslationMemoryJobException, match="HTTP status: 403"
+    ) as exc_info:
         make_deepl_client().export_translation_memory_to_filepath(
             "tm-1", output_path
         )
 
+    assert exc_info.value.job.status == "completed"
+    assert exc_info.value.http_status_code == 403
     assert not output_path.exists()
 
 
@@ -824,10 +857,14 @@ def test_raises_connection_exception_when_export_download_connection_breaks(
 def test_raises_when_downloading_export_without_download_url():
     job = TranslationMemoryJob.from_json(job_json("processing", "export"))
 
-    with pytest.raises(ValueError, match="has no download URL"):
+    with pytest.raises(
+        deepl.DeepLException, match="has no download URL"
+    ) as exc_info:
         make_deepl_client().download_translation_memory_export(
             job, io.BytesIO()
         )
+
+    assert type(exc_info.value) is deepl.DeepLException
 
 
 def test_raises_with_body_when_storage_rejects_streamed_download(mocked):

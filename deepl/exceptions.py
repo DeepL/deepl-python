@@ -4,7 +4,7 @@
 
 from typing import Optional
 
-from deepl.api_data import DocumentHandle
+from deepl.api_data import DocumentHandle, TranslationMemoryJob
 
 
 class DeepLException(Exception):
@@ -102,6 +102,43 @@ class DocumentTranslationException(DeepLException):
         if self.document_handle is None:
             return super().__str__()
         return f"{super().__str__()}, document handle: {self.document_handle}"
+
+
+class TranslationMemoryJobException(DeepLException):
+    """Error occurred in import_translation_memory_from_filepath() or
+    export_translation_memory_to_filepath().
+
+    :param message: Message describing the error that occurred.
+    :param job_id: ID of the import or export job, or None if the error
+        occurred before the job was created.
+    :param job: The last TranslationMemoryJob status retrieved for the job,
+        or None if no status was retrieved yet.
+    :param should_retry: True if the request would normally be retried
+        following this error; copied from a DeepLException cause.
+    :param http_status_code: The HTTP status code of a DeepLException cause,
+        if it has one, otherwise None.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        job_id: Optional[str] = None,
+        job: Optional[TranslationMemoryJob] = None,
+        should_retry: bool = False,
+        http_status_code: Optional[int] = None,
+    ):
+        super().__init__(
+            message,
+            should_retry=should_retry,
+            http_status_code=http_status_code,
+        )
+        self.job_id = job.job_id if job_id is None and job else job_id
+        self.job = job
+
+    def __str__(self):
+        if self.job_id is None:
+            return super().__str__()
+        return f"{super().__str__()}, job ID: {self.job_id}"
 
 
 class GlossaryNotFoundException(NotFoundException):

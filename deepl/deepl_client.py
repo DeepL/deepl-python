@@ -44,6 +44,7 @@ from deepl.exceptions import (
     DeepLException,
     DocumentTranslationException,
     GlossaryNotFoundException,
+    TranslationMemoryJobException,
 )
 from deepl import _http_client, util
 from deepl._base_client import BaseClient
@@ -102,6 +103,23 @@ def _document_translation_exception(
             http_status_code=cause.http_status_code,
         )
     return DocumentTranslationException(str(cause), handle)
+
+
+def _tm_job_exception(
+    cause: Exception,
+    job_id: Optional[str],
+    job: Optional[TranslationMemoryJob],
+    message: Optional[str] = None,
+) -> TranslationMemoryJobException:
+    if isinstance(cause, DeepLException):
+        return TranslationMemoryJobException(
+            message or str(cause),
+            job_id,
+            job,
+            should_retry=cause.should_retry,
+            http_status_code=cause.http_status_code,
+        )
+    return TranslationMemoryJobException(message or str(cause), job_id, job)
 
 
 _T = TypeVar("_T")
@@ -3352,8 +3370,19 @@ class DeepLClient(BaseClient):
         """
         # Validates the reference; get_translation_memory_job() encodes it.
         self._job_id(job)
+        return self._wait_until_translation_memory_job_done(
+            job, timeout_s, lambda status: None
+        )
+
+    def _wait_until_translation_memory_job_done(
+        self,
+        job: Union[str, TranslationMemoryJob],
+        timeout_s: Optional[int],
+        on_status: Callable[[TranslationMemoryJob], None],
+    ) -> TranslationMemoryJob:
         start_time_s = time.time()
         status = self.get_translation_memory_job(job)
+        on_status(status)
         while True:
             if not status.ok:
                 raise DeepLException(
@@ -3379,6 +3408,7 @@ class DeepLClient(BaseClient):
             )
             time.sleep(secs)
             status = self.get_translation_memory_job(job)
+            on_status(status)
 
     def download_translation_memory_export(
         self,
@@ -3395,12 +3425,14 @@ class DeepLClient(BaseClient):
         :param chunk_size: (Optional) Size of chunk in bytes for streaming,
             default 64 KiB.
 
-        :raises DeepLException: If the storage URL returns an error status,
-            with http_status_code set; should_retry is True for 429 and 5xx.
+        :raises DeepLException: If the job has no download URL (it has not
+            completed, or is not an export), or the storage URL returns an
+            error status, with http_status_code set; should_retry is True for
+            429 and 5xx.
         """
         download_url = job.result.download_url if job.result else None
         if not download_url:
-            raise ValueError(
+            raise DeepLException(
                 "translation memory export job has no download URL; it may "
                 "not have completed yet"
             )
@@ -3452,9 +3484,12 @@ class DeepLClient(BaseClient):
             carries the new translation memory ID.
 
         :raises ValueError: If input_path does not exist.
-        :raises DeepLException: If the file cannot be read (checked before the
-            import job is created), the upload is rejected, the import job
-            fails or expires, or timeout_s is exceeded.
+        :raises TranslationMemoryJobException: For every other failure: the
+            file cannot be read or is empty (checked before the import job is
+            created), creating the job fails, the upload is rejected, the
+            import job fails or expires, or timeout_s is exceeded. The
+            underlying exception is its __cause__; job_id is set once the job
+            was created, and job holds the last status retrieved.
         """
         file_path = pathlib.Path(input_path)
         if not file_path.exists():
@@ -3465,26 +3500,33 @@ class DeepLClient(BaseClient):
             with open(file_path, "rb") as input_file:
                 content = input_file.read()
         except OSError as e:
-            raise DeepLException(
+            raise TranslationMemoryJobException(
                 f"Error reading translation memory file {input_path}: {e}"
             ) from e
 
-        created = self.create_translation_memory_import(
-            file_name=file_path.name,
-            content_length=len(content),
-            content_type=content_type,
-            display_name=display_name,
-            extra_body_parameters=extra_body_parameters,
-        )
-        self.upload_translation_memory_file(
-            created,
-            content,
-            content_type=content_type or "application/xml",
-        )
-
-        return self.wait_until_translation_memory_job_done(
-            created.job_id, timeout_s
-        )
+        job_id: Optional[str] = None
+        statuses: List[TranslationMemoryJob] = []
+        try:
+            created = self.create_translation_memory_import(
+                file_name=file_path.name,
+                content_length=len(content),
+                content_type=content_type,
+                display_name=display_name,
+                extra_body_parameters=extra_body_parameters,
+            )
+            job_id = created.job_id
+            self.upload_translation_memory_file(
+                created,
+                content,
+                content_type=content_type or "application/xml",
+            )
+            return self._wait_until_translation_memory_job_done(
+                job_id, timeout_s, statuses.append
+            )
+        except Exception as e:
+            raise _tm_job_exception(
+                e, job_id, statuses[-1] if statuses else None
+            ) from e
 
     def export_translation_memory_to_filepath(
         self,
@@ -3511,32 +3553,63 @@ class DeepLClient(BaseClient):
             cut short so that the wait does not run past the timeout.
         :return: TranslationMemoryJob for the completed export.
 
-        :raises DeepLException: If output_path cannot be written (checked
-            before the export job is created), writing the file fails, the
-            export job fails or expires, the download fails, or timeout_s is
-            exceeded. A partially written output file is removed.
+        :raises TranslationMemoryJobException: For every failure: output_path
+            already exists or cannot be written (checked before the export job
+            is created), creating the job fails, the export job fails or
+            expires, timeout_s is exceeded, the download fails or writing the
+            file fails. The underlying exception is its __cause__; job_id is
+            set once the job was created, and job holds the last status
+            retrieved. An existing file is never overwritten, and a partially
+            written output file is removed.
         """
         path = pathlib.Path(output_path)
         # Check the output path before creating the job, so a path that
         # cannot be written fails without exporting first.
         directory = path.parent
         if not directory.is_dir():
-            raise DeepLException(
+            raise TranslationMemoryJobException(
                 f"Output directory does not exist: {directory}"
             )
         if path.is_dir():
-            raise DeepLException(f"Output path is a directory: {output_path}")
-        if not os.access(path if path.exists() else directory, os.W_OK):
-            raise DeepLException(f"Output path is not writable: {output_path}")
+            raise TranslationMemoryJobException(
+                f"Output path is a directory: {output_path}"
+            )
+        if path.exists():
+            raise TranslationMemoryJobException(
+                f"Output path already exists: {output_path}"
+            )
+        if not os.access(directory, os.W_OK):
+            raise TranslationMemoryJobException(
+                f"Output path is not writable: {output_path}"
+            )
 
-        created = self.create_translation_memory_export(translation_memory)
-        # Raises before the output file is opened, so none is created.
-        job = self.wait_until_translation_memory_job_done(
-            created.job_id, timeout_s
-        )
+        job_id: Optional[str] = None
+        statuses: List[TranslationMemoryJob] = []
+        try:
+            created = self.create_translation_memory_export(translation_memory)
+            job_id = created.job_id
+            # Raises before the output file is opened, so none is created.
+            job = self._wait_until_translation_memory_job_done(
+                job_id, timeout_s, statuses.append
+            )
+        except Exception as e:
+            raise _tm_job_exception(
+                e, job_id, statuses[-1] if statuses else None
+            ) from e
 
         try:
-            with open(path, "wb") as output_file:
+            # "x" fails if the file was created after the check above.
+            output_file = open(path, "xb")
+        except OSError as e:
+            raise _tm_job_exception(
+                e,
+                job_id,
+                job,
+                "Error writing translation memory export to "
+                f"{output_path}: {e}",
+            ) from e
+        try:
+            with output_file:
                 self.download_translation_memory_export(
                     job, output_file, chunk_size=8192
                 )
@@ -3546,12 +3619,15 @@ class DeepLClient(BaseClient):
                 path.unlink()
             except OSError:
                 pass
-            if isinstance(e, OSError):
-                raise DeepLException(
-                    "Error writing translation memory export to "
-                    f"{output_path}: {e}"
-                ) from e
-            raise
+            if not isinstance(e, Exception):
+                raise
+            message = (
+                "Error writing translation memory export to "
+                f"{output_path}: {e}"
+                if isinstance(e, OSError)
+                else None
+            )
+            raise _tm_job_exception(e, job_id, job, message) from e
         return job
 
     def _asset_call(
