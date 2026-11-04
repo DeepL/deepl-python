@@ -487,6 +487,8 @@ class DeepLClient(BaseClient):
         elif hasattr(text, "__iter__"):
             multi_input = True
             text = list(text)
+            if any(t == "" for t in text):
+                raise ValueError("text must not be empty")
         else:
             raise TypeError(
                 "text parameter must be a string or an iterable of strings"
@@ -1430,6 +1432,8 @@ class DeepLClient(BaseClient):
         elif hasattr(text, "__iter__"):
             multi_input = True
             text = list(text)
+            if any(t == "" for t in text):
+                raise ValueError("text must not be empty")
         else:
             raise TypeError(
                 "text parameter must be a string or an iterable of strings"
@@ -1485,6 +1489,8 @@ class DeepLClient(BaseClient):
         elif hasattr(text, "__iter__"):
             multi_input = True
             text = list(text)
+            if any(t == "" for t in text):
+                raise ValueError("text must not be empty")
         else:
             raise TypeError(
                 "text parameter must be a string or an iterable of strings"

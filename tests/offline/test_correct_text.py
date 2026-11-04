@@ -83,6 +83,7 @@ def test_parses_text_list_into_list_of_write_results(mocked):
     "text, error, match",
     [
         ("", ValueError, "text must not be empty"),
+        (["a", ""], ValueError, "text must not be empty"),
         (5, TypeError, "string or an iterable"),
     ],
 )
