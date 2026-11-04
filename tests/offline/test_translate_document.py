@@ -819,13 +819,28 @@ def test_cuts_last_status_poll_sleep_to_timeout(mocked, monkeypatch):
     assert sleeps == [5.0, 2.0]
 
 
-@pytest.mark.parametrize("failure", failures_after_sending())
-def test_upload_is_not_retried_after_possible_processing(mocked, failure):
+@pytest.mark.parametrize("failure, should_retry", failures_after_sending())
+def test_upload_is_not_retried_after_possible_processing(
+    mocked, failure, should_retry
+):
     mocked.post(url("v2/document"), **failure)
 
-    with pytest.raises(deepl.DeepLException):
+    with pytest.raises(deepl.DeepLException) as exc_info:
         make_deepl_client().translate_document_upload(
             b"hello", filename="a.txt", target_lang="DE"
         )
 
     assert len(mocked.calls) == 1
+    assert exc_info.value.should_retry is should_retry
+
+
+def test_failed_upload_is_not_marked_retryable_in_document_exception(mocked):
+    mocked.post(url("v2/document"), status=500, body="")
+
+    with pytest.raises(deepl.DocumentTranslationException) as exc_info:
+        make_deepl_client().translate_document(
+            b"hello", io.BytesIO(), target_lang="DE", filename="a.txt"
+        )
+
+    assert exc_info.value.http_status_code == 500
+    assert exc_info.value.should_retry is False

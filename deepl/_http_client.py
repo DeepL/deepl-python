@@ -109,7 +109,9 @@ class HttpClient:
         If retry_only_unprocessed is True, the request is only retried after
         failures that show it was not processed (HTTP 429, DNS resolution
         errors, refused connections and connect timeouts), for requests that
-        are unsafe to repeat. Otherwise connection failures, including a
+        are unsafe to repeat; a raised ConnectionException then has
+        should_retry True only after those failures or a response body cut
+        off mid-read. Otherwise connection failures, including a
         connection that breaks off while the response body is read, and
         timeouts are retried too.
 
@@ -138,8 +140,16 @@ class HttpClient:
             ):
                 if response is not None:
                     return response
-                else:
-                    raise exception  # type: ignore[misc]
+                if retry_only_unprocessed and isinstance(
+                    exception, ConnectionException
+                ):
+                    # Repeating a request that may have been processed could
+                    # create a duplicate.
+                    exception.should_retry = exception.should_retry and (
+                        _was_not_sent(exception)
+                        or _body_was_cut_off(exception)
+                    )
+                raise exception  # type: ignore[misc]
 
             if exception is not None:
                 log_info(
@@ -326,6 +336,12 @@ def _was_not_sent(exception: BaseException) -> bool:
         + (ConnectionRefusedError,)
         + _CONNECT_TIMEOUT_ERRORS,
     )
+
+
+def _body_was_cut_off(exception: BaseException) -> bool:
+    """Returns True if the connection broke off while the response body was
+    read, after the response status was received."""
+    return _caused_by(exception, (requests.exceptions.ChunkedEncodingError,))
 
 
 def _caused_by(exception: BaseException, types: tuple) -> bool:

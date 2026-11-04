@@ -381,11 +381,14 @@ def test_raises_for_a_non_object_body(mocked, method, path, call, body):
         call(make_deepl_client())
 
 
-@pytest.mark.parametrize("failure", failures_after_sending())
-def test_create_is_not_retried_after_possible_processing(mocked, failure):
+@pytest.mark.parametrize("failure, should_retry", failures_after_sending())
+def test_create_is_not_retried_after_possible_processing(
+    mocked, failure, should_retry
+):
     mocked.post(url("v3/style_profiles"), **failure)
 
-    with pytest.raises(deepl.DeepLException):
+    with pytest.raises(deepl.DeepLException) as exc_info:
         make_deepl_client().create_style_profile("profile")
 
     assert len(mocked.calls) == 1
+    assert exc_info.value.should_retry is should_retry

@@ -524,25 +524,29 @@ def test_merges_extra_body_parameters_last(
     call(make_deepl_client())
 
 
-@pytest.mark.parametrize("failure", failures_after_sending())
-def test_create_is_not_retried_after_possible_processing(mocked, failure):
+@pytest.mark.parametrize("failure, should_retry", failures_after_sending())
+def test_create_is_not_retried_after_possible_processing(
+    mocked, failure, should_retry
+):
     mocked.post(url("v3/style_rules"), **failure)
 
-    with pytest.raises(DeepLException):
+    with pytest.raises(DeepLException) as exc_info:
         make_deepl_client().create_style_rule("style", "en")
 
     assert len(mocked.calls) == 1
+    assert exc_info.value.should_retry is should_retry
 
 
-@pytest.mark.parametrize("failure", failures_after_sending())
+@pytest.mark.parametrize("failure, should_retry", failures_after_sending())
 def test_create_custom_instruction_is_not_retried_after_possible_processing(
-    mocked, failure
+    mocked, failure, should_retry
 ):
     mocked.post(url("v3/style_rules/rule-id/custom_instructions"), **failure)
 
-    with pytest.raises(DeepLException):
+    with pytest.raises(DeepLException) as exc_info:
         make_deepl_client().create_style_rule_custom_instruction(
             "rule-id", "label", "prompt"
         )
 
     assert len(mocked.calls) == 1
+    assert exc_info.value.should_retry is should_retry

@@ -51,10 +51,11 @@ class StreamedBody(io.BufferedReader):
 
 
 def failures_after_sending():
-    """Failures after which the request may have been processed: a create
-    must not retry them."""
+    """Failures after which the request may have been processed, with the
+    should_retry flag a create reports for each: a create must not retry
+    them, and only a response body cut off mid-read is marked retryable."""
     return [
-        {"status": 500},
-        {"body": requests.exceptions.ReadTimeout("slow")},
-        {"body": StreamedBody(b"{}", fail_after=0)},
+        ({"status": 500}, False),
+        ({"body": requests.exceptions.ReadTimeout("slow")}, False),
+        ({"body": StreamedBody(b"{}", fail_after=0)}, True),
     ]

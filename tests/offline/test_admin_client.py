@@ -466,24 +466,25 @@ def test_create_developer_key_without_label(mocked):
 
 
 @pytest.mark.parametrize(
-    "failure",
+    "failure, should_retry",
     [
-        {"status": 500},
-        {"status": 503},
-        {"body": requests.exceptions.ConnectionError("reset")},
-        {"body": requests.exceptions.ReadTimeout("slow")},
-        {"body": StreamedBody(b"{}", fail_after=0)},
+        ({"status": 500}, False),
+        ({"status": 503}, False),
+        ({"body": requests.exceptions.ConnectionError("reset")}, False),
+        ({"body": requests.exceptions.ReadTimeout("slow")}, False),
+        ({"body": StreamedBody(b"{}", fail_after=0)}, True),
     ],
 )
 def test_create_developer_key_is_not_retried_after_possible_processing(
-    mocked, failure
+    mocked, failure, should_retry
 ):
     mocked.post(url("v2/admin/developer-keys"), **failure)
 
-    with pytest.raises(deepl.DeepLException):
+    with pytest.raises(deepl.DeepLException) as exc_info:
         make_admin_client().create_developer_key()
 
     assert len(mocked.calls) == 1
+    assert exc_info.value.should_retry is should_retry
 
 
 def _dns_failure(error_class=requests.exceptions.ConnectionError):

@@ -116,8 +116,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `translate_document()` and `translate_document_from_filepath()`, and the
   job creation of `import_translation_memory_from_filepath()` and
   `export_translation_memory_to_filepath()`. The error raised after the first
-  failure keeps its `should_retry` value, so callers can retry themselves
-  where a duplicate is acceptable.
+  failure is described in the next entry.
+- **Breaking:** the exception raised by a function that creates a resource
+  (the functions listed above and `DeepLAdminClient.create_developer_key()`)
+  has `should_retry` `True` only after HTTP 429, a DNS resolution failure, a
+  refused connection, a connect timeout or a response body cut off mid-read.
+  After HTTP 5xx, a read timeout, a reset connection or a broken pipe it is
+  `False` instead of `True`, because repeating the request could create a
+  duplicate. `DocumentTranslationException` from a failed document upload
+  copies this value.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

@@ -148,6 +148,15 @@ class BaseClient:
         if content_str is not None:
             util.log_debug("Response details", content=content_str)
 
+        if retry_only_unprocessed and status_code >= 500:
+            # The request may have been processed; repeating it could create
+            # a duplicate, so the error is not marked retryable.
+            try:
+                self._raise_for_status(status_code, content, json)
+            except DeepLException as e:
+                e.should_retry = False
+                raise
+
         return status_code, content, json
 
     def _raise_for_status(

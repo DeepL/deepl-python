@@ -1528,10 +1528,11 @@ If invalid arguments are provided, they may raise the standard exceptions
 | `ConnectionException` | no HTTP response, or a network failure while it is read (connection failure, timeout) |
 | `DeepLException` | any other error, including a non-2xx status not listed above (e.g. an HTTP 3xx that is not followed), with `http_status_code` set |
 
-`should_retry` is `True` for HTTP 429 and 5xx errors. `GlossaryNotFoundException`,
-raised for a 404 on glossary functions, is deprecated: it is a subclass of
-`NotFoundException`, catch that instead. It will be removed in the next major
-version.
+`should_retry` is `True` for HTTP 429 and 5xx errors, except for functions
+that create a resource (see [retries](#configure-automatic-retries-and-timeouts)).
+`GlossaryNotFoundException`, raised for a 404 on glossary functions, is
+deprecated: it is a subclass of `NotFoundException`, catch that instead. It
+will be removed in the next major version.
 
 ### Configuration
 
@@ -1651,6 +1652,12 @@ the resource twice. These are `create_glossary()`,
 `DeepLAdminClient.create_developer_key()`. All other requests, including
 `translate_text()`, `rephrase_text()` and `correct_text()`, are retried after
 every transient failure listed above.
+
+For these functions, `should_retry` of the raised exception is `True` only
+after a failure that shows the request was not sent (the four above) or a
+response body cut off mid-read. After an HTTP 5xx status code, a read timeout,
+a reset connection or a broken pipe it is `False`, because the request may
+have been processed and repeating it could create a duplicate.
 
 #### Anonymous platform information
 

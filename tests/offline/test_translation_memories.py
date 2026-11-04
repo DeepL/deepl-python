@@ -906,21 +906,27 @@ def test_raises_deepl_exception_for_malformed_response(
         call(make_deepl_client())
 
 
-@pytest.mark.parametrize("failure", failures_after_sending())
-def test_import_is_not_retried_after_possible_processing(mocked, failure):
+@pytest.mark.parametrize("failure, should_retry", failures_after_sending())
+def test_import_is_not_retried_after_possible_processing(
+    mocked, failure, should_retry
+):
     mocked.post(url("v3/translation_memories/import"), **failure)
 
-    with pytest.raises(deepl.DeepLException):
+    with pytest.raises(deepl.DeepLException) as exc_info:
         make_deepl_client().create_translation_memory_import("a.tmx", 10)
 
     assert len(mocked.calls) == 1
+    assert exc_info.value.should_retry is should_retry
 
 
-@pytest.mark.parametrize("failure", failures_after_sending())
-def test_export_is_not_retried_after_possible_processing(mocked, failure):
+@pytest.mark.parametrize("failure, should_retry", failures_after_sending())
+def test_export_is_not_retried_after_possible_processing(
+    mocked, failure, should_retry
+):
     mocked.post(url("v3/translation_memories/tm-id/export"), **failure)
 
-    with pytest.raises(deepl.DeepLException):
+    with pytest.raises(deepl.DeepLException) as exc_info:
         make_deepl_client().create_translation_memory_export("tm-id")
 
     assert len(mocked.calls) == 1
+    assert exc_info.value.should_retry is should_retry
