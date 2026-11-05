@@ -179,8 +179,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `deepl.Translator(...)` with `deepl.DeepLClient(...)`.
 - Removed the module `deepl.translator`. Import the classes it provided from
   `deepl` instead: the exceptions (`AuthorizationException`,
-  `DocumentNotReadyException`, `GlossaryNotFoundException`,
-  `QuotaExceededException`, `TooManyRequestsException`, ...) from `deepl` or
+  `DocumentNotReadyException`, `QuotaExceededException`,
+  `TooManyRequestsException`, ...) from `deepl` or
   `deepl.exceptions`, and the result and option types (`TextResult`,
   `DocumentHandle`, `Usage`, `Formality`, ...) from `deepl` or
   `deepl.api_data`.
