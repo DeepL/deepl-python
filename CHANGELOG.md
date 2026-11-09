@@ -169,6 +169,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `replace_spoken_terms_list()` and `delete_spoken_terms_list()` raise
   `ValueError` if `spoken_terms` is an empty ID or a `SpokenTerms` without an
   ID, before any request is sent.
+- **Breaking:** `CustomInstruction.id` is typed `str`, no longer
+  `Optional[str]`, and is a required keyword-only constructor argument. A
+  custom instruction response without `id` raises `DeepLException`.
+  `CustomInstruction` is only returned by the API, which always sets `id`;
+  code that builds `CustomInstruction` objects must pass `id=`.
 - The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
   a `proxy` URL has no host or a scheme other than `http`, `https`, `socks4`,
   `socks4a`, `socks5` or `socks5h`, instead of failing on the first request.

@@ -420,6 +420,11 @@ def test_escapes_ids_in_the_path(mocked, method, path, call):
             {"id": "i"},
             lambda c: c.get_style_rule_custom_instruction("s", "i"),
         ),
+        (
+            "v3/style_rules/s/custom_instructions/i",
+            {"label": "L", "prompt": "P"},
+            lambda c: c.get_style_rule_custom_instruction("s", "i"),
+        ),
     ],
 )
 def test_raises_deepl_exception_for_malformed_response(
@@ -449,10 +454,10 @@ def test_accepts_instruction_id_or_object(mocked, instruction):
     client.delete_style_rule_custom_instruction("style-1", instruction)
 
 
-def test_rejects_instruction_object_without_id():
+def test_rejects_instruction_object_with_empty_id():
     with pytest.raises(ValueError, match="instruction_id must not be empty"):
         make_deepl_client().get_style_rule_custom_instruction(
-            "style-1", CustomInstruction("L", "P")
+            "style-1", CustomInstruction("L", "P", id="")
         )
 
 

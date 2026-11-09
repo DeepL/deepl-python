@@ -1093,6 +1093,7 @@ class CustomInstruction:
     :param prompt: Prompt text for the custom instruction.
     :param source_language: Optional source language code for the custom
         instruction.
+    :param id: Unique ID of the custom instruction.
     """
 
     def __init__(
@@ -1100,7 +1101,8 @@ class CustomInstruction:
         label: str,
         prompt: str,
         source_language: Optional[str] = None,
-        id: Optional[str] = None,
+        *,
+        id: str,
     ):
         self._label = label
         self._prompt = prompt
@@ -1114,11 +1116,11 @@ class CustomInstruction:
             label=json["label"],
             prompt=json["prompt"],
             source_language=json.get("source_language"),
-            id=json.get("id"),
+            id=json["id"],
         )
 
     @property
-    def id(self) -> Optional[str]:
+    def id(self) -> str:
         """Returns the unique ID of the custom instruction."""
         return self._id
 
