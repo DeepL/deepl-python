@@ -1828,6 +1828,8 @@ class DeepLClient(BaseClient):
             supported for glossaries.
         """
         entries = util.convert_csv_to_dict(csv)
+        if not entries:
+            raise ValueError("glossary entries must not be empty")
 
         dictionaries = [
             MultilingualGlossaryDictionaryEntries(
@@ -1951,6 +1953,8 @@ class DeepLClient(BaseClient):
             supported for glossaries.
         """
         entries = util.convert_csv_to_dict(csv)
+        if not entries:
+            raise ValueError("glossary entries must not be empty")
 
         return self._replace_multilingual_glossary_dictionary(
             glossary, source_lang, target_lang, entries, extra_body_parameters

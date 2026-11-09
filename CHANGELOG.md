@@ -172,6 +172,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `rephrase_text()` and `correct_text()` raise `ValueError` if `target_lang`
   is an empty string, before any request is sent, instead of leaving it out
   of the request.
+- `update_multilingual_glossary_dictionary_from_csv()` and
+  `replace_multilingual_glossary_dictionary_from_csv()` raise `ValueError` if
+  the CSV content is empty, before any request is sent, as the variants
+  taking a dictionary do. Before, an empty dictionary was sent.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,
