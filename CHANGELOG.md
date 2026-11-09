@@ -131,6 +131,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `translate_text()`, `translate_document_upload()` and the
   document functions that call it raise `ValueError` if `target_lang` or a
   given `source_lang` is an empty string, before any request is sent.
+- **Breaking:** `rephrase_text()` and `correct_text()` raise `ValueError` if
+  `target_lang` is an empty string, before any request is sent, instead of
+  leaving it out of the request. To keep the input language, pass `None` or
+  omit `target_lang`.
 - **Breaking:** `translate_document()` and `translate_document_from_filepath()`
   raise `DocumentTranslationException` with `document_handle` `None` for
   invalid arguments, including a missing `target_lang`, with the `ValueError`
@@ -169,9 +173,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
   `server_url` is not an absolute `http` or `https` URL with a host, instead
   of failing on the first request with `DeepLException`.
-- `rephrase_text()` and `correct_text()` raise `ValueError` if `target_lang`
-  is an empty string, before any request is sent, instead of leaving it out
-  of the request.
 - `update_multilingual_glossary_dictionary_from_csv()` and
   `replace_multilingual_glossary_dictionary_from_csv()` raise `ValueError` if
   the CSV content is empty, before any request is sent, as the variants
