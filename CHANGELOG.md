@@ -169,6 +169,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
   `server_url` is not an absolute `http` or `https` URL with a host, instead
   of failing on the first request with `DeepLException`.
+- `rephrase_text()` and `correct_text()` raise `ValueError` if `target_lang`
+  is an empty string, before any request is sent, instead of leaving it out
+  of the request.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

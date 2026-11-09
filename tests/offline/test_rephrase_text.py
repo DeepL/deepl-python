@@ -120,3 +120,9 @@ def test_raises_deepl_exception_for_malformed_improvements(mocked, text, body):
 
     with pytest.raises(DeepLException, match="Unexpected response"):
         make_deepl_client().rephrase_text(text)
+
+
+@pytest.mark.parametrize("method", ["rephrase_text", "correct_text"])
+def test_raises_for_empty_target_lang(method):
+    with pytest.raises(ValueError, match="target_lang must not be empty"):
+        getattr(make_deepl_client(), method)("a", target_lang="")

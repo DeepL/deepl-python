@@ -1455,6 +1455,7 @@ class DeepLClient(BaseClient):
             keys of the same name that the client sets.
         :return: List of WriteResult objects containing results, unless input
             text was one string, then a single WriteResult object is returned.
+        :raises ValueError: If a text or target_lang is empty.
         """
         if isinstance(text, str):
             if len(text) == 0:
@@ -1471,8 +1472,11 @@ class DeepLClient(BaseClient):
                 "text parameter must be a string or an iterable of strings"
             )
 
+        if target_lang is not None and str(target_lang) == "":
+            raise ValueError("target_lang must not be empty")
+
         request_data: dict = {"text": text}
-        if target_lang:
+        if target_lang is not None:
             request_data["target_lang"] = str(target_lang)
         if writing_style:
             request_data["writing_style"] = str(writing_style)
@@ -1511,6 +1515,7 @@ class DeepLClient(BaseClient):
             keys of the same name that the client sets.
         :return: List of WriteResult objects containing results, unless input
             text was one string, then a single WriteResult object is returned.
+        :raises ValueError: If a text or target_lang is empty.
         """
 
         if isinstance(text, str):
@@ -1528,8 +1533,11 @@ class DeepLClient(BaseClient):
                 "text parameter must be a string or an iterable of strings"
             )
 
+        if target_lang is not None and str(target_lang) == "":
+            raise ValueError("target_lang must not be empty")
+
         request_data: dict = {"text": text}
-        if target_lang:
+        if target_lang is not None:
             request_data["target_lang"] = str(target_lang)
         util._add_extra_body_parameters(request_data, extra_body_parameters)
 
