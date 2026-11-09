@@ -292,7 +292,9 @@ as one of the predefined constants `WritingStyle` and `WritingTone`:
 
 ```python
 result = deepl_client.rephrase_text(
-    "A rainbouw has seven colours.", target_lang="EN-US", writing_style=WritingStyle.BUSINESS
+    "A rainbouw has seven colours.",
+    target_lang="EN-US",
+    writing_style=deepl.WritingStyle.BUSINESS,
 )
 print(result.text)
 ```
@@ -852,7 +854,7 @@ languages and features are returned; pass `include=[LanguageInclude.BETA]` to
 also get beta ones.
 
 ```python
-from deepl.api_data import LanguageResourceName
+from deepl import LanguageResourceName
 
 for language in deepl_client.get_languages_for_resource(
     LanguageResourceName.TRANSLATE_TEXT

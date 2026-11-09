@@ -258,6 +258,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   if the glossary has no dictionary for the language pair. Catch
   `NotFoundException` instead.
 
+### Fixed
+- The `deepl` package exports all public types of `deepl.api_data`, among
+  them `WritingStyle`, `WritingTone`, `WriteResult`, `CustomInstruction`,
+  `StyleRuleInfo`, the translation memory types and `LanguageResourceName`,
+  `LanguageInclude` and `LanguageSupport`. Before, `deepl.WritingStyle` raised
+  `AttributeError`, and `ModelType` was missing from `__all__`.
+
 ## [1.33.0] - 2026-11-02
 TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.
 Translation memories, style rules and multilingual glossaries gained many options and fixes.
