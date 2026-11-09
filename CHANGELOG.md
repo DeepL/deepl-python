@@ -165,6 +165,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a `proxy` URL has no host or a scheme other than `http`, `https`, `socks4`,
   `socks4a`, `socks5` or `socks5h`, instead of failing on the first request.
   A proxy URL without a scheme is still used as an `http://` URL.
+- The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
+  `server_url` is not an absolute `http` or `https` URL with a host, instead
+  of failing on the first request with `DeepLException`.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

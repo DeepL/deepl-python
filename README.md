@@ -1591,6 +1591,9 @@ A path in the server URL is kept: with `server_url="https://example.com/deepl"`
 requests go to `https://example.com/deepl/v2/...`. The `server_url` property
 returns the URL a client uses.
 
+The `server_url` must be an absolute `http` or `https` URL with a host,
+otherwise the constructor raises `ValueError`.
+
 #### Custom HTTP headers
 
 The `headers` option adds HTTP headers to every request to the DeepL API. A

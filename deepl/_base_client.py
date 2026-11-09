@@ -52,6 +52,17 @@ class BaseClient:
         auth_key = auth_key.strip()
         if not auth_key:
             raise ValueError("auth_key must not be empty")
+        parts = urllib.parse.urlsplit(server_url)
+        try:
+            parts.port  # raises ValueError for an invalid port
+            valid = parts.scheme in ("http", "https") and bool(parts.hostname)
+        except ValueError:
+            valid = False
+        if not valid:
+            # The URL is not echoed: it may contain credentials.
+            raise ValueError(
+                "server_url must be an absolute http or https URL with a host"
+            )
         self._server_url = server_url
         self._client = _http_client.HttpClient(
             proxy,

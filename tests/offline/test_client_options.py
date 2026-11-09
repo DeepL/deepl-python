@@ -206,9 +206,13 @@ def test_sends_requests_to_given_server_url(mocked):
     make_deepl_client(server_url="http://localhost:3000").get_usage()
 
 
-def test_raises_for_malformed_server_url():
-    with pytest.raises(deepl.DeepLException, match="preparing request"):
-        make_deepl_client(server_url="http:/api.deepl.com").get_usage()
+@pytest.mark.parametrize("make_client", [make_deepl_client, make_admin_client])
+@pytest.mark.parametrize(
+    "server_url", ["http:/api.deepl.com", "ftp://api.deepl.com"]
+)
+def test_raises_for_malformed_server_url(make_client, server_url):
+    with pytest.raises(ValueError, match="server_url"):
+        make_client(server_url=server_url)
 
 
 def test_passes_verify_ssl_to_requests(mocked):

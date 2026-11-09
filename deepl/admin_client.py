@@ -29,7 +29,8 @@ class DeepLAdminClient(BaseClient):
     :param admin_key: Admin API key as found in your DeepL account. Developer
         keys cannot access the Admin API.
     :param server_url: (Optional) Base URL of DeepL API, can be overridden e.g.
-        for testing purposes.
+        for testing purposes. Must be an absolute http or https URL with a
+        host, otherwise ValueError is raised.
     :param proxy: (Optional) Proxy server URL string or dictionary containing
         URL strings for the 'http' and 'https' keys. This is passed to the
         underlying requests session, see the requests proxy documentation for
