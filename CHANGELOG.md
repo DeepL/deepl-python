@@ -95,7 +95,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `replace_multilingual_glossary_dictionary()` accept a dictionary read from
   the API, and a `MultilingualGlossaryDictionaryEntries` whose `entries` is a
   TSV string, which is trimmed and validated like a `dict`; they no longer
-  raise `AttributeError`.
+  raise `AttributeError`. `create_multilingual_glossary()`,
+  `update_multilingual_glossary_dictionary()` and
+  `replace_multilingual_glossary_dictionary()` raise `ValueError` if the TSV
+  string holds no entries.
 - **Breaking:** a connection that breaks off while a streamed response body
   is read (`translate_document_download()`,
   `download_translation_memory_export()` and the error body of a streamed

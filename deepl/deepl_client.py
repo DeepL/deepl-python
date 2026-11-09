@@ -1594,7 +1594,7 @@ class DeepLClient(BaseClient):
         """
         if not dictionaries:
             raise ValueError("dictionaries must not be empty")
-        if any(map(lambda d: not d.entries, dictionaries)):
+        if any(not self._has_entries(d) for d in dictionaries):
             raise ValueError("glossary entries must not be empty")
 
         return self._create_multilingual_glossary(
@@ -1777,7 +1777,7 @@ class DeepLClient(BaseClient):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        if not dictionary or not dictionary.entries:
+        if not dictionary or not self._has_entries(dictionary):
             raise ValueError("glossary entries must not be empty")
 
         return self._update_multilingual_glossary(
@@ -1902,7 +1902,7 @@ class DeepLClient(BaseClient):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        if not dictionary or not dictionary.entries:
+        if not dictionary or not self._has_entries(dictionary):
             raise ValueError("glossary entries must not be empty")
 
         return self._replace_multilingual_glossary_dictionary(
@@ -2146,6 +2146,16 @@ class DeepLClient(BaseClient):
                 "target_lang": Language.remove_regional_variant(target_lang),
             }
         )
+
+    @staticmethod
+    def _has_entries(
+        dictionary: MultilingualGlossaryDictionaryEntries,
+    ) -> bool:
+        entries = dictionary.entries
+        if isinstance(entries, str):
+            # Empty lines are skipped when parsing, so "\n" holds no entries.
+            entries = util.convert_tsv_to_dict(entries)
+        return bool(entries)
 
     @staticmethod
     def _dictionary_json(

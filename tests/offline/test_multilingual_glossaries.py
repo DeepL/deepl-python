@@ -272,6 +272,22 @@ def test_raises_when_changing_dictionary_without_entries():
 @pytest.mark.parametrize(
     "call",
     [
+        lambda c, d: c.create_multilingual_glossary("glossary", [d]),
+        lambda c, d: c.update_multilingual_glossary_dictionary("g-1", d),
+        lambda c, d: c.replace_multilingual_glossary_dictionary("g-1", d),
+    ],
+)
+def test_raises_for_tsv_string_entries_without_entries(call):
+    blank = MultilingualGlossaryDictionaryEntries(
+        "EN", "DE", "\n"  # type: ignore[arg-type]
+    )
+    with pytest.raises(ValueError, match="entries must not be empty"):
+        call(make_deepl_client(), blank)
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
         lambda c: c.update_multilingual_glossary_dictionary_from_csv(
             "g-1", "EN", "DE", ""
         ),
