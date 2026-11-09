@@ -264,6 +264,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `StyleRuleInfo`, the translation memory types and `LanguageResourceName`,
   `LanguageInclude` and `LanguageSupport`. Before, `deepl.WritingStyle` raised
   `AttributeError`, and `ModelType` was missing from `__all__`.
+- `timeout_s` of `translate_document()`, `translate_document_from_filepath()`,
+  `translate_document_wait_until_done()`,
+  `wait_until_translation_memory_job_done()`,
+  `import_translation_memory_from_filepath()` and
+  `export_translation_memory_to_filepath()` is annotated `Optional[float]`,
+  like the client's `timeout_s`. A float was already accepted at runtime.
 
 ## [1.33.0] - 2026-11-02
 TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.

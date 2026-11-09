@@ -632,7 +632,7 @@ class DeepLClient(BaseClient):
         translation_memory: Union[str, TranslationMemoryInfo, None] = None,
         translation_memory_threshold: Optional[int] = None,
         enable_watermark: Optional[bool] = None,
-        timeout_s: Optional[int] = None,
+        timeout_s: Optional[float] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> DocumentStatus:
         """Upload document at given input path, translate it into the target
@@ -765,7 +765,7 @@ class DeepLClient(BaseClient):
         filename: Optional[str] = None,
         output_format: Optional[str] = None,
         enable_watermark: Optional[bool] = None,
-        timeout_s: Optional[int] = None,
+        timeout_s: Optional[float] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> DocumentStatus:
         """Upload document, translate it into the target language, and download
@@ -1051,7 +1051,7 @@ class DeepLClient(BaseClient):
     def translate_document_wait_until_done(
         self,
         handle: DocumentHandle,
-        timeout_s: Optional[int] = None,
+        timeout_s: Optional[float] = None,
     ) -> DocumentStatus:
         """
         Continually polls the status of the document translation associated
@@ -3374,7 +3374,7 @@ class DeepLClient(BaseClient):
     def wait_until_translation_memory_job_done(
         self,
         job: Union[str, TranslationMemoryJob],
-        timeout_s: Optional[int] = None,
+        timeout_s: Optional[float] = None,
     ) -> TranslationMemoryJob:
         """Polls a translation memory job until it completes, sleeping 5
         seconds between requests, and returns the completed job. An unknown
@@ -3404,7 +3404,7 @@ class DeepLClient(BaseClient):
     def _wait_until_translation_memory_job_done(
         self,
         job: Union[str, TranslationMemoryJob],
-        timeout_s: Optional[int],
+        timeout_s: Optional[float],
         on_status: Callable[[TranslationMemoryJob], None],
     ) -> TranslationMemoryJob:
         start_time_s = time.time()
@@ -3481,7 +3481,7 @@ class DeepLClient(BaseClient):
         input_path: Union[os.PathLike, str],
         *,
         display_name: Optional[str] = None,
-        timeout_s: Optional[int] = None,
+        timeout_s: Optional[float] = None,
         content_type: Optional[str] = None,
         extra_body_parameters: Optional[dict] = None,
     ) -> TranslationMemoryJob:
@@ -3560,7 +3560,7 @@ class DeepLClient(BaseClient):
         translation_memory: Union[str, TranslationMemoryInfo],
         output_path: Union[os.PathLike, str],
         *,
-        timeout_s: Optional[int] = None,
+        timeout_s: Optional[float] = None,
     ) -> TranslationMemoryJob:
         """Exports a translation memory to a TMX file: creates the export job,
         waits for it to finish, and writes the result to output_path.
