@@ -651,7 +651,7 @@ def test_sends_dictionary_read_from_api_back(mocked, method):
         client.replace_multilingual_glossary_dictionary("g-2", dictionary)
 
 
-def test_sends_tsv_string_entries_as_they_are(mocked):
+def test_trims_tsv_string_entries(mocked):
     mocked.patch(
         url("v3/glossaries/g-1"),
         json=GLOSSARY_JSON,
@@ -672,9 +672,19 @@ def test_sends_tsv_string_entries_as_they_are(mocked):
     make_deepl_client().update_multilingual_glossary_dictionary(
         "g-1",
         MultilingualGlossaryDictionaryEntries(
-            "EN", "DE", "Hello\tHallo"  # type: ignore[arg-type]
+            "EN", "DE", " Hello \t Hallo "  # type: ignore[arg-type]
         ),
     )
+
+
+def test_raises_for_invalid_term_in_tsv_string_entries():
+    with pytest.raises(ValueError, match="not a valid string"):
+        make_deepl_client().update_multilingual_glossary_dictionary(
+            "g-1",
+            MultilingualGlossaryDictionaryEntries(
+                "EN", "DE", "\tHallo"  # type: ignore[arg-type]
+            ),
+        )
 
 
 def test_raises_not_found_when_entries_response_has_no_dictionary(mocked):

@@ -2139,8 +2139,10 @@ class DeepLClient(BaseClient):
     def _dictionary_json(
         dictionary: MultilingualGlossaryDictionaryEntries,
     ) -> Dict[str, Any]:
-        # Entries given as a TSV string are sent as they are.
         entries: Union[Dict[str, str], str] = dictionary.entries
+        if isinstance(entries, str):
+            # Trimmed and validated like a dict.
+            entries = util.convert_tsv_to_dict(entries)
         # glossaries are only supported for base language types
         return {
             "source_lang": Language.remove_regional_variant(
@@ -2149,11 +2151,7 @@ class DeepLClient(BaseClient):
             "target_lang": Language.remove_regional_variant(
                 dictionary.target_lang
             ),
-            "entries": (
-                entries
-                if isinstance(entries, str)
-                else util.convert_dict_to_tsv(entries)
-            ),
+            "entries": util.convert_dict_to_tsv(entries),
             "entries_format": "tsv",
         }
 
