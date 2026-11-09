@@ -242,3 +242,16 @@ def test_passes_proxy_dictionary_to_requests(mocked):
 def test_raises_for_proxy_of_invalid_type():
     with pytest.raises(ValueError, match="proxy may be specified"):
         make_deepl_client(proxy=["http://proxy.example.com"])
+
+
+@pytest.mark.parametrize(
+    "proxy",
+    [
+        "not a url",
+        "ftp://proxy.example.com:8080",
+        {"https": "http:/proxy.example.com"},
+    ],
+)
+def test_raises_for_invalid_proxy_url(proxy):
+    with pytest.raises(ValueError, match="proxy"):
+        make_deepl_client(proxy=proxy)

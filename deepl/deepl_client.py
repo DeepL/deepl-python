@@ -173,7 +173,9 @@ class DeepLClient(BaseClient):
     :param proxy: (Optional) Proxy server URL string or dictionary containing
         URL strings for the 'http' and 'https' keys. This is passed to the
         underlying requests session, see the requests proxy documentation for
-        more information.
+        more information. Raises ValueError if a proxy URL has no host or a
+        scheme other than http, https, socks4, socks4a, socks5 or socks5h; a
+        URL without a scheme is used as an http:// URL.
     :param send_platform_info: (Optional) boolean that indicates if the client
         library can send basic platform info (python version, OS) to the
         DeepL API. True = send info, False = only send client

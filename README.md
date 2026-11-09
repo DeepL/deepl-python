@@ -1619,7 +1619,10 @@ deepl_client = deepl.DeepLClient(..., proxy=proxy)
 
 The proxy argument is passed to the underlying `requests` session, see the
 [documentation for requests][requests-proxy-docs]; a dictionary of schemes to
-proxy URLs is also accepted.
+proxy URLs is also accepted. A proxy URL needs a host and one of the schemes
+`http`, `https`, `socks4`, `socks4a`, `socks5` or `socks5h`; a URL without a
+scheme is used as an `http://` URL. An invalid proxy URL raises `ValueError`
+when the client is constructed.
 
 #### Override SSL verification
 

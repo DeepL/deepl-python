@@ -7,10 +7,12 @@ from .exceptions import ConnectionException, DeepLException
 import http
 import platform
 import random
+import re
 import requests  # type: ignore
 import socket
 import traceback
 import time
+import urllib.parse
 from functools import lru_cache
 from typing import Dict, Iterator, List, Optional, Tuple, Union
 from .util import log_info
@@ -58,6 +60,35 @@ class _BackoffTimer:
         self._num_retries += 1
 
 
+_PROXY_SCHEMES = ("http", "https", "socks4", "socks4a", "socks5", "socks5h")
+_SCHEME_PREFIX = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:/")
+
+
+def _check_proxy_url(key, value) -> None:
+    """Raises ValueError unless value is a proxy URL requests can use. A
+    value without a scheme is checked as an http:// URL, as requests uses it.
+    The message names only the proxy key: the URL may contain credentials."""
+    valid = False
+    if isinstance(value, str):
+        if not _SCHEME_PREFIX.match(value):
+            value = "http://" + value
+        try:
+            parts = urllib.parse.urlsplit(value)
+            parts.port  # raises ValueError for an invalid port
+            valid = (
+                parts.scheme.lower() in _PROXY_SCHEMES
+                and bool(parts.hostname)
+                and not any(c.isspace() for c in parts.hostname)
+            )
+        except ValueError:
+            valid = False
+    if not valid:
+        raise ValueError(
+            "proxy must be a URL with scheme http, https, socks4, socks4a, "
+            f"socks5 or socks5h and a host: invalid value for {key!r}"
+        )
+
+
 class HttpClient:
     def __init__(
         self,
@@ -78,6 +109,9 @@ class HttpClient:
                     "proxy may be specified as a URL string or dictionary "
                     "containing URL strings for the http and https keys."
                 )
+            for key, value in proxy.items():
+                if value is not None:
+                    _check_proxy_url(key, value)
             self._session.proxies.update(proxy)
         if verify_ssl is not None:
             self._session.verify = verify_ssl
