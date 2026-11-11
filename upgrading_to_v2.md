@@ -36,9 +36,11 @@ For the move from monolingual to multilingual glossaries, see
 
 ### `Translator` is removed
 
-`DeepLClient` takes the same constructor arguments and has every function
-`Translator` had, except the two removed functions listed under
-[Glossaries](#glossaries). `DeepLClient` no longer extends `Translator`, so
+`DeepLClient` takes the same constructor arguments, except the removed
+`skip_language_check` (see [Removed arguments without
+effect](#removed-arguments-without-effect)), and has every function
+`Translator` had, except `translate_text_with_glossary()` (see
+[Glossaries](#glossaries)). `DeepLClient` no longer extends `Translator`, so
 `isinstance(client, deepl.Translator)` and `Translator` annotations must use
 `DeepLClient`.
 
@@ -418,10 +420,8 @@ if usage.any_character_limit_reached:
 
 ## Internal classes
 
-These were importable by accident and changed or were removed:
+These are internals that were reachable from the public package and changed or
+were removed:
 
-- `deepl.http_client` and its `HttpClient`, `read_response_text()` and
-  `iter_response_content()` (now `deepl._http_client`, private).
-- `deepl.translator` and `deepl.Translator`.
 - `ConfiguredRules` in `deepl.api_data`.
-- `Usage.Detail.__init__(json, prefix)`.
+- `Usage.Detail.__init__(json, prefix)`, now `Usage.Detail(count, limit)`.
