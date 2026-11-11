@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
+- Added the migration guide [Upgrading to 2.0.0](upgrading_to_v2.md), which
+  lists the breaking changes since 1.33.0 with before and after examples.
+- `Usage.Detail` is constructed as `Usage.Detail(count, limit)`; the former
+  `(json, prefix)` constructor is removed.
 - The library is tested with Python 3.9 to 3.15. Python 3.9 remains the
   minimum supported version.
 - `translate_document_download()` and `download_translation_memory_export()`
@@ -73,14 +77,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   omits the field (for example `get_all_style_rules()` without
   `detailed=True`), instead of `[]`. An empty list from the API is returned
   as `[]`. Check for `None` before iterating.
-- `Usage.character`, `Usage.document` and `Usage.team_document` return `None`
-  when the response does not contain both the count and the limit of that
-  usage type, as the API Pro details already do, instead of a `Usage.Detail`
-  with `count` and `limit` `None`. `Usage.Detail.count` and `limit` are typed
-  `int`. Replace `usage.document.valid` with `usage.document is not None`.
-- `Usage.any_limit_reached` also considers `api_key_character`, the character
-  limit of the API key, so it can now return `True` when only the per-key
-  limit is reached. The speech minutes are still not considered.
+- `Usage.character` and `Usage.api_key_character` return `None` when the
+  response does not contain both the count and the limit of that usage type,
+  instead of a `Usage.Detail` with `count` and `limit` `None`.
+  `Usage.Detail.count` and `limit` are typed `int`.
 - `delete_multilingual_glossary_dictionary()` takes
   `(glossary, source_lang, target_lang)`; the `dictionary` argument is
   keyword-only. Replace `delete_multilingual_glossary_dictionary(glossary,

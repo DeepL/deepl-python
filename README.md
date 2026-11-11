@@ -30,6 +30,10 @@ The library can be installed from [PyPI][pypi-project] using pip:
 pip install --upgrade deepl
 ```
 
+If you are upgrading from version 1.x, see
+[Upgrading to 2.0.0](upgrading_to_v2.md) for the breaking changes and how to
+adapt your code.
+
 If you need to modify this source code, install the dependencies using poetry:
 
 ```shell
