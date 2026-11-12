@@ -134,6 +134,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `translate_text()`, `translate_document_upload()` and the
   document functions that call it raise `ValueError` if `target_lang` or a
   given `source_lang` is an empty string, before any request is sent.
+- **Breaking:** `translate_text()`, `translate_document_upload()` and the
+  document functions that call it raise `ValueError` if `glossary`, an entry
+  of `glossary_ids`, `style_rule`, `style_profile` or `translation_memory` is
+  an empty string or an object with an empty ID, before any request is sent.
+  Before, the empty ID was sent to the API.
 - **Breaking:** `rephrase_text()` and `correct_text()` raise `ValueError` if
   `target_lang` is an empty string, before any request is sent, instead of
   leaving it out of the request. To keep the input language, pass `None` or

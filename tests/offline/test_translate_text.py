@@ -34,10 +34,10 @@ def reply_with_translation(mocked, body):
     )
 
 
-def glossary_info(source_lang="EN", target_lang="DE"):
+def glossary_info(source_lang="EN", target_lang="DE", glossary_id="g-v2"):
     return deepl.GlossaryInfo.from_json(
         {
-            "glossary_id": "g-v2",
+            "glossary_id": glossary_id,
             "name": "glossary",
             "ready": True,
             "source_lang": source_lang.lower(),
@@ -48,10 +48,10 @@ def glossary_info(source_lang="EN", target_lang="DE"):
     )
 
 
-def multilingual_glossary_info():
+def multilingual_glossary_info(glossary_id="g-v3"):
     return deepl.api_data.MultilingualGlossaryInfo.from_json(
         {
-            "glossary_id": "g-v3",
+            "glossary_id": glossary_id,
             "name": "glossary",
             "creation_time": CREATION_TIME,
             "dictionaries": [
@@ -61,10 +61,10 @@ def multilingual_glossary_info():
     )
 
 
-def style_rule_info(language="en"):
+def style_rule_info(language="en", style_id="style-1"):
     return deepl.api_data.StyleRuleInfo.from_json(
         {
-            "style_id": "style-1",
+            "style_id": style_id,
             "name": "style",
             "creation_time": CREATION_TIME,
             "updated_time": CREATION_TIME,
@@ -74,10 +74,10 @@ def style_rule_info(language="en"):
     )
 
 
-def style_profile():
+def style_profile(style_profile_id="sp-1"):
     return deepl.StyleProfile.from_json(
         {
-            "style_profile_id": "sp-1",
+            "style_profile_id": style_profile_id,
             "name": "profile",
             "creation_time": "2026-10-26T16:27:10Z",
             "updated_time": "2026-10-26T16:27:10Z",
@@ -85,10 +85,10 @@ def style_profile():
     )
 
 
-def translation_memory_info():
+def translation_memory_info(translation_memory_id="tm-1"):
     return deepl.api_data.TranslationMemoryInfo.from_json(
         {
-            "translation_memory_id": "tm-1",
+            "translation_memory_id": translation_memory_id,
             "name": "memory",
             "source_language": "en",
             "target_languages": ["de"],
@@ -470,6 +470,27 @@ def test_raises_for_invalid_text(text, error, match):
 )
 def test_raises_for_invalid_options(kwargs, match):
     with pytest.raises(ValueError, match=match):
+        make_deepl_client().translate_text("hello", target_lang="DE", **kwargs)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"glossary": ""},
+        {"glossary": glossary_info(glossary_id="")},
+        {"glossary": multilingual_glossary_info(glossary_id="")},
+        {"glossary_ids": ["g", ""]},
+        {"glossary_ids": [multilingual_glossary_info(glossary_id="")]},
+        {"style_rule": ""},
+        {"style_rule": style_rule_info("de", style_id="")},
+        {"style_profile": ""},
+        {"style_profile": style_profile(style_profile_id="")},
+        {"translation_memory": ""},
+        {"translation_memory": translation_memory_info("")},
+    ],
+)
+def test_raises_for_empty_resource_id(no_retries, kwargs):
+    with pytest.raises(ValueError, match="must not be empty"):
         make_deepl_client().translate_text("hello", target_lang="DE", **kwargs)
 
 

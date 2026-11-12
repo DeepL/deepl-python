@@ -1546,7 +1546,9 @@ setting; if you need to use one, please manually identify your application in it
 
 All module functions may raise `deepl.DeepLException` or one of its subclasses.
 If invalid arguments are provided, they may raise the standard exceptions
-`ValueError` and `TypeError`.
+`ValueError` and `TypeError`. An empty resource ID, such as `glossary=""`
+or a `GlossaryInfo` without an ID, raises `ValueError` before any request is
+sent.
 
 | Exception | Raised for |
 |---|---|

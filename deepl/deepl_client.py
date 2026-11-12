@@ -81,6 +81,12 @@ def _check_target_lang_given(
     return target_lang
 
 
+def _resource_id(value: str, name: str) -> str:
+    if not value:
+        raise ValueError(f"{name} must not be empty")
+    return value
+
+
 # Default chunk size for writing downloads into output_file.
 _DOWNLOAD_CHUNK_SIZE = 64 * 1024
 
@@ -325,9 +331,11 @@ class DeepLClient(BaseClient):
         if isinstance(glossary, GlossaryInfo) or isinstance(
             glossary, MultilingualGlossaryInfo
         ):
-            request_data["glossary_id"] = glossary.glossary_id
+            request_data["glossary_id"] = _resource_id(
+                glossary.glossary_id, "glossary"
+            )
         elif glossary is not None:
-            request_data["glossary_id"] = glossary
+            request_data["glossary_id"] = _resource_id(glossary, "glossary")
         if glossary_ids is not None:
             resolved_ids = [
                 (
@@ -343,21 +351,31 @@ class DeepLClient(BaseClient):
             # this is JSON-encoded as an array; for document translation
             # (form/multipart) translate_document_upload joins it into a
             # single comma-separated glossary_ids field.
+            for resolved_id in resolved_ids:
+                _resource_id(resolved_id, "glossary_ids entry")
             request_data["glossary_ids"] = resolved_ids
         if isinstance(style_rule, StyleRuleInfo):
-            request_data["style_id"] = style_rule.style_id
+            request_data["style_id"] = _resource_id(
+                style_rule.style_id, "style_rule"
+            )
         elif style_rule is not None:
-            request_data["style_id"] = style_rule
+            request_data["style_id"] = _resource_id(style_rule, "style_rule")
         if isinstance(style_profile, StyleProfile):
-            request_data["style_profile_id"] = style_profile.style_profile_id
+            request_data["style_profile_id"] = _resource_id(
+                style_profile.style_profile_id, "style_profile"
+            )
         elif style_profile is not None:
-            request_data["style_profile_id"] = style_profile
+            request_data["style_profile_id"] = _resource_id(
+                style_profile, "style_profile"
+            )
         if isinstance(translation_memory, TranslationMemoryInfo):
-            request_data["translation_memory_id"] = (
-                translation_memory.translation_memory_id
+            request_data["translation_memory_id"] = _resource_id(
+                translation_memory.translation_memory_id, "translation_memory"
             )
         elif translation_memory is not None:
-            request_data["translation_memory_id"] = translation_memory
+            request_data["translation_memory_id"] = _resource_id(
+                translation_memory, "translation_memory"
+            )
         if translation_memory_threshold is not None:
             if translation_memory is None:
                 raise ValueError(
