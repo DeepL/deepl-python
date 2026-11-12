@@ -555,3 +555,26 @@ def test_create_custom_instruction_is_not_retried_after_possible_processing(
 
     assert len(mocked.calls) == 1
     assert exc_info.value.should_retry is should_retry
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c: c.create_style_rule_custom_instruction(
+            "style-1", "l", "p", source_language=""
+        ),
+        lambda c: c.update_style_rule_custom_instruction(
+            "style-1", "instruction-1", "l", "p", source_language=""
+        ),
+        lambda c: c.create_style_rule(
+            "n",
+            "en",
+            custom_instructions=[
+                {"label": "l", "prompt": "p", "source_language": ""}
+            ],
+        ),
+    ],
+)
+def test_raises_for_empty_source_language(no_retries, call):
+    with pytest.raises(ValueError, match="source_language must not be empty"):
+        call(make_deepl_client())

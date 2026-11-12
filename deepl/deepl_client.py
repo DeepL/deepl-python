@@ -81,6 +81,15 @@ def _check_target_lang_given(
     return target_lang
 
 
+def _check_language(
+    name: str, value: Union[str, Language, None], *, required: bool = True
+) -> None:
+    """Raises ValueError for an empty language code, and for None unless the
+    language is optional."""
+    if (value is None and required) or (value is not None and not str(value)):
+        raise ValueError(f"{name} must not be empty")
+
+
 def _resource_id(value: str, name: str) -> str:
     if not value:
         raise ValueError(f"{name} must not be empty")
@@ -2152,6 +2161,8 @@ class DeepLClient(BaseClient):
 
     @staticmethod
     def _language_pair_query(source_lang: str, target_lang: str) -> str:
+        _check_language("source_lang", source_lang)
+        _check_language("target_lang", target_lang)
         # glossaries are only supported for base language types
         return util.encode_query(
             {
@@ -2174,6 +2185,8 @@ class DeepLClient(BaseClient):
     def _dictionary_json(
         dictionary: MultilingualGlossaryDictionaryEntries,
     ) -> Dict[str, Any]:
+        _check_language("source_lang", dictionary.source_lang)
+        _check_language("target_lang", dictionary.target_lang)
         entries: Union[Dict[str, str], str] = dictionary.entries
         if isinstance(entries, str):
             # Trimmed and validated like a dict.
@@ -2322,6 +2335,7 @@ class DeepLClient(BaseClient):
         :return: SpokenTermsEntries containing the terms.
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
+        _check_language("lang", lang)
         query = util.encode_query({"lang": lang})
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}/entries?{query}",
@@ -2389,6 +2403,7 @@ class DeepLClient(BaseClient):
         :param lang: Language of the term list to delete, e.g. "de".
         """
         spoken_terms_id = self._spoken_terms_id(spoken_terms)
+        _check_language("lang", lang)
         query = util.encode_query({"lang": lang})
         status, content, json = self._api_call(
             f"v3/spoken-terms/{spoken_terms_id}/term-lists?{query}",
@@ -2409,6 +2424,7 @@ class DeepLClient(BaseClient):
 
     @staticmethod
     def _spoken_terms_json(entries: SpokenTermsEntries) -> dict:
+        _check_language("lang", entries.lang)
         # Terms are sent newline-separated: a term with a newline would
         # silently become several terms.
         terms = [term.strip() for term in entries.entries]
@@ -2560,6 +2576,12 @@ class DeepLClient(BaseClient):
         if configured_rules is not None:
             request_data["configured_rules"] = configured_rules
         if custom_instructions is not None:
+            for instruction in custom_instructions:
+                _check_language(
+                    "source_language",
+                    instruction.get("source_language"),
+                    required=False,
+                )
             request_data["custom_instructions"] = custom_instructions
 
         util._add_extra_body_parameters(request_data, extra_body_parameters)
@@ -2692,6 +2714,7 @@ class DeepLClient(BaseClient):
             raise ValueError("label must not be empty")
         if not prompt:
             raise ValueError("prompt must not be empty")
+        _check_language("source_language", source_language, required=False)
         request_data = {"label": label, "prompt": prompt}
         if source_language is not None:
             request_data["source_language"] = source_language
@@ -2760,6 +2783,7 @@ class DeepLClient(BaseClient):
             raise ValueError("label must not be empty")
         if not prompt:
             raise ValueError("prompt must not be empty")
+        _check_language("source_language", source_language, required=False)
         request_data = {"label": label, "prompt": prompt}
         if source_language is not None:
             request_data["source_language"] = source_language

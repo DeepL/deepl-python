@@ -219,3 +219,25 @@ def test_create_is_not_retried_after_possible_processing(
 def test_raises_for_empty_spoken_terms_id(no_retries, call, spoken_terms):
     with pytest.raises(ValueError, match="spoken_terms must not be empty"):
         call(make_deepl_client(), spoken_terms)
+
+
+@pytest.mark.parametrize("lang", ["", None])
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c, lang: c.create_spoken_terms(
+            "terms", [deepl.SpokenTermsEntries(lang, ["a"])]
+        ),
+        lambda c, lang: c.update_spoken_terms(
+            "st-1", term_lists=[deepl.SpokenTermsEntries(lang, ["a"])]
+        ),
+        lambda c, lang: c.replace_spoken_terms_list(
+            "st-1", deepl.SpokenTermsEntries(lang, ["a"])
+        ),
+        lambda c, lang: c.get_spoken_terms_entries("st-1", lang),
+        lambda c, lang: c.delete_spoken_terms_list("st-1", lang),
+    ],
+)
+def test_raises_for_empty_language(no_retries, call, lang):
+    with pytest.raises(ValueError, match="lang must not be empty"):
+        call(make_deepl_client(), lang)

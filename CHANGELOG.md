@@ -139,6 +139,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of `glossary_ids`, `style_rule`, `style_profile` or `translation_memory` is
   an empty string or an object with an empty ID, before any request is sent.
   Before, the empty ID was sent to the API.
+- **Breaking:** the multilingual glossary functions
+  (`create_multilingual_glossary()`, `update_multilingual_glossary()`, the
+  dictionary update, replace, get-entries and delete functions and their
+  `*_from_csv()` variants), the spoken terms functions
+  (`create_spoken_terms()`, `update_spoken_terms()`,
+  `replace_spoken_terms_list()`, `get_spoken_terms_entries()`,
+  `delete_spoken_terms_list()`) and the custom instruction functions of style
+  rules (`create_style_rule()`, `create_style_rule_custom_instruction()`,
+  `update_style_rule_custom_instruction()`) raise `ValueError` before any
+  request if a required language is empty or `None`, or an optional
+  `source_language` is an empty string. Before, the empty value was sent, and
+  `None` was sent as `NONE` or `null`.
 - **Breaking:** `rephrase_text()` and `correct_text()` raise `ValueError` if
   `target_lang` is an empty string, before any request is sent, instead of
   leaving it out of the request. To keep the input language, pass `None` or

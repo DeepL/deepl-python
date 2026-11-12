@@ -904,3 +904,43 @@ def test_create_is_not_retried_after_possible_processing(
 
     assert len(mocked.calls) == 1
     assert exc_info.value.should_retry is should_retry
+
+
+@pytest.mark.parametrize("lang", ["", None])
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c, d: c.create_multilingual_glossary("glossary", [d]),
+        lambda c, d: c.update_multilingual_glossary("g-1", dictionaries=[d]),
+        lambda c, d: c.replace_multilingual_glossary_dictionary("g-1", d),
+    ],
+)
+@pytest.mark.parametrize("field", ["source_lang", "target_lang"])
+def test_raises_for_empty_dictionary_language(no_retries, call, lang, field):
+    languages = {"source_lang": "EN", "target_lang": "DE", field: lang}
+    entries = MultilingualGlossaryDictionaryEntries(
+        entries={"a": "b"}, **languages
+    )
+
+    with pytest.raises(ValueError, match=f"{field} must not be empty"):
+        call(make_deepl_client(), entries)
+
+
+@pytest.mark.parametrize("lang", ["", None])
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c, s, t: c.get_multilingual_glossary_dictionary_entries(
+            "g-1", s, t
+        ),
+        lambda c, s, t: c.delete_multilingual_glossary_dictionary(
+            "g-1", dictionary=MultilingualGlossaryDictionaryInfo(s, t, 1)
+        ),
+    ],
+)
+@pytest.mark.parametrize("field", ["source_lang", "target_lang"])
+def test_raises_for_empty_language_pair(no_retries, call, lang, field):
+    pair = {"source_lang": "EN", "target_lang": "DE", field: lang}
+
+    with pytest.raises(ValueError, match=f"{field} must not be empty"):
+        call(make_deepl_client(), pair["source_lang"], pair["target_lang"])

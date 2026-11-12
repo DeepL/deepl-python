@@ -716,7 +716,9 @@ per language; a term list is a list of strings. Before sending, the library
 strips leading and trailing whitespace from each term and sends the stripped
 term, then checks it like a glossary term (`validate_glossary_term()`): an
 empty term or one with a control character, such as a newline, raises
-`ValueError`. The API validates the rest (at most 300 characters per list, no
+`ValueError`. An empty or `None` language of a term list, or the `lang`
+argument of `get_spoken_terms_entries()` and `delete_spoken_terms_list()`,
+raises `ValueError` too. The API validates the rest (at most 300 characters per list, no
 duplicates). Methods that take a collection accept either its ID or a
 `SpokenTerms` object. `create_spoken_terms()`, `update_spoken_terms()` and
 `replace_spoken_terms_list()` accept the keyword argument
@@ -915,6 +917,7 @@ your account, each with a user-specified name and a uniquely-assigned ID.
 
 Use `create_style_rule()` to create a new style rule with a name and language
 code. You can optionally provide `configured_rules` and `custom_instructions`.
+An empty `source_language` in a custom instruction raises `ValueError`.
 
 ```python
 style_rule = deepl_client.create_style_rule(
@@ -982,7 +985,8 @@ Custom instructions allow you to add free-text prompts to a style rule. Use
 `delete_style_rule_custom_instruction()` to manage them. The `style_rule`
 argument of every style rule function takes a style rule ID or a
 `StyleRuleInfo` object, and `instruction_id` takes a custom instruction ID or a
-`CustomInstruction` object.
+`CustomInstruction` object. `source_language` is optional; an empty string
+raises `ValueError`.
 
 ```python
 # Create a custom instruction
@@ -1548,6 +1552,8 @@ All module functions may raise `deepl.DeepLException` or one of its subclasses.
 If invalid arguments are provided, they may raise the standard exceptions
 `ValueError` and `TypeError`. An empty resource ID, such as `glossary=""`
 or a `GlossaryInfo` without an ID, raises `ValueError` before any request is
+sent. An empty language code, where one is required, or an empty optional
+language such as `source_language`, raises `ValueError` before any request is
 sent.
 
 | Exception | Raised for |
