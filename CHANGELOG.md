@@ -257,6 +257,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `get_multilingual_glossary_dictionary_entries()` raises `NotFoundException`
   if the glossary has no dictionary for the language pair. Catch
   `NotFoundException` instead.
+- **Breaking:** Removed `MultilingualGlossaryDictionaryEntriesResponse`, the
+  return type of the removed `get_multilingual_glossary_entries()`.
+  `get_multilingual_glossary_dictionary_entries()` returns the
+  `MultilingualGlossaryDictionaryEntries` directly.
 
 ### Fixed
 - The `deepl` package exports all public types of `deepl.api_data`, among

@@ -606,44 +606,6 @@ class MultilingualGlossaryDictionaryEntries:
         return self._entries
 
 
-class MultilingualGlossaryDictionaryEntriesResponse:
-    def __init__(
-        self, dictionaries: List[MultilingualGlossaryDictionaryEntries]
-    ):
-        self._dictionaries = dictionaries
-
-    def __str__(self) -> str:
-        return (
-            "MultilingualGlossaryDictionaryEntriesResponse: "
-            f"Contents {self._dictionaries}"
-        )
-
-    @staticmethod
-    def from_json(json) -> "MultilingualGlossaryDictionaryEntriesResponse":
-        """Create MultilingualGlossaryDictionaryEntriesResponse from the given
-        API JSON object.
-        """
-        try:
-            glossary_dicts = list(json["dictionaries"])
-        except (KeyError, TypeError) as error:
-            raise _malformed_response(
-                "MultilingualGlossaryDictionaryEntriesResponse", error
-            ) from error
-        serialized_dicts = list(
-            map(
-                lambda glossary_dict: MultilingualGlossaryDictionaryEntries.from_json(  # noqa: E501
-                    glossary_dict
-                ),
-                glossary_dicts,
-            )
-        )
-        return MultilingualGlossaryDictionaryEntriesResponse(serialized_dicts)
-
-    @property
-    def dictionaries(self) -> List[MultilingualGlossaryDictionaryEntries]:
-        return self._dictionaries
-
-
 class MultilingualGlossaryDictionaryInfo:
     def __init__(self, source_lang: str, target_lang: str, entry_count: int):
         self._source_lang = source_lang

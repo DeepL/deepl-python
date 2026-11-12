@@ -39,7 +39,6 @@ from .exceptions import (  # noqa
 
 from .api_data import (  # noqa
     MultilingualGlossaryDictionaryEntries,
-    MultilingualGlossaryDictionaryEntriesResponse,
     MultilingualGlossaryDictionaryInfo,
     MultilingualGlossaryInfo,
     SpokenTerms,
@@ -121,7 +120,6 @@ __all__ = [
     "LanguageSupport",
     "ModelType",
     "MultilingualGlossaryDictionaryEntries",
-    "MultilingualGlossaryDictionaryEntriesResponse",
     "MultilingualGlossaryDictionaryInfo",
     "MultilingualGlossaryInfo",
     "ResourceFeature",

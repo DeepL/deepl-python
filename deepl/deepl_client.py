@@ -17,7 +17,6 @@ from deepl.api_data import (
     LanguageSupport,
     ModelType,
     MultilingualGlossaryDictionaryEntries,
-    MultilingualGlossaryDictionaryEntriesResponse,
     MultilingualGlossaryDictionaryInfo,
     MultilingualGlossaryInfo,
     SplitSentences,
@@ -38,6 +37,7 @@ from deepl.api_data import (
     WriteResult,
     WritingStyle,
     WritingTone,
+    _malformed_response,
 )
 from deepl.exceptions import (
     ConnectionException,
@@ -2042,22 +2042,6 @@ class DeepLClient(BaseClient):
         :raises NotFoundException: If the glossary or the dictionary
             is not found.
         """
-        dictionaries = self._get_multilingual_glossary_entries(
-            glossary, source_lang, target_lang
-        ).dictionaries
-        if not dictionaries:
-            raise NotFoundException(
-                "Not found, message: no dictionary for "
-                f"{source_lang}->{target_lang}"
-            )
-        return dictionaries[0]
-
-    def _get_multilingual_glossary_entries(
-        self,
-        glossary: Union[str, MultilingualGlossaryInfo],
-        source_lang: str,
-        target_lang: str,
-    ) -> MultilingualGlossaryDictionaryEntriesResponse:
         glossary_id = self._multilingual_glossary_id(glossary)
         query = self._language_pair_query(source_lang, target_lang)
 
@@ -2066,7 +2050,18 @@ class DeepLClient(BaseClient):
             method="GET",
         )
         self._raise_for_status(status, content, json)
-        return MultilingualGlossaryDictionaryEntriesResponse.from_json(json)
+        try:
+            dictionaries = list(json["dictionaries"])
+        except (KeyError, TypeError) as error:
+            raise _malformed_response(
+                "MultilingualGlossaryDictionaryEntries", error
+            ) from error
+        if not dictionaries:
+            raise NotFoundException(
+                "Not found, message: no dictionary for "
+                f"{source_lang}->{target_lang}"
+            )
+        return MultilingualGlossaryDictionaryEntries.from_json(dictionaries[0])
 
     def delete_multilingual_glossary(
         self, glossary: Union[str, MultilingualGlossaryInfo]
