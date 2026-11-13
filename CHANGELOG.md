@@ -131,6 +131,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `translate_text()`, `rephrase_text()` and `correct_text()`
   raise `ValueError` if a list of texts contains an empty string, before any
   request is sent. Before, only a single empty string was rejected.
+- **Breaking:** `translate_text()`, `rephrase_text()` and `correct_text()` no
+  longer check the type of `text`. A value that is neither a string nor
+  iterable raises Python's own `TypeError` from `list()` (for example "'int'
+  object is not iterable"), still before any request, instead of
+  `TypeError: text parameter must be a string or an iterable of strings`.
 - **Breaking:** `translate_text()`, `translate_document_upload()` and the
   document functions that call it raise `ValueError` if `target_lang` or a
   given `source_lang` is an empty string, before any request is sent.

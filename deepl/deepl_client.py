@@ -536,15 +536,11 @@ class DeepLClient(BaseClient):
                 raise ValueError("text must not be empty")
             text = [text]
             multi_input = False
-        elif hasattr(text, "__iter__"):
+        else:
             multi_input = True
             text = list(text)
             if any(t == "" for t in text):
                 raise ValueError("text must not be empty")
-        else:
-            raise TypeError(
-                "text parameter must be a string or an iterable of strings"
-            )
         text_count = len(text)
 
         request_data = self._check_language_and_formality(
@@ -1495,15 +1491,11 @@ class DeepLClient(BaseClient):
                 raise ValueError("text must not be empty")
             text = [text]
             multi_input = False
-        elif hasattr(text, "__iter__"):
+        else:
             multi_input = True
             text = list(text)
             if any(t == "" for t in text):
                 raise ValueError("text must not be empty")
-        else:
-            raise TypeError(
-                "text parameter must be a string or an iterable of strings"
-            )
 
         if target_lang is not None and str(target_lang) == "":
             raise ValueError("target_lang must not be empty")
@@ -1556,15 +1548,11 @@ class DeepLClient(BaseClient):
                 raise ValueError("text must not be empty")
             text = [text]
             multi_input = False
-        elif hasattr(text, "__iter__"):
+        else:
             multi_input = True
             text = list(text)
             if any(t == "" for t in text):
                 raise ValueError("text must not be empty")
-        else:
-            raise TypeError(
-                "text parameter must be a string or an iterable of strings"
-            )
 
         if target_lang is not None and str(target_lang) == "":
             raise ValueError("target_lang must not be empty")

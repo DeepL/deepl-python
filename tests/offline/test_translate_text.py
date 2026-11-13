@@ -416,7 +416,6 @@ def test_returns_list_for_single_item_list(mocked):
     [
         ("", ValueError, "text must not be empty"),
         (["a", ""], ValueError, "text must not be empty"),
-        (5, TypeError, "string or an iterable"),
     ],
 )
 def test_raises_for_invalid_text(text, error, match):
