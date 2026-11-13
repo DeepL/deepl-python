@@ -206,6 +206,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a `proxy` URL has no host or a scheme other than `http`, `https`, `socks4`,
   `socks4a`, `socks5` or `socks5h`, instead of failing on the first request.
   A proxy URL without a scheme is still used as an `http://` URL.
+- **Breaking:** the `DeepLClient` and `DeepLAdminClient` constructors no
+  longer check the type of `proxy`. A value that is neither a string nor a
+  dictionary raises Python's own error (`AttributeError` for a list) instead
+  of `ValueError`.
 - The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
   `server_url` is not an absolute `http` or `https` URL with a host, instead
   of failing on the first request with `DeepLException`.

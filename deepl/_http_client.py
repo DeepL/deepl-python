@@ -104,11 +104,6 @@ class HttpClient:
         if proxy:
             if isinstance(proxy, str):
                 proxy = {"http": proxy, "https": proxy}
-            if not isinstance(proxy, dict):
-                raise ValueError(
-                    "proxy may be specified as a URL string or dictionary "
-                    "containing URL strings for the http and https keys."
-                )
             for key, value in proxy.items():
                 if value is not None:
                     _check_proxy_url(key, value)

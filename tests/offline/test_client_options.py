@@ -243,11 +243,6 @@ def test_passes_proxy_dictionary_to_requests(mocked):
     assert mocked.calls[0].request.req_kwargs["proxies"] == proxies
 
 
-def test_raises_for_proxy_of_invalid_type():
-    with pytest.raises(ValueError, match="proxy may be specified"):
-        make_deepl_client(proxy=["http://proxy.example.com"])
-
-
 @pytest.mark.parametrize(
     "proxy",
     [
