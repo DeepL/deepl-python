@@ -221,7 +221,7 @@ def test_raises_for_empty_spoken_terms_id(no_retries, call, spoken_terms):
         call(make_deepl_client(), spoken_terms)
 
 
-@pytest.mark.parametrize("lang", ["", None])
+@pytest.mark.parametrize("lang", [""])
 @pytest.mark.parametrize(
     "call",
     [

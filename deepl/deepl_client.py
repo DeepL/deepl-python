@@ -81,12 +81,9 @@ def _check_target_lang_given(
     return target_lang
 
 
-def _check_language(
-    name: str, value: Union[str, Language, None], *, required: bool = True
-) -> None:
-    """Raises ValueError for an empty language code, and for None unless the
-    language is optional."""
-    if (value is None and required) or (value is not None and not str(value)):
+def _check_language(name: str, value: Union[str, Language, None]) -> None:
+    """Raises ValueError for an empty language code."""
+    if value is not None and not str(value):
         raise ValueError(f"{name} must not be empty")
 
 
@@ -2569,9 +2566,7 @@ class DeepLClient(BaseClient):
         if custom_instructions is not None:
             for instruction in custom_instructions:
                 _check_language(
-                    "source_language",
-                    instruction.get("source_language"),
-                    required=False,
+                    "source_language", instruction.get("source_language")
                 )
             request_data["custom_instructions"] = custom_instructions
 
@@ -2705,7 +2700,7 @@ class DeepLClient(BaseClient):
             raise ValueError("label must not be empty")
         if not prompt:
             raise ValueError("prompt must not be empty")
-        _check_language("source_language", source_language, required=False)
+        _check_language("source_language", source_language)
         request_data = {"label": label, "prompt": prompt}
         if source_language is not None:
             request_data["source_language"] = source_language
@@ -2774,7 +2769,7 @@ class DeepLClient(BaseClient):
             raise ValueError("label must not be empty")
         if not prompt:
             raise ValueError("prompt must not be empty")
-        _check_language("source_language", source_language, required=False)
+        _check_language("source_language", source_language)
         request_data = {"label": label, "prompt": prompt}
         if source_language is not None:
             request_data["source_language"] = source_language

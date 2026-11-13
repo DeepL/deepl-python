@@ -153,9 +153,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `delete_spoken_terms_list()`) and the custom instruction functions of style
   rules (`create_style_rule()`, `create_style_rule_custom_instruction()`,
   `update_style_rule_custom_instruction()`) raise `ValueError` before any
-  request if a required language is empty or `None`, or an optional
-  `source_language` is an empty string. Before, the empty value was sent, and
-  `None` was sent as `NONE` or `null`.
+  request if a required language is empty, or an optional `source_language`
+  is an empty string. Before, the empty value was sent.
 - **Breaking:** `rephrase_text()` and `correct_text()` raise `ValueError` if
   `target_lang` is an empty string, before any request is sent, instead of
   leaving it out of the request. To keep the input language, pass `None` or

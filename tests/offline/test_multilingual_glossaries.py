@@ -906,7 +906,7 @@ def test_create_is_not_retried_after_possible_processing(
     assert exc_info.value.should_retry is should_retry
 
 
-@pytest.mark.parametrize("lang", ["", None])
+@pytest.mark.parametrize("lang", [""])
 @pytest.mark.parametrize(
     "call",
     [
@@ -926,7 +926,7 @@ def test_raises_for_empty_dictionary_language(no_retries, call, lang, field):
         call(make_deepl_client(), entries)
 
 
-@pytest.mark.parametrize("lang", ["", None])
+@pytest.mark.parametrize("lang", [""])
 @pytest.mark.parametrize(
     "call",
     [

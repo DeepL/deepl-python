@@ -720,9 +720,9 @@ per language; a term list is a list of strings. Before sending, the library
 strips leading and trailing whitespace from each term and sends the stripped
 term, then checks it like a glossary term (`validate_glossary_term()`): an
 empty term or one with a control character, such as a newline, raises
-`ValueError`. An empty or `None` language of a term list, or the `lang`
-argument of `get_spoken_terms_entries()` and `delete_spoken_terms_list()`,
-raises `ValueError` too. The API validates the rest (at most 300 characters per list, no
+`ValueError`. An empty language of a term list, or an empty `lang` argument
+of `get_spoken_terms_entries()` and `delete_spoken_terms_list()`, raises
+`ValueError` too. The API validates the rest (at most 300 characters per list, no
 duplicates). Methods that take a collection accept either its ID or a
 `SpokenTerms` object. `create_spoken_terms()`, `update_spoken_terms()` and
 `replace_spoken_terms_list()` accept the keyword argument
