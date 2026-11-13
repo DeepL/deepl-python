@@ -213,6 +213,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `replace_multilingual_glossary_dictionary_from_csv()` raise `ValueError` if
   the CSV content is empty, before any request is sent, as the variants
   taking a dictionary do. Before, an empty dictionary was sent.
+- **Breaking:** `create_glossary_from_csv()` and the multilingual glossary
+  `*_from_csv()` functions no longer check the type of what a file-like
+  `csv_data` / `csv` returns from `read()`. `create_glossary_from_csv()` sends
+  it as the entries, and the multilingual functions pass it to the CSV
+  parser, which raises Python's own `TypeError` for a non-iterable. Before, a
+  result that was neither `str` nor `bytes` raised
+  `ValueError: Entries of the glossary are invalid`.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

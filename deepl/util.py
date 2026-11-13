@@ -191,9 +191,6 @@ def convert_csv_to_dict(
         csv_data if isinstance(csv_data, (str, bytes)) else csv_data.read()
     )
 
-    if not isinstance(csv_string, (bytes, str)):
-        raise ValueError("Entries of the glossary are invalid")
-
     if isinstance(csv_string, bytes):
         csv_string = csv_string.decode("utf-8")
 

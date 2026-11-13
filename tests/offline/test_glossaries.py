@@ -91,16 +91,6 @@ def test_sends_csv_bytes_when_creating_glossary_from_csv(mocked, csv_data):
     )
 
 
-def test_raises_when_glossary_csv_is_not_text():
-    reader = io.StringIO()
-    reader.read = lambda: 5  # type: ignore[assignment,method-assign]
-
-    with pytest.raises(ValueError, match="Entries of the glossary"):
-        make_deepl_client().create_glossary_from_csv(
-            "glossary", "EN", "DE", reader
-        )
-
-
 def test_raises_when_creating_glossary_with_invalid_input():
     translator = make_deepl_client()
 

@@ -1361,8 +1361,7 @@ class DeepLClient(BaseClient):
             file-like object or string or bytes containing file content.
         :return: GlossaryInfo containing information about created glossary.
 
-        :raises ValueError: If the glossary name is empty, or entries are
-            empty or invalid.
+        :raises ValueError: If the glossary name is empty.
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
@@ -1371,8 +1370,6 @@ class DeepLClient(BaseClient):
             csv_data if isinstance(csv_data, (str, bytes)) else csv_data.read()
         )
 
-        if not isinstance(entries, (bytes, str)):
-            raise ValueError("Entries of the glossary are invalid")
         # The request body is JSON, which cannot carry bytes.
         if isinstance(entries, bytes):
             entries = entries.decode("utf-8")
