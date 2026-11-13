@@ -829,8 +829,10 @@ class DeepLClient(BaseClient):
         :param translation_memory_threshold: (Optional) minimum matching
             percentage for fuzzy matches from the translation memory (0-100).
             Recommended minimum is 75%.
-        :param filename: (Optional) Filename including extension, only required
-            if uploading string or bytes containing file content.
+        :param filename: (Optional) Filename including extension, sent with
+            the upload instead of the file object's own name; the API detects
+            the input format from its extension. Required if uploading string
+            or bytes containing file content.
         :param output_format: (Optional) Desired output file extension, if
             it differs from the input file format.
         :param enable_watermark: (Optional) Set to True to add a "Translated
@@ -934,8 +936,10 @@ class DeepLClient(BaseClient):
         :param translation_memory_threshold: (Optional) minimum matching
             percentage for fuzzy matches from the translation memory (0-100).
             Recommended minimum is 75%.
-        :param filename: (Optional) Filename including extension, only required
-            if uploading string or bytes containing file content.
+        :param filename: (Optional) Filename including extension, sent with
+            the upload instead of the file object's own name; the API detects
+            the input format from its extension. Required if uploading string
+            or bytes containing file content.
         :param output_format: (Optional) Desired output file extension, if
             it differs from the input file format.
         :param enable_watermark: (Optional) Set to True to add a "Translated
@@ -982,16 +986,18 @@ class DeepLClient(BaseClient):
                 request_data["glossary_ids"]
             )
 
-        files: Dict[str, Any] = {}
-        if isinstance(input_document, (str, bytes)):
-            if filename is None:
-                raise ValueError(
-                    "filename is required if uploading file content as string "
-                    "or bytes"
-                )
-            files = {"file": (filename, input_document)}
-        else:
-            files = {"file": input_document}
+        if filename is None and isinstance(input_document, (str, bytes)):
+            raise ValueError(
+                "filename is required if uploading file content as string "
+                "or bytes"
+            )
+        files: Dict[str, Any] = {
+            "file": (
+                input_document
+                if filename is None
+                else (filename, input_document)
+            )
+        }
         util._add_extra_body_parameters(request_data, extra_body_parameters)
 
         status, content, json = self._api_call(

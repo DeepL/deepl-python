@@ -69,6 +69,24 @@ def test_sends_string_and_bytes_content_with_filename(mocked, content):
     )
 
 
+@pytest.mark.parametrize("named_file", [True, False])
+def test_sends_given_filename_with_file_object(mocked, tmp_path, named_file):
+    if named_file:
+        path = tmp_path / "document.txt"
+        path.write_bytes(b"hello")
+        input_document = open(path, "rb")
+    else:
+        input_document = io.BytesIO(b"hello")
+    reply_with_handle(
+        mocked, {"file": ("a.docx", b"hello")}, {"target_lang": "DE"}
+    )
+
+    with input_document:
+        make_deepl_client().translate_document_upload(
+            input_document, target_lang="DE", filename="a.docx"
+        )
+
+
 def test_sends_binary_file_content_unchanged(mocked):
     reply_with_handle(
         mocked, {"file": ("a.docx", BINARY_CONTENT)}, {"target_lang": "DE"}

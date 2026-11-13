@@ -164,6 +164,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `translate_document_from_filepath()` raises
   `DocumentTranslationException` with `document_handle` `None` before any
   request if `output_path` already exists, instead of overwriting the file.
+- **Breaking:** `translate_document_upload()` and `translate_document()` send
+  the given `filename` as the upload's file name for a file object too.
+  Before, `filename` was used only for `str` or `bytes` content, and a file
+  object was sent under its own name, or as `file` if it had none. The API
+  detects the input format from the file name's extension. Without
+  `filename`, a file object is still sent under its own name.
 - **Breaking:** `import_translation_memory_from_filepath()` and
   `export_translation_memory_to_filepath()` raise the new
   `TranslationMemoryJobException` (a `DeepLException` subclass) for every
