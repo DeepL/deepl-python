@@ -658,11 +658,13 @@ class DeepLClient(BaseClient):
         """Upload document at given input path, translate it into the target
         language, and download result to given output path.
 
-        The upload request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could translate
-        the document twice. The raised exception has should_retry True only
-        after those failures or a response body cut off mid-read.
+        The upload request is only retried if it was not sent (HTTP 429 or a
+        network failure while connecting, such as a DNS resolution failure, a
+        refused connection, a connect timeout, or a reset or timeout in the TLS
+        or proxy handshake): a retry after a server error, read timeout or lost
+        connection could translate the document twice. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         :param input_path: Path to document to be translated.
         :param output_path: Path to store translated document.
@@ -791,11 +793,13 @@ class DeepLClient(BaseClient):
         """Upload document, translate it into the target language, and download
         result.
 
-        The upload request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could translate
-        the document twice. The raised exception has should_retry True only
-        after those failures or a response body cut off mid-read.
+        The upload request is only retried if it was not sent (HTTP 429 or a
+        network failure while connecting, such as a DNS resolution failure, a
+        refused connection, a connect timeout, or a reset or timeout in the TLS
+        or proxy handshake): a retry after a server error, read timeout or lost
+        connection could translate the document twice. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         :param input_document: Document to translate as a file-like object. It
             is recommended to open files in binary mode.
@@ -900,11 +904,13 @@ class DeepLClient(BaseClient):
         """Upload document to be translated and return handle associated with
         request.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could translate
-        the document twice. The raised exception has should_retry True only
-        after those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could translate the document twice. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         :param input_document: Document to translate as a file-like object, or
             string or bytes containing file content.
@@ -1285,11 +1291,13 @@ class DeepLClient(BaseClient):
         languages, containing the entries in dictionary. The glossary may be
         used in the translate_text functions.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second glossary. The raised exception has should_retry True only after
-        those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second glossary. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         Only certain language pairs are supported. The available language pairs
         can be queried using get_glossary_languages(). Glossaries are not
@@ -1334,11 +1342,13 @@ class DeepLClient(BaseClient):
         languages, containing the entries in the given CSV data.
         The glossary may be used in the translate_text functions.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second glossary. The raised exception has should_retry True only after
-        those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second glossary. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         Only certain language pairs are supported. The available language pairs
         can be queried using get_glossary_languages(). Glossaries are not
@@ -1576,11 +1586,13 @@ class DeepLClient(BaseClient):
         dictionaries, each with their own language pair and entries. The
         glossary may be used in the translate_text functions.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second glossary. The raised exception has should_retry True only after
-        those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second glossary. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         The available glossary language pairs can be queried using
         get_glossary_languages(). Glossaries apply to languages, not specific
@@ -1629,11 +1641,13 @@ class DeepLClient(BaseClient):
         languages, containing the entries in the given CSV data.
         The glossary may be used in the translate_text functions.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second glossary. The raised exception has should_retry True only after
-        those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second glossary. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         The available glossary language pairs can be queried using
         get_glossary_languages(). Glossaries apply to languages, not specific
@@ -2208,11 +2222,13 @@ class DeepLClient(BaseClient):
         lists, one per language. Spoken terms improve the transcription of
         the given terms.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second collection. The raised exception has should_retry True only
-        after those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second collection. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         :param name: User-defined name to attach to the collection.
         :param term_lists: List of SpokenTermsEntries, each containing the
@@ -2539,11 +2555,13 @@ class DeepLClient(BaseClient):
     ) -> StyleRuleInfo:
         """Creates a new style rule.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second style rule. The raised exception has should_retry True only
-        after those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second style rule. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         :param name: Name for the style rule.
         :param language: Language code for the style rule.
@@ -2679,11 +2697,13 @@ class DeepLClient(BaseClient):
     ) -> CustomInstruction:
         """Creates a custom instruction for a style rule.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second custom instruction. The raised exception has should_retry True
-        only after those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second custom instruction. The raised
+        exception has should_retry True only after those failures or a response
+        body cut off mid-read.
 
         :param style_rule: Style rule ID string or StyleRuleInfo object.
         :param label: Label for the custom instruction.
@@ -2863,11 +2883,13 @@ class DeepLClient(BaseClient):
         component IDs cannot be used, the request fails and no style profile
         is created.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second style profile. The raised exception has should_retry True only
-        after those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second style profile. The raised exception
+        has should_retry True only after those failures or a response body cut
+        off mid-read.
 
         :param name: Name for the style profile.
         :param description: (Optional) Free-text description.
@@ -3244,11 +3266,13 @@ class DeepLClient(BaseClient):
     ) -> TranslationMemoryImport:
         """Creates an import job for a new translation memory.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second import job. The raised exception has should_retry True only
-        after those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second import job. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         The job only declares the file; upload the TMX file itself to the
         returned upload URL with upload_translation_memory_file(), then poll
@@ -3347,11 +3371,13 @@ class DeepLClient(BaseClient):
     ) -> TranslationMemoryExport:
         """Creates an export job for a translation memory.
 
-        The request is only retried if it was not sent (HTTP 429, a DNS
-        resolution failure, a refused connection or a connect timeout): a retry
-        after a server error, read timeout or lost connection could create a
-        second export job. The raised exception has should_retry True only
-        after those failures or a response body cut off mid-read.
+        The request is only retried if it was not sent (HTTP 429 or a network
+        failure while connecting, such as a DNS resolution failure, a refused
+        connection, a connect timeout, or a reset or timeout in the TLS or
+        proxy handshake): a retry after a server error, read timeout or lost
+        connection could create a second export job. The raised exception has
+        should_retry True only after those failures or a response body cut off
+        mid-read.
 
         Poll get_translation_memory_job() for the download URL of the
         exported TMX file. Use export_translation_memory_to_filepath() to do
@@ -3512,11 +3538,12 @@ class DeepLClient(BaseClient):
         job, uploads the file, and waits for processing to finish.
 
         The request that creates the import job is only retried if it was not
-        sent (HTTP 429, a DNS resolution failure, a refused connection or a
-        connect timeout): a retry after a server error, read timeout or lost
-        connection could create a second import job. The raised exception has
-        should_retry True only after those failures or a response body cut off
-        mid-read.
+        sent (HTTP 429 or a network failure while connecting, such as a DNS
+        resolution failure, a refused connection, a connect timeout, or a reset
+        or timeout in the TLS or proxy handshake): a retry after a server
+        error, read timeout or lost connection could create a second import
+        job. The raised exception has should_retry True only after those
+        failures or a response body cut off mid-read.
 
         :param input_path: Path to the TMX file to import.
         :param display_name: (Optional) Name for the resulting translation
@@ -3589,11 +3616,12 @@ class DeepLClient(BaseClient):
         waits for it to finish, and writes the result to output_path.
 
         The request that creates the export job is only retried if it was not
-        sent (HTTP 429, a DNS resolution failure, a refused connection or a
-        connect timeout): a retry after a server error, read timeout or lost
-        connection could create a second export job. The raised exception has
-        should_retry True only after those failures or a response body cut off
-        mid-read.
+        sent (HTTP 429 or a network failure while connecting, such as a DNS
+        resolution failure, a refused connection, a connect timeout, or a reset
+        or timeout in the TLS or proxy handshake): a retry after a server
+        error, read timeout or lost connection could create a second export
+        job. The raised exception has should_retry True only after those
+        failures or a response body cut off mid-read.
 
         :param translation_memory: Translation memory ID string or
             TranslationMemoryInfo object.

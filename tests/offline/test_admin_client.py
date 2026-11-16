@@ -499,24 +499,43 @@ def _dns_failure(error_class=requests.exceptions.ConnectionError):
     return error_class(urllib3.exceptions.MaxRetryError(None, "/", reason))
 
 
-def test_create_developer_key_does_not_retry_dns_failure_of_proxy(mocked):
-    mocked.post(
-        url("v2/admin/developer-keys"),
-        body=_dns_failure(requests.exceptions.ProxyError),
-    )
-
-    with pytest.raises(deepl.ConnectionException):
-        make_admin_client().create_developer_key()
-
-    assert len(mocked.calls) == 1
-
-
 def _refused_connection(error=requests.exceptions.ConnectionError):
     refused = ConnectionRefusedError(111, "Connection refused")
     reason = urllib3.exceptions.NewConnectionError(None, "refused")
     reason.__cause__ = refused
     reason.__context__ = refused
     return error(urllib3.exceptions.MaxRetryError(None, "/", reason))
+
+
+def _raised_while_connecting(error):
+    """Returns error raised inside urllib3's connect(), which opens the
+    connection, the proxy tunnel and the TLS session."""
+    conn = urllib3.connection.HTTPSConnection("api.deepl.com")
+
+    def fail():
+        raise error
+
+    conn._new_conn = fail  # type: ignore[method-assign]
+    try:
+        conn.connect()
+    except type(error) as e:
+        return e
+    raise AssertionError("connect() did not raise")
+
+
+def _reset_while_connecting():
+    reset = _raised_while_connecting(ConnectionResetError(54, "reset"))
+    return requests.exceptions.ConnectionError(
+        urllib3.exceptions.ProtocolError("Connection aborted.", reset)
+    )
+
+
+def _timeout_while_connecting():
+    timeout = urllib3.exceptions.ReadTimeoutError(None, "/", "timed out")
+    timeout.__cause__ = _raised_while_connecting(
+        TimeoutError("The handshake operation timed out")
+    )
+    return requests.exceptions.ReadTimeout(timeout)
 
 
 @pytest.mark.parametrize(
@@ -526,6 +545,10 @@ def _refused_connection(error=requests.exceptions.ConnectionError):
         {"body": _dns_failure()},
         {"body": _refused_connection()},
         {"body": requests.exceptions.ConnectTimeout("connect timed out")},
+        {"body": _dns_failure(requests.exceptions.ProxyError)},
+        {"body": _refused_connection(requests.exceptions.ProxyError)},
+        {"body": _reset_while_connecting()},
+        {"body": _timeout_while_connecting()},
     ],
 )
 def test_create_developer_key_is_retried_when_not_processed(mocked, failure):
@@ -535,20 +558,6 @@ def test_create_developer_key_is_retried_when_not_processed(mocked, failure):
     make_admin_client().create_developer_key()
 
     assert len(mocked.calls) == 2
-
-
-def test_create_developer_key_does_not_retry_refused_proxy_connection(
-    mocked,
-):
-    mocked.post(
-        url("v2/admin/developer-keys"),
-        body=_refused_connection(requests.exceptions.ProxyError),
-    )
-
-    with pytest.raises(deepl.ConnectionException):
-        make_admin_client().create_developer_key()
-
-    assert len(mocked.calls) == 1
 
 
 def test_other_admin_requests_are_retried(mocked):

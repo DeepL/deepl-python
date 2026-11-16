@@ -1659,12 +1659,14 @@ option, see the [documentation for requests][requests-verify-ssl-docs].
 This SDK will automatically retry failed HTTP requests if the failures could
 be transient: HTTP 429 and 5xx status codes, and network failures such as
 refused or reset connections (also a connection that breaks off while the
-response is read), DNS failures and timeouts. TLS and certificate
-failures, and proxy failures (including a failure to connect to the proxy),
-are not retried. By default a request is retried up to 5 times, and each
+response is read), DNS failures and timeouts. TLS and certificate failures,
+and an error answer from a proxy (a status other than 2xx in reply to
+`CONNECT`, such as 407), are not retried. A failure to connect to the proxy,
+or a reset or timeout before it answers, is retried like the same failure
+without a proxy. By default a request is retried up to 5 times, and each
 attempt has a timeout of at least 10 seconds. You can change both per client
-with the `max_retries` and `timeout_s` options when
-constructing a `deepl.DeepLClient`:
+with the `max_retries` and `timeout_s` options when constructing a
+`deepl.DeepLClient`:
 
 ```python
 deepl_client = deepl.DeepLClient(..., max_retries=3, timeout_s=30.0)
@@ -1681,9 +1683,11 @@ automatically, because part of the file may already be written. The
 with a fresh output file.
 
 Functions that create a resource are only retried when the request was not
-sent: after an HTTP 429 status code, a DNS resolution failure, a refused
-connection or a connect timeout. A retry after any other failure could create
-the resource twice. These are `create_glossary()`,
+sent: after an HTTP 429 status code or a network failure while connecting,
+before any request byte is written, such as a DNS resolution failure, a
+refused connection, a connect timeout, or a reset or timeout in the TLS or
+proxy handshake (also through a proxy). A retry after any other failure could
+create the resource twice. These are `create_glossary()`,
 `create_glossary_from_csv()`, `create_multilingual_glossary()`,
 `create_multilingual_glossary_from_csv()`, `create_spoken_terms()`,
 `create_style_rule()`, `create_style_rule_custom_instruction()`,
@@ -1698,7 +1702,7 @@ the resource twice. These are `create_glossary()`,
 every transient failure listed above.
 
 For these functions, `should_retry` of the raised exception is `True` only
-after a failure that shows the request was not sent (the four above) or a
+after a failure that shows the request was not sent (the failures above) or a
 response body cut off mid-read. After an HTTP 5xx status code, a read timeout,
 a reset connection or a broken pipe it is `False`, because the request may
 have been processed and repeating it could create a duplicate.

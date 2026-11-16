@@ -136,13 +136,14 @@ class HttpClient:
         """Makes API request, retrying if necessary, and returns response.
 
         If retry_only_unprocessed is True, the request is only retried after
-        failures that show it was not processed (HTTP 429, DNS resolution
-        errors, refused connections and connect timeouts), for requests that
-        are unsafe to repeat; a raised ConnectionException then has
-        should_retry True only after those failures or a response body cut
-        off mid-read. Otherwise connection failures, including a
-        connection that breaks off while the response body is read, and
-        timeouts are retried too.
+        failures that show it was not processed (HTTP 429 and network failures
+        while connecting, before any request byte is written: DNS resolution
+        errors, refused connections, connect timeouts, resets and timeouts in
+        the TLS or proxy handshake), for requests that are unsafe to repeat; a
+        raised ConnectionException then has should_retry True only after those
+        failures or a response body cut off mid-read. Otherwise connection
+        failures, including a connection that breaks off while the response
+        body is read, and timeouts are retried too.
 
         Return and exceptions are the same as function request()."""
         backoff = _BackoffTimer(self._timeout_s)
@@ -241,7 +242,9 @@ class HttpClient:
             raise ConnectionException(message, should_retry=False) from e
         except requests.exceptions.ProxyError as e:
             message = f"Proxy connection failed: {e}"
-            raise ConnectionException(message, should_retry=False) from e
+            raise ConnectionException(
+                message, should_retry=not _proxy_refused(e)
+            ) from e
         except requests.exceptions.ConnectionError as e:
             message = f"Connection failed: {e}"
             raise ConnectionException(message, should_retry=True) from e
@@ -357,13 +360,32 @@ _CONNECT_TIMEOUT_ERRORS = (
 
 def _was_not_sent(exception: BaseException) -> bool:
     """Returns True if the exception shows that the request was never sent:
-    the host name could not be resolved, the connection was refused or
-    connecting timed out."""
+    it was raised while connecting to the server or proxy, setting up the
+    proxy tunnel or in the TLS handshake, before any request byte was
+    written."""
     return _caused_by(
         exception,
         _NAME_RESOLUTION_ERRORS
         + (ConnectionRefusedError,)
         + _CONNECT_TIMEOUT_ERRORS,
+    ) or any(
+        frame.f_code.co_name == "connect"
+        and frame.f_globals.get("__name__") == "urllib3.connection"
+        for e in _exception_chain(exception)
+        for frame, _ in traceback.walk_tb(e.__traceback__)
+    )
+
+
+def _proxy_refused(exception: BaseException) -> bool:
+    """Returns True if the proxy answered CONNECT with a non-2xx status, or
+    the TLS connection to the proxy failed."""
+    return any(
+        isinstance(e, requests.packages.urllib3.exceptions.SSLError)
+        or (
+            isinstance(e, OSError)
+            and str(e).startswith("Tunnel connection failed:")
+        )
+        for e in _exception_chain(exception)
     )
 
 
@@ -376,20 +398,24 @@ def _body_was_cut_off(exception: BaseException) -> bool:
 def _caused_by(exception: BaseException, types: tuple) -> bool:
     """Returns True if the exception or any exception in its cause chain is
     an instance of one of the given types."""
-    pending: List[Optional[BaseException]] = [exception]
+    return any(isinstance(e, types) for e in _exception_chain(exception))
+
+
+def _exception_chain(exception: BaseException) -> Iterator[BaseException]:
+    """Yields the exception and every exception in its cause chain."""
+    pending: List[object] = [exception]
     seen = set()
     while pending:
         e = pending.pop()
-        if e is None or id(e) in seen:
+        # ssl.SSLError.reason is a string, not an exception.
+        if not isinstance(e, BaseException) or id(e) in seen:
             continue
         seen.add(id(e))
-        if isinstance(e, types):
-            return True
+        yield e
         pending.extend(
             [e.__cause__, e.__context__, getattr(e, "reason", None)]
         )
-        pending.extend(a for a in e.args if isinstance(a, BaseException))
-    return False
+        pending.extend(e.args)
 
 
 @lru_cache(maxsize=4)

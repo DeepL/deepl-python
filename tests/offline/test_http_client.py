@@ -138,11 +138,26 @@ def test_does_not_retry_client_errors(mocked):
     assert len(mocked.calls) == 1
 
 
+def _proxy_error(reason):
+    return requests.exceptions.ProxyError(
+        urllib3.exceptions.MaxRetryError(
+            None,
+            "/",
+            urllib3.exceptions.ProxyError(
+                "Unable to connect to proxy", reason
+            ),
+        )
+    )
+
+
 @pytest.mark.parametrize(
     "error",
     [
         requests.exceptions.SSLError("certificate verify failed"),
-        requests.exceptions.ProxyError("Tunnel connection failed: 407"),
+        _proxy_error(
+            OSError("Tunnel connection failed: 407 Proxy Authentication")
+        ),
+        _proxy_error(urllib3.exceptions.SSLError("wrong version number")),
     ],
 )
 def test_does_not_retry_tls_or_proxy_failure(mocked, error):
@@ -155,17 +170,11 @@ def test_does_not_retry_tls_or_proxy_failure(mocked, error):
     assert len(mocked.calls) == 1
 
 
-def test_does_not_retry_a_failure_to_connect_to_the_proxy(mocked):
+def test_retries_a_failure_to_connect_to_the_proxy(mocked):
     refused = urllib3.exceptions.NewConnectionError(None, "refused")
-    mocked.get(
-        url("v2/usage"),
-        body=requests.exceptions.ProxyError(
-            "Unable to connect to proxy", refused
-        ),
-    )
+    mocked.get(url("v2/usage"), body=_proxy_error(refused))
+    mocked.get(url("v2/usage"), json=USAGE_JSON)
 
-    with pytest.raises(deepl.ConnectionException) as exc_info:
-        make_deepl_client().get_usage()
+    make_deepl_client().get_usage()
 
-    assert not exc_info.value.should_retry
-    assert len(mocked.calls) == 1
+    assert len(mocked.calls) == 2
