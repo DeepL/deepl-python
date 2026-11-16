@@ -99,6 +99,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `update_multilingual_glossary_dictionary()` and
   `replace_multilingual_glossary_dictionary()` raise `ValueError` if the TSV
   string holds no entries.
+- **Breaking:** `update_multilingual_glossary_dictionary()` and
+  `replace_multilingual_glossary_dictionary()` no longer check `dictionary`
+  for `None`. `None` raises Python's own `AttributeError`, still before any
+  request, instead of `ValueError: glossary entries must not be empty`.
 - **Breaking:** a connection that breaks off while a streamed response body
   is read (`translate_document_download()`,
   `download_translation_memory_export()` and the error body of a streamed

@@ -1792,7 +1792,7 @@ class DeepLClient(BaseClient):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        if not dictionary or not self._has_entries(dictionary):
+        if not self._has_entries(dictionary):
             raise ValueError("glossary entries must not be empty")
 
         return self._update_multilingual_glossary(
@@ -1917,7 +1917,7 @@ class DeepLClient(BaseClient):
         :raises DeepLException: If source and target language pair are not
             supported for glossaries.
         """
-        if not dictionary or not self._has_entries(dictionary):
+        if not self._has_entries(dictionary):
             raise ValueError("glossary entries must not be empty")
 
         return self._replace_multilingual_glossary_dictionary(
