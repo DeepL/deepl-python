@@ -40,6 +40,8 @@ def test_sends_text_without_optional_fields(mocked):
             {"writing_style": "casual", "tone": "confident"},
         ),
         ({"writing_style": "business"}, {"writing_style": "business"}),
+        ({"writing_style": ""}, {"writing_style": ""}),
+        ({"tone": ""}, {"tone": ""}),
         (
             {
                 "writing_style": WritingStyle.PREFER_BUSINESS,

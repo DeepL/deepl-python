@@ -240,6 +240,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parser, which raises Python's own `TypeError` for a non-iterable. Before, a
   result that was neither `str` nor `bytes` raised
   `ValueError: Entries of the glossary are invalid`.
+- **Breaking:** `DeepLClient.rephrase_text()` sends `writing_style` and
+  `tone` whenever they are not `None`, an empty string included, as every
+  other option; an empty string was silently dropped before. Migration: pass
+  `None` to leave them unset.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

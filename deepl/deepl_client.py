@@ -1507,9 +1507,9 @@ class DeepLClient(BaseClient):
         request_data: dict = {"text": text}
         if target_lang is not None:
             request_data["target_lang"] = str(target_lang)
-        if writing_style:
+        if writing_style is not None:
             request_data["writing_style"] = str(writing_style)
-        if tone:
+        if tone is not None:
             request_data["tone"] = str(tone)
         util._add_extra_body_parameters(request_data, extra_body_parameters)
 
