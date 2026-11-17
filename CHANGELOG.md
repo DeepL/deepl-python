@@ -247,6 +247,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `send_platform_info=None` sends the platform information in
   the User-Agent, as when the option is omitted; it sent only the library
   version before. Migration: pass `False` to opt out.
+- **Breaking:** `DeepLClient.translate_document_upload()` and
+  `translate_document()` send `output_format` whenever it is not `None`, an
+  empty string included, as every other option; an empty string was silently
+  dropped before. Migration: pass `None` to leave it unset.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

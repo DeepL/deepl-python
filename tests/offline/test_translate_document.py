@@ -272,6 +272,18 @@ def test_sends_all_options_as_form_fields(mocked):
     )
 
 
+def test_sends_empty_output_format(mocked):
+    reply_with_handle(
+        mocked,
+        {"file": ("a.txt", b"hello")},
+        {"target_lang": "DE", "output_format": ""},
+    )
+
+    make_deepl_client().translate_document_upload(
+        b"hello", filename="a.txt", target_lang="DE", output_format=""
+    )
+
+
 @pytest.mark.parametrize(
     "profile",
     [
@@ -704,6 +716,25 @@ def test_sends_output_format_from_different_output_extension(mocked, tmp_path):
     )
     reply_with_status(mocked, "done")
     reply_with_result(mocked, b"%PDF")
+
+    make_deepl_client().translate_document_from_filepath(
+        input_path, output_path, target_lang="DE"
+    )
+
+
+def test_sends_no_output_format_for_output_path_without_extension(
+    mocked, tmp_path
+):
+    input_path = tmp_path / "input.docx"
+    input_path.write_bytes(BINARY_CONTENT)
+    output_path = tmp_path / "output"
+    reply_with_handle(
+        mocked,
+        {"file": ("input.docx", BINARY_CONTENT)},
+        {"target_lang": "DE"},
+    )
+    reply_with_status(mocked, "done")
+    reply_with_result(mocked, BINARY_CONTENT)
 
     make_deepl_client().translate_document_from_filepath(
         input_path, output_path, target_lang="DE"

@@ -715,7 +715,9 @@ class DeepLClient(BaseClient):
         # Determine output_format from output path
         in_ext = pathlib.PurePath(input_path).suffix.lower()
         out_ext = pathlib.PurePath(output_path).suffix.lower()
-        output_format = None if in_ext == out_ext else out_ext[1:]
+        output_format = (
+            None if in_ext == out_ext or not out_ext else out_ext[1:]
+        )
 
         if not pathlib.Path(input_path).exists():
             raise ValueError(f"file does not exist: {input_path}")
@@ -969,7 +971,7 @@ class DeepLClient(BaseClient):
             style_profile=style_profile,
             glossary_requires_source_lang=True,
         )
-        if output_format:
+        if output_format is not None:
             request_data["output_format"] = output_format
         if enable_watermark is not None:
             # Multipart form field: send "true"/"false", not Python's "True".
