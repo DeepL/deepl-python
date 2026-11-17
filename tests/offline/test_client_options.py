@@ -45,6 +45,12 @@ def test_sends_only_library_version_in_user_agent_when_opted_out(mocked):
     make_deepl_client(send_platform_info=False).get_usage()
 
 
+def test_sends_platform_information_when_send_platform_info_is_none(mocked):
+    reply_with_usage(mocked, PLATFORM_USER_AGENT)
+
+    make_deepl_client(send_platform_info=None).get_usage()
+
+
 @pytest.mark.parametrize(
     "kwargs, user_agent",
     [

@@ -93,7 +93,7 @@ class HttpClient:
     def __init__(
         self,
         proxy: Union[Dict, str, None] = None,
-        send_platform_info: bool = True,
+        send_platform_info: Optional[bool] = True,
         verify_ssl: Union[bool, str, None] = None,
         max_retries: Optional[int] = 5,
         timeout_s: Optional[float] = 10.0,
@@ -110,7 +110,9 @@ class HttpClient:
             self._session.proxies.update(proxy)
         if verify_ssl is not None:
             self._session.verify = verify_ssl
-        self._send_platform_info = send_platform_info
+        self._send_platform_info = (
+            True if send_platform_info is None else send_platform_info
+        )
         self._app_info_name: Optional[str] = None
         self._app_info_version: Optional[str] = None
 

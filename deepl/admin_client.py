@@ -40,7 +40,7 @@ class DeepLAdminClient(BaseClient):
     :param send_platform_info: (Optional) boolean that indicates if the client
         library can send basic platform info (python version, OS) to the
         DeepL API. True = send info, False = only send client
-        library version
+        library version. None uses the default (True).
     :param verify_ssl: (Optional) Controls how requests verifies SSL
         certificates. This is passed to the underlying requests session, see
         the requests verify documentation for more information.
@@ -68,7 +68,7 @@ class DeepLAdminClient(BaseClient):
         *,
         server_url: Optional[str] = None,
         proxy: Union[Dict, str, None] = None,
-        send_platform_info: bool = True,
+        send_platform_info: Optional[bool] = True,
         verify_ssl: Union[bool, str, None] = None,
         max_retries: Optional[int] = 5,
         timeout_s: Optional[float] = 10.0,

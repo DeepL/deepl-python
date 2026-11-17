@@ -244,6 +244,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tone` whenever they are not `None`, an empty string included, as every
   other option; an empty string was silently dropped before. Migration: pass
   `None` to leave them unset.
+- **Breaking:** `send_platform_info=None` sends the platform information in
+  the User-Agent, as when the option is omitted; it sent only the library
+  version before. Migration: pass `False` to opt out.
 
 ### Removed
 - Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,

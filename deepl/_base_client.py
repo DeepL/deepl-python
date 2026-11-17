@@ -42,7 +42,7 @@ class BaseClient:
         *,
         server_url: str,
         proxy: Union[Dict, str, None] = None,
-        send_platform_info: bool = True,
+        send_platform_info: Optional[bool] = True,
         verify_ssl: Union[bool, str, None] = None,
         max_retries: Optional[int] = 5,
         timeout_s: Optional[float] = 10.0,
