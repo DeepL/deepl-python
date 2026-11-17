@@ -341,6 +341,17 @@ def test_sends_given_content_type_when_uploading_file(mocked):
     )
 
 
+def test_sends_default_content_type_when_content_type_is_none(mocked):
+    mocked.put(
+        UPLOAD_URL,
+        match=storage_request("application/xml", "<tmx/>"),
+    )
+
+    make_deepl_client().upload_translation_memory_file(
+        UPLOAD_URL, content=b"<tmx/>", content_type=None
+    )
+
+
 def test_raises_when_uploading_file_without_url():
     with pytest.raises(ValueError, match="upload_url must not be empty"):
         make_deepl_client().upload_translation_memory_file("", b"x")

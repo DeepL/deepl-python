@@ -3327,7 +3327,7 @@ class DeepLClient(BaseClient):
         self,
         translation_memory_import: Union[str, TranslationMemoryImport],
         content: Union[BinaryIO, bytes, Any],
-        content_type: str = "application/xml",
+        content_type: Optional[str] = "application/xml",
     ) -> None:
         """Uploads a TMX file to the upload URL of an import job, which starts
         processing.
@@ -3337,7 +3337,8 @@ class DeepLClient(BaseClient):
         :param content: TMX file content as bytes or a file-like object
             opened in binary mode.
         :param content_type: (Optional) MIME type of the file. Must match the
-            content_type declared when the import job was created.
+            content_type declared when the import job was created. None uses
+            the default application/xml.
 
         :raises DeepLException: If the storage URL returns an error status,
             with http_status_code set; should_retry is True for 429 and 5xx.
@@ -3361,7 +3362,11 @@ class DeepLClient(BaseClient):
             "PUT",
             upload_url,
             data=content,
-            headers={"Content-Type": content_type},
+            headers={
+                "Content-Type": (
+                    "application/xml" if content_type is None else content_type
+                )
+            },
         )
         self._raise_for_asset_status(
             status_code, response_content, "uploading translation memory file"

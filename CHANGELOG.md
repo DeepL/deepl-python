@@ -342,6 +342,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   like the client's `timeout_s`. A float was already accepted at runtime.
 - `max_retries=None` and `timeout_s=None` use the defaults (5 retries, 10
   seconds) instead of failing every request with `TypeError`.
+- `DeepLClient.upload_translation_memory_file(content_type=None)` uploads
+  with `application/xml` instead of failing with `DeepLException`.
 
 ## [1.33.0] - 2026-11-02
 TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.
