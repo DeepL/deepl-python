@@ -44,8 +44,8 @@ class BaseClient:
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
-        max_retries: int = 5,
-        timeout_s: float = 10.0,
+        max_retries: Optional[int] = 5,
+        timeout_s: Optional[float] = 10.0,
         headers: Optional[Dict[str, str]] = None,
         app_info: Optional[AppInfo] = None,
     ):

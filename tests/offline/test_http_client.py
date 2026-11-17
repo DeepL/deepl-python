@@ -79,6 +79,25 @@ def test_passes_timeout_option_to_requests(mocked):
     assert mocked.calls[0].request.req_kwargs["timeout"] == 42.0
 
 
+def test_max_retries_none_retries_five_times(mocked, monkeypatch):
+    monkeypatch.setattr(deepl._http_client.time, "sleep", lambda secs: None)
+    for _ in range(5):
+        mocked.get(url("v2/usage"), status=503)
+    mocked.get(url("v2/usage"), json=USAGE_JSON)
+
+    make_deepl_client(max_retries=None).get_usage()
+
+    assert len(mocked.calls) == 6
+
+
+def test_timeout_none_uses_ten_seconds(mocked):
+    mocked.get(url("v2/usage"), json=USAGE_JSON)
+
+    make_deepl_client(timeout_s=None).get_usage()
+
+    assert mocked.calls[0].request.req_kwargs["timeout"] == 10.0
+
+
 def test_raises_connection_exception_for_timeout_without_retries(
     mocked, no_retries
 ):

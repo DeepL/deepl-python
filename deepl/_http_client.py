@@ -95,11 +95,11 @@ class HttpClient:
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
-        max_retries: int = 5,
-        timeout_s: float = 10.0,
+        max_retries: Optional[int] = 5,
+        timeout_s: Optional[float] = 10.0,
     ):
-        self._max_retries = max_retries
-        self._timeout_s = timeout_s
+        self._max_retries = 5 if max_retries is None else max_retries
+        self._timeout_s = 10.0 if timeout_s is None else timeout_s
         self._session = requests.Session()
         if proxy:
             if isinstance(proxy, str):

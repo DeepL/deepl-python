@@ -198,9 +198,9 @@ class DeepLClient(BaseClient):
         the requests verify documentation for more information.
     :param max_retries: (Optional) Maximum number of times a failed request
         is retried, for failures that may be transient (e.g. HTTP 429).
-        Default 5; 0 disables retries.
+        Default 5; 0 disables retries. None uses the default.
     :param timeout_s: (Optional) Minimum timeout in seconds for each attempt
-        of a request. Default 10.0.
+        of a request. Default 10.0; None uses the default.
     :param headers: (Optional) Additional HTTP headers sent with every
         request to the DeepL API. A header replaces the library's header of
         the same name (compared case-insensitively), including User-Agent
@@ -224,8 +224,8 @@ class DeepLClient(BaseClient):
         proxy: Union[Dict, str, None] = None,
         send_platform_info: bool = True,
         verify_ssl: Union[bool, str, None] = None,
-        max_retries: int = 5,
-        timeout_s: float = 10.0,
+        max_retries: Optional[int] = 5,
+        timeout_s: Optional[float] = 10.0,
         headers: Optional[Dict[str, str]] = None,
         app_info: Optional[AppInfo] = None,
     ):
