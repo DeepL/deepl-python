@@ -495,7 +495,7 @@ print(
     f"with {len(my_glossary.dictionaries)} dictionary where "
     f"its language pair is {my_glossary_dict.source_lang}->"
     f"{my_glossary_dict.target_lang} containing "
-    f"{my_glossary.entry_count} entries"
+    f"{my_glossary_dict.entry_count} entries"
 )
 # Example: Created 'My glossary' (559192ed-8e23-...) with 1 dictionary where
 # its language pair is EN->DE containing 2 entries
@@ -566,7 +566,9 @@ for glossary in glossaries:
 #### Listing entries in a stored glossary
 
 The `MultilingualGlossaryInfo` object does not contain the glossary entries, but
-instead only the number of entries in the `entry_count` property.
+instead only the number of entries of each dictionary, in the `entry_count`
+property of its `dictionaries` (for example
+`glossary.dictionaries[0].entry_count`).
 
 To list the entries of one dictionary within a stored glossary, use
 `get_multilingual_glossary_dictionary_entries()` providing either the
