@@ -8,32 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Added the migration guide [Upgrading to 2.0.0](upgrading_to_v2.md), which
   lists the breaking changes since 1.33.0 with before and after examples.
-- `Usage.Detail` is constructed as `Usage.Detail(count, limit)`; the former
+- **Breaking:** `Usage.Detail` is constructed as `Usage.Detail(count, limit)`; the former
   `(json, prefix)` constructor is removed.
 - The library is tested with Python 3.9 to 3.15. Python 3.9 remains the
   minimum supported version.
-- `translate_document_download()` and `download_translation_memory_export()`
+- **Breaking:** `translate_document_download()` and `download_translation_memory_export()`
   require `output_file` and return `None`. They no longer return the
   streaming `requests.Response`; pass a file-like object opened in binary mode
   to receive the downloaded file.
-- The `dictionaries` argument of `create_multilingual_glossary()`, the
+- **Breaking:** The `dictionaries` argument of `create_multilingual_glossary()`, the
   `dictionary` argument of `update_multilingual_glossary_dictionary()` and
   `replace_multilingual_glossary_dictionary()`, the `csv` argument of the
   `*_from_csv()` multilingual glossary functions, the `glossary` argument of
   `get_multilingual_glossary()` and the `content` argument of
   `upload_translation_memory_file()` are required in their type annotations;
-  they are no longer `Optional`.
-- The `max_retries` and `timeout_s` options of `DeepLClient` and
+  they are no longer `Optional`. Pass a value instead of `None`.
+- **Breaking:** The `max_retries` and `timeout_s` options of `DeepLClient` and
   `DeepLAdminClient` default to `5` and `10.0` for each client instead of
   `None`, and no longer accept `None`. Clients no longer read any
   module-level setting; pass the options to every client that needs other
   values.
-- `DeepLClient` no longer extends `Translator`; it extends no public class.
+- **Breaking:** `DeepLClient` no longer extends `Translator`; it extends no public class.
   All functions of `Translator` are now defined on `DeepLClient` with the same
   arguments and behaviour. Code that checks `isinstance(client,
   deepl.Translator)` or annotates clients as `Translator` must use
   `DeepLClient`.
-- `StyleRuleInfo.configured_rules` returns the configured rules as the API
+- **Breaking:** `StyleRuleInfo.configured_rules` returns the configured rules as the API
   sends them: a `dict` mapping category names to dicts of rule names and
   values, the same shape `create_style_rule()` and
   `update_style_rule_configured_rules()` take. Categories the library does
@@ -41,52 +41,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of `None`; `None` still means the response omitted the field.
   Replace attribute access such as `rule.configured_rules.numbers` with
   `rule.configured_rules.get("numbers", {})`.
-- `translate_document()` and `translate_document_from_filepath()` raise
+- **Breaking:** `translate_document()` and `translate_document_from_filepath()` raise
   `DocumentTranslationException` with `document_handle` `None` when the upload
   fails, copying `http_status_code` and `should_retry`; the original
   exception (for example `QuotaExceededException`) is its `__cause__`.
   Catch `DocumentTranslationException` instead of the upload exception.
-- `translate_document_from_filepath()` raises `ValueError` instead of
+- **Breaking:** `translate_document_from_filepath()` raises `ValueError` instead of
   `FileNotFoundError` if the input file does not exist, and
   `DocumentTranslationException` with `document_handle` `None` instead of the
   `OSError` of `open()` if the input or output file cannot be opened.
-- `translate_document_wait_until_done()` raises `DeepLException` with the
+  Catch `ValueError` and `DocumentTranslationException` instead.
+- **Breaking:** `translate_document_wait_until_done()` raises `DeepLException` with the
   API's error message when the translation fails, instead of returning the
   `DocumentStatus` with `ok` `False`. Catch `DeepLException` instead of
   checking `status.ok`.
-- `wait_until_translation_memory_job_done()` raises `DeepLException` with the
+- **Breaking:** `wait_until_translation_memory_job_done()` raises `DeepLException` with the
   API's error message when the job fails or expires, instead of returning
   the job with `ok` `False`. Catch `DeepLException` instead of checking
   `job.ok`.
-- `TranslationMemoryJob.done` and `TranslationMemoryJobResult.done` are
+- **Breaking:** `TranslationMemoryJob.done` and `TranslationMemoryJobResult.done` are
   `True` only for a completed job, as `DocumentStatus.done`; a failed or
   expired job is no longer done. Use `ok` to detect failure.
-- `import_translation_memory_from_filepath()` raises `DeepLException`
+- **Breaking:** `import_translation_memory_from_filepath()` raises `DeepLException`
   instead of the `OSError` of `open()` if the input file cannot be read, and
   `export_translation_memory_to_filepath()` raises `DeepLException` instead
   of `FileNotFoundError`, `IsADirectoryError` or `PermissionError` for an
   unusable output path, and for an `OSError` while writing the file. The
   `OSError`, where there is one, is the `__cause__`. Catch `DeepLException`
   instead of `OSError`.
-- `TranslationMemoryJob.creation_time` and `updated_time` are typed
+- **Breaking:** `TranslationMemoryJob.creation_time` and `updated_time` are typed
   `datetime.datetime`, no longer `Optional`; they are required constructor
   arguments, placed after `results`. A job response without them raises
   `DeepLException`.
-- `StyleRuleInfo.custom_instructions` is typed
+- **Breaking:** `StyleRuleInfo.custom_instructions` is typed
   `Optional[List[CustomInstruction]]` and returns `None` when the response
   omits the field (for example `get_all_style_rules()` without
   `detailed=True`), instead of `[]`. An empty list from the API is returned
   as `[]`. Check for `None` before iterating.
-- `Usage.character` and `Usage.api_key_character` return `None` when the
+- **Breaking:** `Usage.character` and `Usage.api_key_character` return `None` when the
   response does not contain both the count and the limit of that usage type,
   instead of a `Usage.Detail` with `count` and `limit` `None`.
-  `Usage.Detail.count` and `limit` are typed `int`.
-- `delete_multilingual_glossary_dictionary()` takes
+  `Usage.Detail.count` and `limit` are typed `int`. Replace
+  `usage.character.valid` with `usage.character is not None`.
+- **Breaking:** `delete_multilingual_glossary_dictionary()` takes
   `(glossary, source_lang, target_lang)`; the `dictionary` argument is
   keyword-only. Replace `delete_multilingual_glossary_dictionary(glossary,
   dictionary)` with `delete_multilingual_glossary_dictionary(glossary,
   dictionary=dictionary)` or pass the language pair.
-- `MultilingualGlossaryDictionaryEntries.entries` read from the API (by
+- **Breaking:** `MultilingualGlossaryDictionaryEntries.entries` read from the API (by
   `get_multilingual_glossary_dictionary_entries()`) is a `dict` of source to
   target terms, as its type annotation says, instead of the TSV string the
   API returns. Remove calls of `convert_tsv_to_dict()` on it.
@@ -218,21 +220,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   custom instruction response without `id` raises `DeepLException`.
   `CustomInstruction` is only returned by the API, which always sets `id`;
   code that builds `CustomInstruction` objects must pass `id=`.
-- The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
+- **Breaking:** The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
   a `proxy` URL has no host or a scheme other than `http`, `https`, `socks4`,
   `socks4a`, `socks5` or `socks5h`, instead of failing on the first request.
   A proxy URL without a scheme is still used as an `http://` URL.
+  Catch `ValueError` from the constructor, or pass a valid proxy URL.
 - **Breaking:** the `DeepLClient` and `DeepLAdminClient` constructors no
   longer check the type of `proxy`. A value that is neither a string nor a
   dictionary raises Python's own error (`AttributeError` for a list) instead
   of `ValueError`.
-- The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
+- **Breaking:** The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
   `server_url` is not an absolute `http` or `https` URL with a host, instead
-  of failing on the first request with `DeepLException`.
-- `update_multilingual_glossary_dictionary_from_csv()` and
+  of failing on the first request with `DeepLException`. Catch `ValueError`
+  from the constructor, or pass a valid server URL.
+- **Breaking:** `update_multilingual_glossary_dictionary_from_csv()` and
   `replace_multilingual_glossary_dictionary_from_csv()` raise `ValueError` if
   the CSV content is empty, before any request is sent, as the variants
-  taking a dictionary do. Before, an empty dictionary was sent.
+  taking a dictionary do. Before, an empty dictionary was sent. Pass CSV
+  content with at least one entry.
 - **Breaking:** `create_glossary_from_csv()` and the multilingual glossary
   `*_from_csv()` functions no longer check the type of what a file-like
   `csv_data` / `csv` returns from `read()`. `create_glossary_from_csv()` sends
@@ -253,70 +258,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dropped before. Migration: pass `None` to leave it unset.
 
 ### Removed
-- Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,
+- **Breaking:** Removed `Usage.any_limit_reached`; use `Usage.any_character_limit_reached`,
   which is `True` if `character` or `api_key_character` has reached its limit.
   Like before, the speech minutes are not considered.
-- Removed `Usage.document` and `Usage.team_document`; the API no longer
+- **Breaking:** Removed `Usage.document` and `Usage.team_document`; the API no longer
   returns document usage. `document_*` and `team_document_*` fields in a usage
-  response are ignored.
-- Removed `Usage.Detail.valid`. Absent usage types are now `None`; check
+  response are ignored. Remove code that reads them.
+- **Breaking:** Removed `Usage.Detail.valid`. Absent usage types are now `None`; check
   `detail is not None` instead.
-- Removed the `ConfiguredRules` class of `deepl.api_data`.
+- **Breaking:** Removed the `ConfiguredRules` class of `deepl.api_data`.
   `StyleRuleInfo.configured_rules` now returns a plain `dict`; code that
   imported or constructed `ConfiguredRules` must use a `dict` instead.
-- Removed the deprecated `Translator` class; use `DeepLClient`, which
+- **Breaking:** Removed the deprecated `Translator` class; use `DeepLClient`, which
   supports all of its functions with the same constructor arguments. Replace
   `deepl.Translator(...)` with `deepl.DeepLClient(...)`.
-- Removed the module `deepl.translator`. Import the classes it provided from
+- **Breaking:** Removed the module `deepl.translator`. Import the classes it provided from
   `deepl` instead: the exceptions (`AuthorizationException`,
   `DocumentNotReadyException`, `QuotaExceededException`,
   `TooManyRequestsException`, ...) from `deepl` or
   `deepl.exceptions`, and the result and option types (`TextResult`,
   `DocumentHandle`, `Usage`, `Formality`, ...) from `deepl` or
   `deepl.api_data`.
-- Removed the public module `deepl.http_client`; it is now the internal
+- **Breaking:** Removed the public module `deepl.http_client`; it is now the internal
   `deepl._http_client`. Code that used `HttpClient`, `read_response_text()` or
   `iter_response_content()` from it must use the client classes instead.
-- Removed the module-level settings `deepl.http_client.max_network_retries`,
+- **Breaking:** Removed the module-level settings `deepl.http_client.max_network_retries`,
   `deepl.http_client.min_connection_timeout` and
   `deepl.http_client.user_agent`. Use the `max_retries` and `timeout_s` client
   options, and a `User-Agent` entry in the `headers` client option.
-- Removed the language code constants of `Language` (`Language.GERMAN`,
+- **Breaking:** Removed the language code constants of `Language` (`Language.GERMAN`,
   `Language.ENGLISH_AMERICAN`, ...). Pass language codes as strings, for
   example `"de"`, or use the codes returned by `get_source_languages()` and
   `get_target_languages()`.
-- Removed `translate_text_with_glossary()`. Call `translate_text()` with the
+- **Breaking:** Removed `translate_text_with_glossary()`. Call `translate_text()` with the
   `glossary` argument and the glossary's `source_lang` and `target_lang`; for
   an `EN` glossary pass `target_lang="EN-GB"` or `"EN-US"`.
-- Removed `get_multilingual_glossary_entries()`. Use
+- **Breaking:** Removed `get_multilingual_glossary_entries()`. Use
   `get_multilingual_glossary_dictionary_entries()`, which returns the
   `MultilingualGlossaryDictionaryEntries` directly instead of a
   `MultilingualGlossaryDictionaryEntriesResponse`.
-- Removed the deprecated keyword names of the multilingual glossary
+- **Breaking:** Removed the deprecated keyword names of the multilingual glossary
   functions: use `dictionaries` instead of `glossary_dicts`, `dictionary`
   instead of `glossary_dict`, `csv` instead of `csv_data` and `glossary`
   instead of `glossary_id`.
-- Removed the `input_file` keyword of `upload_translation_memory_file()`; use
+- **Breaking:** Removed the `input_file` keyword of `upload_translation_memory_file()`; use
   `content`.
-- Removed the `style` keyword of `rephrase_text()`; use `writing_style`.
-- Removed the `skip_language_check` argument of `DeepLClient()`, and the
+- **Breaking:** Removed the `style` keyword of `rephrase_text()`; use `writing_style`.
+- **Breaking:** Removed the `skip_language_check` argument of `DeepLClient()`, and the
   `skip_cache` argument of `get_source_languages()` and
   `get_target_languages()`. Both had no effect; delete them from calls.
-- Removed `auth_key_is_free_account()`; use `is_free_account_auth_key()`,
+- **Breaking:** Removed `auth_key_is_free_account()`; use `is_free_account_auth_key()`,
   which also ignores leading and trailing whitespace of the key.
-- Removed `Usage.Detail.limit_exceeded` and `Usage.any_limit_exceeded`; use
+- **Breaking:** Removed `Usage.Detail.limit_exceeded` and `Usage.any_limit_exceeded`; use
   `limit_reached` and `any_character_limit_reached`.
-- Removed `SplitSentences.DEFAULT`; use `SplitSentences.ALL`, which it was an
+- **Breaking:** Removed `SplitSentences.DEFAULT`; use `SplitSentences.ALL`, which it was an
   alias of.
-- Removed `DocumentTranslationException.document_request`; use
+- **Breaking:** Removed `DocumentTranslationException.document_request`; use
   `document_handle`.
-- Removed `DocumentStatus.Status.DOWNLOADED`, which is not a status the API
+- **Breaking:** Removed `DocumentStatus.Status.DOWNLOADED`, which is not a status the API
   returns. A `downloaded` status from the API would be kept as the string
-  `"downloaded"`, like any status this version does not know.
-- Removed `TranslationMemoryJobResult.STATUS_DOWNLOADED`, which is not a job
+  `"downloaded"`, like any status this version does not know. Remove
+  comparisons with it.
+- **Breaking:** Removed `TranslationMemoryJobResult.STATUS_DOWNLOADED`, which is not a job
   status the API returns. A `downloaded` status from the API is kept as the
   string `"downloaded"` and no longer counts as done, so
-  `wait_until_translation_memory_job_done()` keeps polling on it.
+  `wait_until_translation_memory_job_done()` keeps polling on it. Remove
+  comparisons with it.
 - **Breaking:** Removed the deprecated `GlossaryNotFoundException`. Every
   glossary function raises `NotFoundException` for HTTP 404, with the message
   `Not found` instead of `Glossary not found`, and
