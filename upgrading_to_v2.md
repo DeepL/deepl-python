@@ -102,9 +102,9 @@ client = deepl.DeepLClient(
 )
 ```
 
-`max_retries` and `timeout_s` default to `5` and `10.0` for every client and no
-longer accept `None`. Clients no longer read any module-level setting, so pass
-the options to every client that needs other values.
+`max_retries` and `timeout_s` default to `5` and `10.0` for every client;
+`None` also selects these defaults. Clients no longer read any module-level
+setting, so pass the options to every client that needs other values.
 
 ### Removed arguments without effect
 
@@ -120,6 +120,16 @@ is called with a `proxy` URL that has no host or a scheme other than `http`,
 that is not an absolute `http` or `https` URL with a host. Before, the first
 request failed. A proxy URL without a scheme is still used as `http://`.
 
+The type of `proxy` is no longer checked: a value that is neither a string nor
+a dictionary raises Python's own error (`AttributeError` for a list) instead of
+`ValueError`.
+
+### `send_platform_info=None`
+
+`send_platform_info=None` sends the platform information in the User-Agent, as
+when the option is omitted. Before, it sent only the library version. Pass
+`False` to opt out.
+
 ### Free account check
 
 `auth_key_is_free_account()` (in `deepl` and `deepl.util`) is removed. Use
@@ -134,6 +144,13 @@ whitespace.
 - `translate_text()`, `rephrase_text()` and `correct_text()` raise
   `ValueError` for an empty string in a list of texts (see [Errors,
   validation and retries](#errors-validation-and-retries)).
+- `translate_text()`, `rephrase_text()` and `correct_text()` no longer check
+  the type of `text`. A value that is neither a string nor iterable raises
+  Python's own `TypeError` from `list()` instead of `TypeError: text parameter
+  must be a string or an iterable of strings`.
+- `rephrase_text()` sends `writing_style` and `tone` whenever they are not
+  `None`. An empty string was silently dropped before; pass `None` to leave
+  them unset.
 
 ```python
 # Before
@@ -198,6 +215,16 @@ except deepl.DeepLException as error:
 - `DocumentStatus.Status.DOWNLOADED` is removed. The API does not return it; an
   unknown status is kept as a string.
 
+### `translate_document_upload()` and `translate_document()`
+
+- The given `filename` is sent as the upload's file name for a file object
+  too. Before, it was used only for `str` or `bytes` content, and a file object
+  was sent under its own name, or as `file` if it had none. The API detects the
+  input format from the file name's extension. Without `filename`, a file
+  object is still sent under its own name.
+- `output_format` is sent whenever it is not `None`. An empty string was
+  silently dropped before; pass `None` to leave it unset.
+
 ## Glossaries
 
 ### Removed functions
@@ -223,6 +250,8 @@ client.translate_text(
 `get_multilingual_glossary_dictionary_entries()`, which returns the
 `MultilingualGlossaryDictionaryEntries` directly. Its `entries` is a `dict`,
 not a TSV string, so remove calls to `convert_tsv_to_dict()` on it.
+`MultilingualGlossaryDictionaryEntriesResponse`, the return type of the
+removed function, is removed too.
 
 ```python
 # Before
@@ -290,6 +319,17 @@ except deepl.NotFoundException:
 - Multilingual glossary functions accept dictionaries read from the API, and a
   `MultilingualGlossaryDictionaryEntries` whose `entries` is a TSV string; they
   no longer raise `AttributeError`.
+- `update_multilingual_glossary_dictionary()` and
+  `replace_multilingual_glossary_dictionary()` no longer check `dictionary` for
+  `None`. `None` raises Python's own `AttributeError`, still before any
+  request, instead of `TypeError: ... missing required argument: dictionary`.
+- `create_glossary_from_csv()` and the multilingual glossary `*_from_csv()`
+  functions no longer check the type of what a file-like `csv_data` / `csv`
+  returns from `read()`. `create_glossary_from_csv()` sends it as the entries,
+  and the multilingual functions pass it to the CSV parser, which raises
+  Python's own `TypeError` for a non-iterable. Before, a result that was
+  neither `str` nor `bytes` raised `ValueError: Entries of the glossary are
+  invalid`.
 
 ## Style rules
 
@@ -378,22 +418,29 @@ if usage.any_character_limit_reached:
 ## Errors, validation and retries
 
 - Functions that create a resource are retried only when the request was not
-  sent: after HTTP 429, a DNS failure, a refused connection or a connect
-  timeout. They are not retried after HTTP 5xx, a read timeout, a reset
+  sent: after HTTP 429 or a network failure while connecting, before any
+  request byte is written, such as a DNS failure, a refused connection, a
+  connect timeout, or a reset or timeout in the TLS or proxy handshake. They are not retried after HTTP 5xx, a read timeout, a reset
   connection or a response body cut off mid-read, because that could create the
   resource twice. This covers the `create_*` glossary, spoken terms, style
   rule, style profile and translation memory import and export functions, the
   document upload of `translate_document*()`, and
   `DeepLAdminClient.create_developer_key()`.
 - For those functions, `should_retry` on the raised exception is `True` only
-  after HTTP 429, a DNS failure, a refused connection, a connect timeout or a
-  body cut off mid-read. After HTTP 5xx, a read timeout, a reset connection or
+  after HTTP 429, a network failure while connecting (see the previous item)
+  or a body cut off mid-read. After HTTP 5xx, a read timeout, a reset connection or
   a broken pipe it is `False`. If you retry yourself, check for duplicates
   first.
 - A connection that breaks while a streamed body is read
   (`translate_document_download()`, `download_translation_memory_export()`)
   raises `ConnectionException` with `should_retry` `True`, not `False`. It is
   still not retried automatically, because `output_file` may be partly written.
+- A failure to connect to the proxy (a DNS failure, a refused connection or a
+  connect timeout) is retried and raises `ConnectionException` with
+  `should_retry` `True`, like the same failure without a proxy. Before, every
+  proxy failure raised `ConnectionException` with `should_retry` `False` at
+  once. An error answer from the proxy to `CONNECT` (such as 407) and a TLS
+  failure with an `https://` proxy are still not retried.
 - These calls raise `ValueError` before sending any request: an empty string in
   a list passed to `translate_text()`, `rephrase_text()` or `correct_text()`;
   an empty `target_lang`, or a given empty `source_lang`; an empty
@@ -402,6 +449,17 @@ if usage.any_character_limit_reached:
   ID in `get_spoken_terms()`, `update_spoken_terms()`, `delete_spoken_terms()`,
   `get_spoken_terms_entries()`, `replace_spoken_terms_list()` and
   `delete_spoken_terms_list()`.
+- `translate_text()`, `translate_document_upload()` and the document functions
+  that call it also raise `ValueError` before any request if `glossary`, an
+  entry of `glossary_ids`, `style_rule`, `style_profile` or
+  `translation_memory` is an empty string or an object with an empty ID.
+  Before, the empty ID was sent to the API.
+- The multilingual glossary functions, the spoken terms functions and the
+  custom instruction functions of style rules (`create_style_rule()`,
+  `create_style_rule_custom_instruction()`,
+  `update_style_rule_custom_instruction()`) raise `ValueError` before any
+  request if a required language is empty, or an optional `source_language`
+  is an empty string. Before, the empty value was sent.
 
 ## Types and signatures
 
@@ -410,7 +468,6 @@ if usage.any_character_limit_reached:
   `upload_translation_memory_file()` are no longer `Optional`.
 - `Usage.Detail(count, limit)` takes two `int` values; the former
   `(json, prefix)` constructor is gone.
-- `max_retries` is `int` and `timeout_s` is `float` on both clients.
 - The `timeout_s` of the document and translation memory wait functions is
   annotated `Optional[float]`; no runtime change.
 - `deepl` now exports all public types of `deepl.api_data`, including
