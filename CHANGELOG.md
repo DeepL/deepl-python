@@ -25,9 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they are no longer `Optional`. Pass a value instead of `None`.
 - **Breaking:** The `max_retries` and `timeout_s` options of `DeepLClient` and
   `DeepLAdminClient` default to `5` and `10.0` for each client instead of
-  `None`, and no longer accept `None`. Clients no longer read any
-  module-level setting; pass the options to every client that needs other
-  values.
+  `None`. Clients no longer read any module-level setting; pass the options
+  to every client that needs other values.
 - **Breaking:** `DeepLClient` no longer extends `Translator`; it extends no public class.
   All functions of `Translator` are now defined on `DeepLClient` with the same
   arguments and behaviour. Code that checks `isinstance(client,
@@ -104,7 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `update_multilingual_glossary_dictionary()` and
   `replace_multilingual_glossary_dictionary()` no longer check `dictionary`
   for `None`. `None` raises Python's own `AttributeError`, still before any
-  request, instead of `ValueError: glossary entries must not be empty`.
+  request, instead of `TypeError: ... missing required argument:
+  dictionary`.
 - **Breaking:** a connection that breaks off while a streamed response body
   is read (`translate_document_download()`,
   `download_translation_memory_export()` and the error body of a streamed
