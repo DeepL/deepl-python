@@ -16,7 +16,7 @@ import http
 import http.client
 import json as json_module
 import requests  # type: ignore
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, TypeVar, Union
 import urllib.parse
 
 
@@ -24,6 +24,8 @@ import urllib.parse
 _TECHNICAL_HEADERS = frozenset(
     ["content-type", "content-length", "transfer-encoding", "host"]
 )
+
+_ClientT = TypeVar("_ClientT", bound="BaseClient")
 
 
 class BaseClient:
@@ -248,16 +250,18 @@ class BaseClient:
                 http_status_code=status_code,
             )
 
-    def close(self):
+    def close(self) -> None:
         if hasattr(self, "_client"):
             self._client.close()
 
-    def set_app_info(self, app_info_name: str, app_info_version: str):
+    def set_app_info(
+        self: _ClientT, app_info_name: str, app_info_version: str
+    ) -> _ClientT:
         """Identifies your application in the User-Agent header, like the
         app_info constructor option. Returns this client."""
         self._client.set_app_info(app_info_name, app_info_version)
         return self
 
     @property
-    def server_url(self):
+    def server_url(self) -> str:
         return self._server_url

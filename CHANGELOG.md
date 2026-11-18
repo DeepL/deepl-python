@@ -351,6 +351,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seconds) instead of failing every request with `TypeError`.
 - `DeepLClient.upload_translation_memory_file(content_type=None)` uploads
   with `application/xml` instead of failing with `DeepLException`.
+- `close()`, `set_app_info()` and `server_url` of `DeepLClient` and
+  `DeepLAdminClient` have type annotations: `close()` returns `None`,
+  `set_app_info()` returns the client's own type and `server_url` is a `str`.
+  Before, calling `close()` failed `mypy --strict` with `no-untyped-call`, and
+  `set_app_info()` and `server_url` were typed `Any`.
 
 ## [1.33.0] - 2026-11-02
 TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.
