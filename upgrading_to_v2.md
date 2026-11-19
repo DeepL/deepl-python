@@ -458,8 +458,10 @@ if usage.any_character_limit_reached:
   custom instruction functions of style rules (`create_style_rule()`,
   `create_style_rule_custom_instruction()`,
   `update_style_rule_custom_instruction()`) raise `ValueError` before any
-  request if a required language is empty, or an optional `source_language`
-  is an empty string. Before, the empty value was sent.
+  request if a required language of the multilingual glossary or spoken terms
+  functions is empty, or a custom instruction's `source_language` is an empty
+  string. Before, the empty value was sent. `create_style_rule()` already
+  rejected an empty `language`.
 
 ## Types and signatures
 
