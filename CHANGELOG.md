@@ -61,17 +61,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `TranslationMemoryJob.done` and `TranslationMemoryJobResult.done` are
   `True` only for a completed job, as `DocumentStatus.done`; a failed or
   expired job is no longer done. Use `ok` to detect failure.
-- **Breaking:** `import_translation_memory_from_filepath()` raises `DeepLException`
-  instead of the `OSError` of `open()` if the input file cannot be read, and
-  `export_translation_memory_to_filepath()` raises `DeepLException` instead
-  of `FileNotFoundError`, `IsADirectoryError` or `PermissionError` for an
-  unusable output path, and for an `OSError` while writing the file. The
-  `OSError`, where there is one, is the `__cause__`. Catch `DeepLException`
-  instead of `OSError`.
+- **Breaking:** `import_translation_memory_from_filepath()` and
+  `export_translation_memory_to_filepath()` no longer raise `OSError`,
+  `FileNotFoundError`, `IsADirectoryError` or `PermissionError`; see the
+  `TranslationMemoryJobException` entry below.
 - **Breaking:** `TranslationMemoryJob.creation_time` and `updated_time` are typed
   `datetime.datetime`, no longer `Optional`; they are required constructor
   arguments, placed after `results`. A job response without them raises
-  `DeepLException`.
+  `DeepLException`. Code that constructs a `TranslationMemoryJob` must pass
+  both.
 - **Breaking:** `StyleRuleInfo.custom_instructions` is typed
   `Optional[List[CustomInstruction]]` and returns `None` when the response
   omits the field (for example `get_all_style_rules()` without
@@ -79,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as `[]`. Check for `None` before iterating.
 - **Breaking:** `Usage.character` and `Usage.api_key_character` return `None` when the
   response does not contain both the count and the limit of that usage type,
-  instead of a `Usage.Detail` with `count` and `limit` `None`.
+  instead of a `Usage.Detail` whose missing `count` or `limit` is `None`.
   `Usage.Detail.count` and `limit` are typed `int`. Replace
   `usage.character.valid` with `usage.character is not None`.
 - **Breaking:** `delete_multilingual_glossary_dictionary()` takes
@@ -91,26 +89,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `get_multilingual_glossary_dictionary_entries()`) is a `dict` of source to
   target terms, as its type annotation says, instead of the TSV string the
   API returns. Remove calls of `convert_tsv_to_dict()` on it.
-- `create_multilingual_glossary()`, `update_multilingual_glossary()`,
-  `update_multilingual_glossary_dictionary()` and
-  `replace_multilingual_glossary_dictionary()` accept a dictionary read from
-  the API, and a `MultilingualGlossaryDictionaryEntries` whose `entries` is a
-  TSV string, which is trimmed and validated like a `dict`; they no longer
-  raise `AttributeError`. `create_multilingual_glossary()`,
-  `update_multilingual_glossary_dictionary()` and
-  `replace_multilingual_glossary_dictionary()` raise `ValueError` if the TSV
-  string holds no entries.
 - **Breaking:** `update_multilingual_glossary_dictionary()` and
   `replace_multilingual_glossary_dictionary()` no longer check `dictionary`
   for `None`. `None` raises Python's own `AttributeError`, still before any
   request, instead of `TypeError: ... missing required argument:
-  dictionary`.
+  dictionary`. Pass a dictionary, not `None`.
 - **Breaking:** a connection that breaks off while a streamed response body
   is read (`translate_document_download()`,
   `download_translation_memory_export()` and the error body of a streamed
   request) raises `ConnectionException` with `should_retry` `True` instead of
   `False`. The download is still not retried automatically, because part of
-  the file may already be written to `output_file`.
+  the file may already be written to `output_file`. If you retry, truncate or
+  reopen `output_file` first.
 - **Breaking:** functions that create a resource are only retried when the
   request was not sent: after HTTP 429 or a network failure while connecting,
   before any request byte is written, such as a DNS resolution failure, a
@@ -127,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `translate_document_from_filepath()`, and the job creation of
   `import_translation_memory_from_filepath()` and
   `export_translation_memory_to_filepath()`. The error raised after the first
-  failure is described in the next entry.
+  failure is described in the next entry. If you retry yourself, check for a
+  duplicate resource first.
 - **Breaking:** the exception raised by a function that creates a resource (the
   functions listed above and `DeepLAdminClient.create_developer_key()`) has
   `should_retry` `True` only after HTTP 429, a network failure while connecting
@@ -135,7 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a read timeout, a reset connection or a broken pipe it is `False` instead of
   `True`, because repeating the request could create a duplicate.
   `DocumentTranslationException` from a failed document upload copies this
-  value.
+  value. If you retry yourself, check for a duplicate resource first.
 - **Breaking:** a failure to connect to the proxy (a DNS resolution failure, a
   refused connection or a connect timeout) is retried and raises
   `ConnectionException` with `should_retry` `True`, like the same failure
@@ -146,23 +137,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `DeepLAdminClient.create_developer_key()` is now also retried after a failure
   to connect to the proxy and after a reset or timeout in the proxy tunnel or
   the TLS handshake, before the request is written; the other functions that
-  create a resource retry them from this release on.
+  create a resource retry them from this release on. Pass `max_retries=0` to
+  fail at once.
 - **Breaking:** `translate_text()`, `rephrase_text()` and `correct_text()`
   raise `ValueError` if a list of texts contains an empty string, before any
-  request is sent. Before, only a single empty string was rejected.
+  request is sent. Before, only a single empty string was rejected. Remove
+  empty strings from the list before the call.
 - **Breaking:** `translate_text()`, `rephrase_text()` and `correct_text()` no
   longer check the type of `text`. A value that is neither a string nor
   iterable raises Python's own `TypeError` from `list()` (for example "'int'
   object is not iterable"), still before any request, instead of
-  `TypeError: text parameter must be a string or an iterable of strings`.
+  `TypeError: text parameter must be a string or an iterable of strings`. Pass
+  a string or a list of strings, and do not match the error message.
 - **Breaking:** `translate_text()`, `translate_document_upload()` and the
   document functions that call it raise `ValueError` if `target_lang` or a
-  given `source_lang` is an empty string, before any request is sent.
+  given `source_lang` is an empty string, before any request is sent. Pass a
+  language code, or `None` as `source_lang` to detect the language.
 - **Breaking:** `translate_text()`, `translate_document_upload()` and the
   document functions that call it raise `ValueError` if `glossary`, an entry
   of `glossary_ids`, `style_rule`, `style_profile` or `translation_memory` is
   an empty string or an object with an empty ID, before any request is sent.
-  Before, the empty ID was sent to the API.
+  Before, the empty ID was sent to the API. Pass `None` to use no glossary,
+  style rule, style profile or translation memory.
 - **Breaking:** the multilingual glossary functions
   (`create_multilingual_glossary()`, `update_multilingual_glossary()`, the
   dictionary update, replace, get-entries and delete functions and their
@@ -172,8 +168,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `delete_spoken_terms_list()`) and the custom instruction functions of style
   rules (`create_style_rule()`, `create_style_rule_custom_instruction()`,
   `update_style_rule_custom_instruction()`) raise `ValueError` before any
-  request if a required language is empty, or an optional `source_language`
-  is an empty string. Before, the empty value was sent.
+  request if a required language of the multilingual glossary or spoken terms
+  functions is empty, or a custom instruction's `source_language` is an empty
+  string. Before, the empty value was sent. Pass a language code, or `None` to
+  leave `source_language` unset.
 - **Breaking:** `rephrase_text()` and `correct_text()` raise `ValueError` if
   `target_lang` is an empty string, before any request is sent, instead of
   leaving it out of the request. To keep the input language, pass `None` or
@@ -182,17 +180,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   raise `DocumentTranslationException` with `document_handle` `None` for
   invalid arguments, including a missing `target_lang`, with the `ValueError`
   or `TypeError` as its `__cause__`, instead of raising it unwrapped. A missing
-  input file of `translate_document_from_filepath()` still raises
-  `ValueError`.
+  input file of `translate_document_from_filepath()` raises `ValueError`
+  unwrapped, not `DocumentTranslationException`. Catch
+  `DocumentTranslationException` and read the error from its `__cause__`.
 - **Breaking:** `translate_document_from_filepath()` raises
   `DocumentTranslationException` with `document_handle` `None` before any
   request if `output_path` already exists, instead of overwriting the file.
+  Delete the file first to replace it.
 - **Breaking:** `translate_document_upload()` and `translate_document()` send
   the given `filename` as the upload's file name for a file object too.
   Before, `filename` was used only for `str` or `bytes` content, and a file
   object was sent under its own name, or as `file` if it had none. The API
   detects the input format from the file name's extension. Without
-  `filename`, a file object is still sent under its own name.
+  `filename`, a file object is still sent under its own name. Omit `filename`
+  to keep the file object's name.
 - **Breaking:** `import_translation_memory_from_filepath()` and
   `export_translation_memory_to_filepath()` raise the new
   `TranslationMemoryJobException` (a `DeepLException` subclass) for every
@@ -205,16 +206,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   underlying exception.
 - **Breaking:** `export_translation_memory_to_filepath()` raises
   `TranslationMemoryJobException` before creating the export job if
-  `output_path` already exists, instead of overwriting the file.
+  `output_path` already exists, instead of overwriting the file. Delete the
+  file first to replace it.
 - **Breaking:** `download_translation_memory_export()` raises
   `DeepLException` instead of `ValueError` if the job has no download URL.
+  Catch `DeepLException` instead of `ValueError`.
 - **Breaking:** `create_multilingual_glossary()` raises `ValueError` if
-  `dictionaries` is empty, before any request is sent.
+  `dictionaries` is empty, before any request is sent. Pass at least one
+  dictionary.
 - **Breaking:** `get_spoken_terms()`, `update_spoken_terms()`,
   `delete_spoken_terms()`, `get_spoken_terms_entries()`,
   `replace_spoken_terms_list()` and `delete_spoken_terms_list()` raise
   `ValueError` if `spoken_terms` is an empty ID or a `SpokenTerms` without an
-  ID, before any request is sent.
+  ID, before any request is sent. Pass the ID of the spoken terms list or a
+  `SpokenTerms` read from the API.
 - **Breaking:** `CustomInstruction.id` is typed `str`, no longer
   `Optional[str]`, and is a required keyword-only constructor argument. A
   custom instruction response without `id` raises `DeepLException`.
@@ -228,7 +233,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** the `DeepLClient` and `DeepLAdminClient` constructors no
   longer check the type of `proxy`. A value that is neither a string nor a
   dictionary raises Python's own error (`AttributeError` for a list) instead
-  of `ValueError`.
+  of `ValueError`. Pass the proxy as a string or a dictionary.
 - **Breaking:** The `DeepLClient` and `DeepLAdminClient` constructors raise `ValueError` if
   `server_url` is not an absolute `http` or `https` URL with a host, instead
   of failing on the first request with `DeepLException`. Catch `ValueError`
@@ -244,7 +249,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it as the entries, and the multilingual functions pass it to the CSV
   parser, which raises Python's own `TypeError` for a non-iterable. Before, a
   result that was neither `str` nor `bytes` raised
-  `ValueError: Entries of the glossary are invalid`.
+  `ValueError: Entries of the glossary are invalid`. Make `read()` return
+  `str` or `bytes`.
 - **Breaking:** `DeepLClient.rephrase_text()` sends `writing_style` and
   `tone` whenever they are not `None`, an empty string included, as every
   other option; an empty string was silently dropped before. Migration: pass
@@ -354,6 +360,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `set_app_info()` returns the client's own type and `server_url` is a `str`.
   Before, calling `close()` failed `mypy --strict` with `no-untyped-call`, and
   `set_app_info()` and `server_url` were typed `Any`.
+- `create_multilingual_glossary()`, `update_multilingual_glossary()`,
+  `update_multilingual_glossary_dictionary()` and
+  `replace_multilingual_glossary_dictionary()` accept a dictionary read from
+  the API, and a `MultilingualGlossaryDictionaryEntries` whose `entries` is a
+  TSV string, which is trimmed and validated like a `dict`; they no longer
+  raise `AttributeError`. `create_multilingual_glossary()`,
+  `update_multilingual_glossary_dictionary()` and
+  `replace_multilingual_glossary_dictionary()` raise `ValueError` if the TSV
+  string holds no entries.
 
 ## [1.33.0] - 2026-11-02
 TL;DR: new APIs in this release: the Admin API, spoken terms and style profiles.
