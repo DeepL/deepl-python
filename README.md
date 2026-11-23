@@ -50,7 +50,7 @@ The library supports Python 3.9 and later, and is tested with Python versions
 3.9 to 3.15.
 
 The `requests` module is used to perform HTTP requests; the minimum is version
-2.32.4.
+2.32.5.
 
 We periodically drop support for older Python versions that have
 reached official end-of-life. You can find the Python versions and support
