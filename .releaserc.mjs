@@ -90,6 +90,10 @@ export default {
         message: "chore(release): ${nextRelease.version}\n\n${nextRelease.notes}",
       },
     ],
-    ["@semantic-release/gitlab", { gitlabUrl: "https://gitlab.com" }],
+    [
+      "@semantic-release/gitlab",
+      // No "released in" comment on every merged MR: they flood the API (HTTP 429).
+      { gitlabUrl: "https://gitlab.com", successCommentCondition: false },
+    ],
   ],
 };
