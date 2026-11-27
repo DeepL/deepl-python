@@ -919,7 +919,7 @@ Read Changed and Deprecated before upgrading; no public API is removed in this r
 ### Fixed
 - Fixed typechecking errors when using `mypy`'s `strict` mode
   * Thanks to [derlikh-smart](https://github.com/derlikh-smart) and [vad](https://github.com/vad)
-    for the report in [#82](https://github.com/DeepLcom/deepl-python/issues/82)
+    for the report in [#82](https://github.com/DeepL/deepl-python/issues/82)
 
 ## [1.16.1] - 2023-11-07
 ### Fixed
@@ -944,7 +944,7 @@ Read Changed and Deprecated before upgrading; no public API is removed in this r
 ## [1.15.0] - 2023-06-09
 ### Fixed
 - Removed `CHANGELOG.md` and `SECURITY.md` from the python package. The `LICENSE` file is no longer installed, but still included in package tarball and wheel files.
-  * Thanks to [TurtleWilly](https://github.com/TurtleWilly) for the report in [#66](https://github.com/DeepLcom/deepl-python/issues/66).
+  * Thanks to [TurtleWilly](https://github.com/TurtleWilly) for the report in [#66](https://github.com/DeepL/deepl-python/issues/66).
 - Fix a dependency error in our CI by updating to a higher poetry version in most cases.
 - Fix getUsage request to be a HTTP GET request, not POST.
 - Change document translation to poll the server every 5 seconds. This should greatly reduce observed document translation processing time.
@@ -956,7 +956,7 @@ Read Changed and Deprecated before upgrading; no public API is removed in this r
 - Added method for applications that use this library to identify themselves in API requests they make.
 - Added `verify_ssl` option to `Translator` to control underlying `requests` session.
   * Thanks to [andrefloriani](https://github.com/andrefloriani) for the
-    suggestion in [#60](https://github.com/DeepLcom/deepl-python/issues/60).
+    suggestion in [#60](https://github.com/DeepL/deepl-python/issues/60).
 
 ## [1.13.0] - 2023-01-26
 ### Added
@@ -1004,7 +1004,7 @@ Read Changed and Deprecated before upgrading; no public API is removed in this r
 
 ### Changed
 - Add note and workaround to README about Poetry error on Ubuntu 22.04.
-  * Pull request [#48](https://github.com/DeepLcom/deepl-python/pull/48)
+  * Pull request [#48](https://github.com/DeepL/deepl-python/pull/48)
     thanks to [FOehlschlaeger](https://github.com/FOehlschlaeger).
 
 ## [1.9.0] - 2022-07-07
@@ -1016,7 +1016,7 @@ Read Changed and Deprecated before upgrading; no public API is removed in this r
 ### Added
 - Optional `filename` parameter added to `Translator.translate_document()`, only
   required if uploading string or bytes containing file content.
-  * Pull request [#30](https://github.com/DeepLcom/deepl-python/pull/30)
+  * Pull request [#30](https://github.com/DeepL/deepl-python/pull/30)
     thanks to [seratch](https://github.com/seratch).
 
 ### Changed

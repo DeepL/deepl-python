@@ -20,7 +20,7 @@ def get_parser(prog_name):
         description="Translate Mustache templates using the DeepL API "
         "(https://www.deepl.com/docs-api).",
         epilog="If you encounter issues while using this example, please "
-        "report them at https://github.com/DeepLcom/deepl-python/issues",
+        "report them at https://github.com/DeepL/deepl-python/issues",
     )
 
     parser.add_argument(

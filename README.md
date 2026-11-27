@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/deepl.svg)](https://pypi.org/project/deepl/)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/deepl.svg)](https://pypi.org/project/deepl/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blueviolet.svg)](https://github.com/DeepLcom/deepl-python/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blueviolet.svg)](https://github.com/DeepL/deepl-python/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/deepl)](https://pypistats.org/packages/deepl)
 
 The [DeepL API][api-docs] is a language AI API that allows other computer programs
@@ -1813,7 +1813,7 @@ real-API tests make DeepL API requests that contribute toward your API usage.
 
 [create-account]: https://www.deepl.com/pro?utm_source=github&utm_medium=github-python-readme#developer
 
-[issues]: https://www.github.com/DeepLcom/deepl-python/issues
+[issues]: https://github.com/DeepL/deepl-python/issues
 
 [pypi-project]: https://pypi.org/project/deepl/
 

@@ -8,7 +8,7 @@ description = "Python library for the DeepL API."
 authors = ["DeepL SE <python-api@deepl.com>"]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/DeepLcom/deepl-python"
+repository = "https://github.com/DeepL/deepl-python"
 documentation = "https://www.deepl.com/docs-api/"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 [tool.poetry.urls]
-"Bug Tracker" = "https://github.com/DeepLcom/deepl-python/issues"
+"Bug Tracker" = "https://github.com/DeepL/deepl-python/issues"
 
 [tool.coverage.run]
 omit = [".*", "*/site-packages/*", "tests/*"]
